@@ -646,7 +646,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // --- API Xuất toàn bộ dữ liệu ra tệp nén về máy tính (Export All - Tối ưu chống lỗi 502) ---
+  // --- API Xuất toàn bộ dữ liệu ra tệp JSON trực tiếp (Tối ưu tuyệt đối chống lỗi 502) ---
   if (pathname === '/api/backup/export-all' && req.method === 'GET') {
     const adminOfficerId = searchParams.get('adminOfficerId');
     const isAuthorized = isAuthorAuthorizedMachine() || adminOfficerId === 'hoang';
@@ -657,37 +657,25 @@ const server = http.createServer(async (req, res) => {
       let exportData = {
         exportedAt: new Date().toISOString(),
         author: AUTHOR_INFO.author,
-        officers_config: {},
-        auth_passwords: {},
+        officers_config: await getOfficersConfig(),
+        auth_passwords: await getAuthPasswords(),
         sessions: {}
       };
       
       if (kpiDb) {
-        try {
-          exportData.officers_config = await getOfficersConfig();
-          exportData.auth_passwords = await getAuthPasswords();
-          // Giới hạn 200 bản ghi để chống timeout/lỗi 502 trên Render
-          const sessionDocs = await kpiDb.collection('sessions').find({}).limit(200).toArray();
-          if (sessionDocs && Array.isArray(sessionDocs)) {
-            sessionDocs.forEach(doc => {
-              if (doc.filename && doc.data) {
-                exportData.sessions[doc.filename] = doc.data;
-              }
-            });
+        const sessionDocs = await kpiDb.collection('sessions').find({}).toArray();
+        sessionDocs.forEach(doc => {
+          if (doc.filename && doc.data) {
+            exportData.sessions[doc.filename] = doc.data;
           }
-        } catch (dbErr) {
-          console.error("Lỗi truy vấn MongoDB khi export:", dbErr);
-        }
+        });
       }
 
-      const jsonStr = JSON.stringify(exportData);
-      const gzipped = zlib.gzipSync(Buffer.from(jsonStr, 'utf8'));
       res.writeHead(200, {
-        'Content-Type': 'application/gzip',
-        'Content-Disposition': `attachment; filename="KPI_PhongKTNN_Backup_${new Date().toISOString().slice(0,10)}.kpi"`,
-        'Content-Length': gzipped.length
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Disposition': `attachment; filename="KPI_PhongKTNN_Backup_${new Date().toISOString().slice(0,10)}.json"`
       });
-      return res.end(gzipped);
+      return res.end(JSON.stringify(exportData));
     } catch(err) {
       return sendJson(res, 500, { success: false, error: err.message });
     }
