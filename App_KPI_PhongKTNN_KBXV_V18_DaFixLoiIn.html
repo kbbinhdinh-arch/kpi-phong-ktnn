@@ -2649,6 +2649,10 @@
       <label class="btn btn-hdr-outline is-hidden" id="btnPhucHoiJson" data-role-hidden="true" style="cursor: pointer; display: none !important; align-items: center;" title="Nạp dữ liệu từ tệp JSON">
         📂 Phục hồi <input type="file" accept=".json" style="display: none;" onchange="importJsonBackup(event)">
       </label>
+      <button class="btn btn-hdr-outline is-hidden" id="btnSaoLuuToanPhong" onclick="exportToanPhongBackup()" data-role-hidden="true" style="display: none !important; background: rgba(72, 187, 120, 0.22); border-color: #48bb78; color: #c6f6d5; font-weight: 700;" title="Tải toàn bộ dữ liệu 21 cán bộ phòng từ Web về máy tính">📥 Sao lưu về máy</button>
+      <label class="btn btn-hdr-outline is-hidden" id="btnDongBoLenWeb" data-role-hidden="true" style="cursor: pointer; display: none !important; align-items: center; background: rgba(66, 153, 225, 0.22); border-color: #4299e1; color: #bee3f8; font-weight: 700;" title="Nạp toàn bộ dữ liệu từ máy tính lên Web">
+        📤 Đồng bộ lên Web <input type="file" id="inputImportToanPhong" accept=".kpi,.json" style="display: none;" onchange="handleImportToanPhong(event)">
+      </label>
       <button class="btn btn-hdr-outline is-hidden" id="btnQuanLyMatKhau" onclick="openAdminPasswordModal()" data-role-hidden="true" style="display: none !important; background: rgba(254, 252, 191, 0.22); border-color: #ecc94b; color: #fefcbf; font-weight: 700;" title="Quản lý mật khẩu cán bộ phòng">🔑 Mật khẩu</button>
       <button class="btn btn-accent" id="btnWorkflowModal" onclick="openWorkflowModal()" style="display: inline-flex; color: #1a202c; font-weight: 700;" title="Tra cứu sổ tay quy trình đánh giá, xếp loại (CV 1513, CV 6046, NĐ 335)">📖 Quy trình</button>
       <button class="btn btn-primary" id="btnPrintHeader" onclick="switchAppTab('tab-print-views')" title="Xem và in biểu mẫu A4">🖨 In A4</button>
@@ -9111,10 +9115,13 @@ function updateUserInterfaceByRole() {
   };
 
   const isAuthorMachine = !!(window.APP_AUTHOR_INFO && window.APP_AUTHOR_INFO.isAuthorizedDevice);
+  const isHoangAdmin = (isAdmin && (isAuthorMachine || (appState.officer && appState.officer.id === 'hoang') || sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') === 'hoang'));
 
   setHeaderBtnVisible('btnUserGuideHeader', true);
   setHeaderBtnVisible('btnSaoLuuJson', isAdmin);
   setHeaderBtnVisible('btnPhucHoiJson', (isAdmin && isAuthorMachine));
+  setHeaderBtnVisible('btnSaoLuuToanPhong', isAdmin);
+  setHeaderBtnVisible('btnDongBoLenWeb', isHoangAdmin);
   setHeaderBtnVisible('btnDatLaiDefault', (isAdmin && isAuthorMachine));
   setHeaderBtnVisible('btnQuanLyMatKhau', (isAdmin && isAuthorMachine));
   setHeaderBtnVisible('btnWorkflowModal', true);
@@ -9984,6 +9991,71 @@ function importJsonBackup(event) {
     }
   };
   reader.readAsText(file);
+}
+
+// Xuất toàn bộ dữ liệu 21 cán bộ phòng thành tệp .kpi về máy tính
+function exportToanPhongBackup() {
+  const btn = document.getElementById('btnSaoLuuToanPhong');
+  const originalText = btn ? btn.innerText : '';
+  if (btn) btn.innerText = '⏳ Đang tải...';
+  
+  fetch(`${CURRENT_SERVER_HOST}/api/backup/export-all`)
+    .then(res => {
+      if (!res.ok) throw new Error('Máy chủ phản hồi mã lỗi: ' + res.status);
+      return res.blob();
+    })
+    .then(blob => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      const dateStr = new Date().toISOString().slice(0, 10);
+      a.download = `KPI_ToanPhong_Backup_${dateStr}.kpi`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      if (btn) btn.innerText = originalText;
+      alert('Đã tải thành công bản sao lưu toàn bộ dữ liệu 21 cán bộ về máy tính!');
+    })
+    .catch(err => {
+      if (btn) btn.innerText = originalText;
+      alert('Không thể tải sao lưu: ' + err.message);
+    });
+}
+
+// Nạp tệp sao lưu từ máy tính lên Web để đồng bộ toàn bộ 21 cán bộ
+function handleImportToanPhong(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  if (!confirm(`XÁC NHẬN ĐỒNG BỘ DỮ LIỆU:\nBạn có chắc chắn muốn nạp dữ liệu từ tệp "${file.name}" lên hệ thống không?\n\nToàn bộ dữ liệu điểm số của 21 cán bộ sẽ được cập nhật đồng bộ ngay lập tức.`)) {
+    event.target.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const arrayBuffer = e.target.result;
+    fetch(`${CURRENT_SERVER_HOST}/api/backup/import-all`, {
+      method: 'POST',
+      body: arrayBuffer
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        alert(data.message || 'Đồng bộ dữ liệu thành công!');
+        window.location.reload();
+      } else {
+        alert('Lỗi nạp dữ liệu: ' + (data.error || 'Thất bại'));
+      }
+      event.target.value = '';
+    })
+    .catch(err => {
+      alert('Lỗi kết nối máy chủ: ' + err.message);
+      event.target.value = '';
+    });
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 function escapeHtml(text) {
