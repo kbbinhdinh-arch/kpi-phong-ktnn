@@ -666,7 +666,8 @@ const server = http.createServer(async (req, res) => {
         try {
           exportData.officers_config = await getOfficersConfig();
           exportData.auth_passwords = await getAuthPasswords();
-          const sessionDocs = await kpiDb.collection('sessions').find({}).toArray();
+          // Giới hạn 200 bản ghi để chống timeout/lỗi 502 trên Render
+          const sessionDocs = await kpiDb.collection('sessions').find({}).limit(200).toArray();
           if (sessionDocs && Array.isArray(sessionDocs)) {
             sessionDocs.forEach(doc => {
               if (doc.filename && doc.data) {
@@ -686,11 +687,10 @@ const server = http.createServer(async (req, res) => {
         'Content-Disposition': `attachment; filename="KPI_PhongKTNN_Backup_${new Date().toISOString().slice(0,10)}.kpi"`,
         'Content-Length': gzipped.length
       });
-      res.end(gzipped);
+      return res.end(gzipped);
     } catch(err) {
-      sendJson(res, 500, { success: false, error: err.message });
+      return sendJson(res, 500, { success: false, error: err.message });
     }
-    return;
   }
 
   // --- API Nạp toàn bộ dữ liệu từ tệp cục bộ lên MongoDB Cloud (Import All) ---
