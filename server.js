@@ -143,7 +143,6 @@ async function getOfficersConfig() {
       console.error("Lỗi đọc officers từ MongoDB:", e);
     }
   }
-  // Fallback đọc file local nếu mất kết nối cloud
   const fallbackFile = path.join(BASE_DIR, 'kpi_data', 'officers_config.json');
   try {
     if (fs.existsSync(fallbackFile)) {
@@ -572,7 +571,7 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { success: true, isNew: true, filename, data: defaultData });
   }
 
-  // API Save Session (Ghi trực tiếp vào MongoDB vĩnh viễn)
+  // API Save Session
   if (pathname === '/api/session' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
@@ -642,6 +641,97 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, { success: true, message: "Đã lưu đánh giá của Lãnh đạo" });
       } catch (err) {
         return sendJson(res, 500, { success: false, error: err.message });
+      }
+    });
+    return;
+  }
+
+  // --- API Xuất toàn bộ dữ liệu ra tệp nén về máy tính (Export All) ---
+  if (pathname === '/api/backup/export-all' && req.method === 'GET') {
+    const adminOfficerId = searchParams.get('adminOfficerId');
+    const isAuthorized = isAuthorAuthorizedMachine() || adminOfficerId === 'hoang';
+    if (!isAuthorized) {
+      return sendJson(res, 403, { success: false, error: "BẢN QUYỀN: Thao tác quản trị hệ thống chỉ dành cho Quản trị viên!" });
+    }
+    try {
+      const exportData = {
+        exportedAt: new Date().toISOString(),
+        author: AUTHOR_INFO.author,
+        officers_config: await getOfficersConfig(),
+        auth_passwords: await getAuthPasswords(),
+        sessions: {}
+      };
+      
+      if (kpiDb) {
+        const sessionDocs = await kpiDb.collection('sessions').find({}).toArray();
+        sessionDocs.forEach(doc => {
+          if (doc.filename && doc.data) {
+            exportData.sessions[doc.filename] = doc.data;
+          }
+        });
+      }
+
+      const jsonStr = JSON.stringify(exportData, null, 2);
+      const gzipped = zlib.gzipSync(Buffer.from(jsonStr, 'utf8'));
+      res.writeHead(200, {
+        'Content-Type': 'application/gzip',
+        'Content-Disposition': `attachment; filename="KPI_PhongKTNN_Backup_${new Date().toISOString().slice(0,10)}.kpi"`,
+        'Content-Length': gzipped.length
+      });
+      res.end(gzipped);
+    } catch(err) {
+      sendJson(res, 500, { success: false, error: err.message });
+    }
+    return;
+  }
+
+  // --- API Nạp toàn bộ dữ liệu từ tệp cục bộ lên MongoDB Cloud (Import All) ---
+  if (pathname === '/api/backup/import-all' && req.method === 'POST') {
+    const adminOfficerId = searchParams.get('adminOfficerId');
+    const isAuthorized = isAuthorAuthorizedMachine() || adminOfficerId === 'hoang';
+    if (!isAuthorized) {
+      return sendJson(res, 403, { success: false, error: "BẢN QUYỀN: Thao tác quản trị hệ thống chỉ dành cho Quản trị viên!" });
+    }
+    let chunks = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', async () => {
+      try {
+        const buffer = Buffer.concat(chunks);
+        let jsonStr = '';
+        try {
+          jsonStr = zlib.gunzipSync(buffer).toString('utf8');
+        } catch(e) {
+          jsonStr = buffer.toString('utf8');
+        }
+        const importData = JSON.parse(jsonStr);
+        if (!importData.sessions) {
+          return sendJson(res, 400, { success: false, error: "Tệp dữ liệu không hợp lệ" });
+        }
+
+        let count = 0;
+        if (kpiDb) {
+          const sessionsCol = kpiDb.collection('sessions');
+          for (const [fname, sess] of Object.entries(importData.sessions)) {
+            await sessionsCol.updateOne({ filename: fname }, { $set: { filename: fname, data: sess } }, { upsert: true });
+            count++;
+          }
+
+          if (importData.officers_config) {
+            const configCol = kpiDb.collection('officers_config');
+            for (const [id, cfg] of Object.entries(importData.officers_config)) {
+              await configCol.updateOne({ id }, { $set: cfg }, { upsert: true });
+            }
+          }
+
+          if (importData.auth_passwords) {
+            await saveAuthPasswords(importData.auth_passwords);
+          }
+        }
+
+        console.log(`[IMPORT CLOUD] Đã nạp thành công ${count} phiên dữ liệu lên MongoDB từ file máy tính.`);
+        sendJson(res, 200, { success: true, count, message: `Đã nạp thành công dữ liệu ${count} cán bộ lên hệ thống Cloud từ file máy tính!` });
+      } catch(err) {
+        sendJson(res, 500, { success: false, error: "Lỗi nạp dữ liệu: " + err.message });
       }
     });
     return;
