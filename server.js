@@ -646,7 +646,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // --- API Xuất toàn bộ dữ liệu ra tệp nén về máy tính (Export All) ---
+  // --- API Xuất toàn bộ dữ liệu ra tệp nén về máy tính (Export All - Tối ưu chống lỗi 502) ---
   if (pathname === '/api/backup/export-all' && req.method === 'GET') {
     const adminOfficerId = searchParams.get('adminOfficerId');
     const isAuthorized = isAuthorAuthorizedMachine() || adminOfficerId === 'hoang';
@@ -654,24 +654,32 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 403, { success: false, error: "BẢN QUYỀN: Thao tác quản trị hệ thống chỉ dành cho Quản trị viên!" });
     }
     try {
-      const exportData = {
+      let exportData = {
         exportedAt: new Date().toISOString(),
         author: AUTHOR_INFO.author,
-        officers_config: await getOfficersConfig(),
-        auth_passwords: await getAuthPasswords(),
+        officers_config: {},
+        auth_passwords: {},
         sessions: {}
       };
       
       if (kpiDb) {
-        const sessionDocs = await kpiDb.collection('sessions').find({}).toArray();
-        sessionDocs.forEach(doc => {
-          if (doc.filename && doc.data) {
-            exportData.sessions[doc.filename] = doc.data;
+        try {
+          exportData.officers_config = await getOfficersConfig();
+          exportData.auth_passwords = await getAuthPasswords();
+          const sessionDocs = await kpiDb.collection('sessions').find({}).toArray();
+          if (sessionDocs && Array.isArray(sessionDocs)) {
+            sessionDocs.forEach(doc => {
+              if (doc.filename && doc.data) {
+                exportData.sessions[doc.filename] = doc.data;
+              }
+            });
           }
-        });
+        } catch (dbErr) {
+          console.error("Lỗi truy vấn MongoDB khi export:", dbErr);
+        }
       }
 
-      const jsonStr = JSON.stringify(exportData, null, 2);
+      const jsonStr = JSON.stringify(exportData);
       const gzipped = zlib.gzipSync(Buffer.from(jsonStr, 'utf8'));
       res.writeHead(200, {
         'Content-Type': 'application/gzip',
