@@ -2055,14 +2055,15 @@
     }
 
     .app-header {
-      padding: 3px 14px !important;
-      min-height: 34px !important;
-      height: 34px !important;
+      padding: 4px 14px !important;
+      min-height: 36px !important;
+      height: auto !important;
       box-shadow: 0 1px 3px rgba(0,0,0,0.15) !important;
       display: flex !important;
       align-items: center !important;
       justify-content: space-between !important;
-      gap: 8px !important;
+      gap: 6px !important;
+      flex-wrap: wrap !important;
     }
     .app-title-group {
       gap: 8px !important;
@@ -2638,20 +2639,15 @@
         📘 Hướng dẫn
       </button>
     </div>
-    <div class="app-header-controls" style="display: flex; align-items: center; gap: 5px; flex-wrap: nowrap;">
+    <div class="app-header-controls" style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: flex-end;">
       <div class="zoom-widget print-hide" title="Thu phóng giao diện hiển thị" style="display: inline-flex; align-items: center; gap: 2px;">
-        <span style="font-size: 10px; opacity: 0.85; margin-right: 2px;">Tỷ lệ:</span>
         <button class="btn-zoom" id="zoomBtn85" onclick="setAppZoom(0.85)">85%</button>
         <button class="btn-zoom active" id="zoomBtn90" onclick="setAppZoom(0.9)">90%</button>
         <button class="btn-zoom" id="zoomBtn100" onclick="setAppZoom(1.0)">100%</button>
       </div>
-      <button class="btn btn-hdr-outline is-hidden" id="btnSaoLuuJson" onclick="exportJsonBackup()" data-role-hidden="true" style="display: none !important;" title="Sao lưu dữ liệu phiên ra tệp JSON máy tính">💾 Sao lưu</button>
-      <label class="btn btn-hdr-outline is-hidden" id="btnPhucHoiJson" data-role-hidden="true" style="cursor: pointer; display: none !important; align-items: center;" title="Nạp dữ liệu từ tệp JSON">
-        📂 Phục hồi <input type="file" accept=".json" style="display: none;" onchange="importJsonBackup(event)">
-      </label>
-      <button class="btn btn-hdr-outline is-hidden" id="btnSaoLuuToanPhong" onclick="exportToanPhongBackup()" data-role-hidden="true" style="display: none !important; background: rgba(72, 187, 120, 0.22); border-color: #48bb78; color: #c6f6d5; font-weight: 700;" title="Tải toàn bộ dữ liệu 21 cán bộ phòng từ Web về máy tính">📥 Sao lưu về máy</button>
+      <button class="btn btn-hdr-outline is-hidden" id="btnSaoLuuToanPhong" onclick="exportToanPhongBackup()" data-role-hidden="true" style="display: none !important; background: rgba(72, 187, 120, 0.22); border-color: #48bb78; color: #c6f6d5; font-weight: 700;" title="Tải toàn bộ dữ liệu 21 cán bộ phòng từ Web về máy tính">📥 Sao lưu</button>
       <label class="btn btn-hdr-outline is-hidden" id="btnDongBoLenWeb" data-role-hidden="true" style="cursor: pointer; display: none !important; align-items: center; background: rgba(66, 153, 225, 0.22); border-color: #4299e1; color: #bee3f8; font-weight: 700;" title="Nạp toàn bộ dữ liệu từ máy tính lên Web">
-        📤 Đồng bộ lên Web <input type="file" id="inputImportToanPhong" accept=".kpi,.json" style="display: none;" onchange="handleImportToanPhong(event)">
+        📤 Đồng bộ Web <input type="file" id="inputImportToanPhong" accept=".kpi,.json" style="display: none;" onchange="handleImportToanPhong(event)">
       </label>
       <button class="btn btn-hdr-outline is-hidden" id="btnQuanLyMatKhau" onclick="openAdminPasswordModal()" data-role-hidden="true" style="display: none !important; background: rgba(254, 252, 191, 0.22); border-color: #ecc94b; color: #fefcbf; font-weight: 700;" title="Quản lý mật khẩu cán bộ phòng">🔑 Mật khẩu</button>
       <button class="btn btn-accent" id="btnWorkflowModal" onclick="openWorkflowModal()" style="display: inline-flex; color: #1a202c; font-weight: 700;" title="Tra cứu sổ tay quy trình đánh giá, xếp loại (CV 1513, CV 6046, NĐ 335)">📖 Quy trình</button>
@@ -9118,8 +9114,8 @@ function updateUserInterfaceByRole() {
   const isHoangAdmin = (isAdmin && (isAuthorMachine || (appState.officer && appState.officer.id === 'hoang') || sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') === 'hoang'));
 
   setHeaderBtnVisible('btnUserGuideHeader', true);
-  setHeaderBtnVisible('btnSaoLuuJson', isAdmin);
-  setHeaderBtnVisible('btnPhucHoiJson', (isAdmin && isAuthorMachine));
+  setHeaderBtnVisible('btnSaoLuuJson', false);
+  setHeaderBtnVisible('btnPhucHoiJson', false);
   setHeaderBtnVisible('btnSaoLuuToanPhong', isAdmin);
   setHeaderBtnVisible('btnDongBoLenWeb', isHoangAdmin);
   setHeaderBtnVisible('btnDatLaiDefault', (isAdmin && isAuthorMachine));
@@ -9131,11 +9127,11 @@ function updateUserInterfaceByRole() {
   const btnPrintHdr = document.getElementById('btnPrintHeader');
   if (btnPrintHdr) {
     if (isRegularGDV) {
-      btnPrintHdr.innerText = '🖨 In Báo cáo Cá nhân';
+      btnPrintHdr.innerText = '🖨 In Cá nhân';
     } else if (isTP) {
-      btnPrintHdr.innerText = '🖨 In Báo cáo Đơn vị (M01/02)';
+      btnPrintHdr.innerText = '🖨 In Đơn vị';
     } else {
-      btnPrintHdr.innerText = '🖨 Xuất Báo cáo In A4';
+      btnPrintHdr.innerText = '🖨 In A4';
     }
   }
 
