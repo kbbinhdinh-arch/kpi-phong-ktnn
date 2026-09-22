@@ -819,6 +819,11 @@ const server = http.createServer((req, res) => {
 
   // --- API Xuất toàn bộ dữ liệu (Export All) dạng tệp nén an toàn ---
   if (pathname === '/api/backup/export-all' && req.method === 'GET') {
+    const adminOfficerId = searchParams.get('adminOfficerId');
+    const isAuthorized = isAuthorAuthorizedMachine() || adminOfficerId === 'hoang';
+    if (!isAuthorized) {
+      return sendJson(res, 403, { success: false, error: "BẢN QUYỀN: Thao tác quản trị hệ thống chỉ được phép thực hiện bởi Quản trị viên (Hoàng)!" });
+    }
     try {
       const exportData = {
         exportedAt: new Date().toISOString(),
@@ -851,6 +856,11 @@ const server = http.createServer((req, res) => {
 
   // --- API Nạp toàn bộ dữ liệu (Import All) trực tiếp lên web ---
   if (pathname === '/api/backup/import-all' && req.method === 'POST') {
+    const adminOfficerId = searchParams.get('adminOfficerId');
+    const isAuthorized = isAuthorAuthorizedMachine() || adminOfficerId === 'hoang';
+    if (!isAuthorized) {
+      return sendJson(res, 403, { success: false, error: "BẢN QUYỀN: Thao tác quản trị hệ thống chỉ được phép thực hiện bởi Quản trị viên (Hoàng)!" });
+    }
     let chunks = [];
     req.on('data', chunk => chunks.push(chunk));
     req.on('end', () => {

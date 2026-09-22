@@ -9332,9 +9332,9 @@ function updateUserInterfaceByRole() {
   setHeaderBtnVisible('btnUserGuideHeader', true);
   setHeaderBtnVisible('btnSaoLuuJson', false);
   setHeaderBtnVisible('btnPhucHoiJson', false);
-  setHeaderBtnVisible('btnSaoLuuToanPhong', (isAdmin || isLeader));
-  setHeaderBtnVisible('btnDongBoLenWeb', (isAdmin || isLeader));
-  setHeaderBtnVisible('btnDatLaiDefault', (isAdmin && isAuthorMachine));
+  setHeaderBtnVisible('btnSaoLuuToanPhong', isHoangAdmin);
+  setHeaderBtnVisible('btnDongBoLenWeb', isHoangAdmin);
+  setHeaderBtnVisible('btnDatLaiDefault', (isHoangAdmin && isAuthorMachine));
   setHeaderBtnVisible('btnQuanLyMatKhau', isHoangAdmin);
   setHeaderBtnVisible('btnDoiMatKhauHeader', true);
   setHeaderBtnVisible('btnWorkflowModal', true);
@@ -10214,11 +10214,16 @@ function importJsonBackup(event) {
 
 // Xuất toàn bộ dữ liệu 35 cán bộ phòng thành tệp .kpi về máy tính
 function exportToanPhongBackup() {
+  const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || (appState.officer && (appState.officer.id || appState.officer.officerId)) || '';
+  if (loggedUser !== 'hoang') {
+    alert('BẢN QUYỀN & BẢO MẬT: Chức năng Sao lưu toàn phòng chỉ dành riêng cho Quản trị viên (Hoàng)!');
+    return;
+  }
   const btn = document.getElementById('btnSaoLuuToanPhong');
   const originalText = btn ? btn.innerText : '';
   if (btn) btn.innerText = '⏳ Đang tải...';
   
-  fetch(`${CURRENT_SERVER_HOST}/api/backup/export-all`)
+  fetch(`${CURRENT_SERVER_HOST}/api/backup/export-all?adminOfficerId=hoang`)
     .then(res => {
       if (!res.ok) throw new Error('Máy chủ phản hồi mã lỗi: ' + res.status);
       return res.blob();
@@ -10244,6 +10249,13 @@ function exportToanPhongBackup() {
 
 // Nạp tệp sao lưu từ máy tính lên Web để đồng bộ toàn bộ 35 cán bộ
 function handleImportToanPhong(event) {
+  const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || (appState.officer && (appState.officer.id || appState.officer.officerId)) || '';
+  if (loggedUser !== 'hoang') {
+    alert('BẢN QUYỀN & BẢO MẬT: Chức năng Đồng bộ Web chỉ dành riêng cho Quản trị viên (Hoàng)!');
+    if (event && event.target) event.target.value = '';
+    return;
+  }
+
   const file = event.target.files && event.target.files[0];
   if (!file) return;
 
@@ -10255,7 +10267,7 @@ function handleImportToanPhong(event) {
   const reader = new FileReader();
   reader.onload = function(e) {
     const arrayBuffer = e.target.result;
-    fetch(`${CURRENT_SERVER_HOST}/api/backup/import-all`, {
+    fetch(`${CURRENT_SERVER_HOST}/api/backup/import-all?adminOfficerId=hoang`, {
       method: 'POST',
       body: arrayBuffer
     })
