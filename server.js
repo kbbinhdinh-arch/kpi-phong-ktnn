@@ -17,6 +17,7 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 const zlib = require('zlib');
+const { MongoClient } = require('mongodb');
 
 // ============================================================================
 // ĐỊNH DANH BẢN QUYỀN TÁC GIẢ & THIẾT BỊ PHẦN CỨNG ĐƯỢC CẤP PHÉP
@@ -33,7 +34,6 @@ const AUTHOR_INFO = {
   notice: "Phần mềm chỉ được phép hiệu chỉnh và quản trị độc quyền trên thiết bị gốc của tác giả (kvxv-hoangtq)."
 };
 
-// Kiểm tra tính hợp lệ của thiết bị đang chạy máy chủ (máy gốc hoặc Cloud có cấu hình tác giả)
 function isAuthorAuthorizedMachine() {
   if (process.env.AUTHOR_SERVER === 'true' || process.env.AUTHOR_SERVER === '1') return true;
   const currentHost = (os.hostname() || '').toLowerCase().trim();
@@ -46,64 +46,73 @@ function isAuthorAuthorizedMachine() {
 const PORT = process.env.PORT || 8080;
 const HOST = '0.0.0.0';
 const BASE_DIR = __dirname;
-const DATA_DIR = path.join(BASE_DIR, 'kpi_data');
-const SESSIONS_DIR = path.join(DATA_DIR, 'sessions');
-const CONFIG_FILE = path.join(DATA_DIR, 'officers_config.json');
-const AUTH_FILE = path.join(DATA_DIR, 'auth_passwords.json');
 const HTML_FILE = path.join(BASE_DIR, 'App_KPI_PhongKTNN_KBXV_V18_DaFixLoiIn.html');
 
-// Dam bao thu muc luu tru ton tai
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-if (!fs.existsSync(SESSIONS_DIR)) fs.mkdirSync(SESSIONS_DIR, { recursive: true });
-const BACKUPS_DIR = path.join(DATA_DIR, 'backups');
-const BACKUPS_ROLLING_DIR = path.join(BACKUPS_DIR, 'rolling');
-const BACKUPS_PERIODIC_DIR = path.join(BACKUPS_DIR, 'periodic');
+// ============================================================================
+// KẾT NỐI MONGODB ATLAS (LƯU TRỮ LÂU DÀI TRÊN CLOUD)
+// ============================================================================
+const MONGODB_URI = process.env.MONGODB_URI;
+let dbClient = null;
+let kpiDb = null;
 
-// Đảm bảo các thư mục sao lưu tồn tại
-if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
-if (!fs.existsSync(BACKUPS_ROLLING_DIR)) fs.mkdirSync(BACKUPS_ROLLING_DIR, { recursive: true });
-if (!fs.existsSync(BACKUPS_PERIODIC_DIR)) fs.mkdirSync(BACKUPS_PERIODIC_DIR, { recursive: true });
-
-// Tu dong nap du lieu goc tu seed_data.json.gz (khi trien khai tren Cloud / Render)
-function initSeedDataIfMissing(force = false) {
-  const gzPath = path.join(BASE_DIR, 'seed_data.json.gz');
-  if (!fs.existsSync(gzPath)) return 0;
-  try {
-    const sessionCount = fs.existsSync(SESSIONS_DIR) ? fs.readdirSync(SESSIONS_DIR).filter(x => x.endsWith('.json')).length : 0;
-    const currentCfg = getOfficersConfig();
-    const cfgCount = Object.keys(currentCfg).length;
-    // Neu yeu cau force hoac thu muc sessions/config chua co du 35 can bo
-    if (force || sessionCount < 35 || cfgCount < 35) {
-      console.log('[SEED] Dang nap toan bo du lieu chuan tu seed_data.json.gz...');
-      const buf = fs.readFileSync(gzPath);
-      const raw = zlib.gunzipSync(buf);
-      const seed = JSON.parse(raw.toString('utf8'));
-      if (seed.officers_config) {
-        fs.writeFileSync(CONFIG_FILE, JSON.stringify(seed.officers_config, null, 2), 'utf8');
-      }
-      if (seed.auth_passwords) {
-        fs.writeFileSync(AUTH_FILE, JSON.stringify(seed.auth_passwords, null, 2), 'utf8');
-      }
-      let loaded = 0;
-      if (seed.sessions) {
-        for (const [fname, sessData] of Object.entries(seed.sessions)) {
-          const sPath = path.join(SESSIONS_DIR, fname);
-          fs.writeFileSync(sPath, JSON.stringify(sessData, null, 2), 'utf8');
-          loaded++;
-        }
-      }
-      console.log(`[SEED] Da nap de thanh cong du lieu ${loaded} can bo tu seed_data.json.gz!`);
-      return loaded;
-    }
-  } catch (err) {
-    console.error('[SEED] Loi khi nap seed_data.json.gz:', err);
+async function connectMongo() {
+  if (!MONGODB_URI) {
+    console.warn("[MongoDB] CẢNH BÁO: Chưa cấu hình biến môi trường MONGODB_URI! Hệ thống sẽ dùng bộ nhớ tạm.");
+    return;
   }
-  return 0;
+  try {
+    dbClient = new MongoClient(MONGODB_URI);
+    await dbClient.connect();
+    kpiDb = dbClient.db('kpi_ktnn_db');
+    console.log("[MongoDB] Đã kết nối thành công tới MongoDB Atlas Cloud Database!");
+    await initCloudSeedData();
+  } catch (err) {
+    console.error("[MongoDB] Lỗi kết nối MongoDB:", err);
+  }
 }
-initSeedDataIfMissing(true); // Luon nap de du lieu goc khi khoi dong
 
+// Nạp dữ liệu seed ban đầu lên MongoDB nếu database trống
+async function initCloudSeedData() {
+  try {
+    if (!kpiDb) return;
+    const configCol = kpiDb.collection('officers_config');
+    const count = await configCol.countDocuments();
+    if (count === 0) {
+      const gzPath = path.join(BASE_DIR, 'seed_data.json.gz');
+      if (fs.existsSync(gzPath)) {
+        console.log('[SEED] Đang nạp dữ liệu chuẩn ban đầu lên MongoDB...');
+        const buf = fs.readFileSync(gzPath);
+        const raw = zlib.gunzipSync(buf);
+        const seed = JSON.parse(raw.toString('utf8'));
 
-// Lay dia chi IP mang LAN
+        if (seed.officers_config) {
+          for (const [id, cfg] of Object.entries(seed.officers_config)) {
+            await configCol.updateOne({ id }, { $set: cfg }, { upsert: true });
+          }
+        }
+        if (seed.auth_passwords) {
+          const authCol = kpiDb.collection('auth_passwords');
+          for (const [id, auth] of Object.entries(seed.auth_passwords)) {
+            await authCol.updateOne({ officerId: id }, { $set: auth }, { upsert: true });
+          }
+        }
+        if (seed.sessions) {
+          const sessionsCol = kpiDb.collection('sessions');
+          for (const [fname, sessData] of Object.entries(seed.sessions)) {
+            await sessionsCol.updateOne({ filename: fname }, { $set: { data: sessData } }, { upsert: true });
+          }
+        }
+        console.log('[SEED] Đã đồng bộ dữ liệu mẫu lên MongoDB thành công!');
+      }
+    }
+  } catch (e) {
+    console.error('[SEED] Lỗi nạp seed data lên cloud:', e);
+  }
+}
+
+connectMongo();
+
+// Lấy IP mạng LAN
 function getLanIp() {
   const nets = os.networkInterfaces();
   for (const name of Object.keys(nets)) {
@@ -116,19 +125,34 @@ function getLanIp() {
   return '127.0.0.1';
 }
 
-// Doc officers_config
-function getOfficersConfig() {
-  try {
-    if (fs.existsSync(CONFIG_FILE)) {
-      return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+// Đọc danh sách cán bộ từ MongoDB hoặc file JSON dự phòng
+async function getOfficersConfig() {
+  if (kpiDb) {
+    try {
+      const docs = await kpiDb.collection('officers_config').find({}).toArray();
+      if (docs && docs.length > 0) {
+        const cfg = {};
+        docs.forEach(d => {
+          const key = d.id || d._id;
+          cfg[key] = d;
+          delete cfg[key]._id;
+        });
+        return cfg;
+      }
+    } catch (e) {
+      console.error("Lỗi đọc officers từ MongoDB:", e);
     }
-  } catch (err) {
-    console.error("Loi doc officers_config.json:", err);
   }
+  // Fallback đọc file local nếu mất kết nối cloud
+  const fallbackFile = path.join(BASE_DIR, 'kpi_data', 'officers_config.json');
+  try {
+    if (fs.existsSync(fallbackFile)) {
+      return JSON.parse(fs.readFileSync(fallbackFile, 'utf8'));
+    }
+  } catch (err) {}
   return {};
 }
 
-// Chuan hoa ten quy: QuyI, QuyII, QuyIII, QuyIV
 function normalizeQuarter(qStr) {
   if (!qStr) return 'QuyIII';
   const s = String(qStr).toLowerCase().replace(/\s+/g, '');
@@ -139,7 +163,6 @@ function normalizeQuarter(qStr) {
   return 'QuyIII';
 }
 
-// Chuan hoa ten file session
 function getSessionFilename(officerId, quarter, year) {
   const safeOfficer = (officerId || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '');
   const safeQ = normalizeQuarter(quarter);
@@ -147,12 +170,7 @@ function getSessionFilename(officerId, quarter, year) {
   return `${safeOfficer}_${safeQ}_${safeY}.json`;
 }
 
-// Khoi tao session mac dinh cho can bo
-
-// ============================================================================
-// HỆ THỐNG BỘ NHỚ ĐỆM RAM & NÉN GZIP CHO 30 MÁY TRUY CẬP ĐỒNG THỜI
-// Giảm 85% băng thông (1.1 MB -> 180 KB), phản hồi tức thì <10ms
-// ============================================================================
+// HTML Cache RAM & Gzip
 let cachedHtml = {
   rawBuffer: null,
   gzipBuffer: null,
@@ -174,185 +192,16 @@ function refreshHtmlCache() {
           etag: etag,
           mtimeMs: stat.mtimeMs
         };
-        console.log(`[Cache RAM] Đã nạp HTML vào bộ nhớ: ${(raw.length / 1024).toFixed(1)} KB thô -> ${(gzipped.length / 1024).toFixed(1)} KB Gzip (Tiết kiệm ${(100 - (gzipped.length / raw.length * 100)).toFixed(1)}% băng thông)`);
       }
     }
-  } catch (err) {
-    console.error("[Cache RAM] Lỗi làm mới HTML cache:", err);
-  }
+  } catch (err) {}
 }
 
-// Khởi tạo cache ngay khi load module
 refreshHtmlCache();
-
-// Tự động làm mới cache nếu file HTML trên đĩa có thay đổi
 try {
-  fs.watch(HTML_FILE, () => {
-    setTimeout(refreshHtmlCache, 300);
-  });
+  fs.watch(HTML_FILE, () => { setTimeout(refreshHtmlCache, 300); });
 } catch (e) {}
 
-// ============================================================================
-// HÀNG ĐỢI TUẦN TỰ HÓA THEO CÁN BỘ (MUTEX WRITE QUEUE) CHỐNG XUNG ĐỘT 30 MÁY
-// ============================================================================
-const officerWriteQueues = new Map();
-
-function queueOfficerWrite(officerId, taskFn) {
-  const key = officerId || 'global';
-  let queue = officerWriteQueues.get(key) || Promise.resolve();
-  const next = queue.then(() => taskFn()).catch(err => {
-    console.error(`[Mutex Queue] Lỗi thực thi hàng đợi cho ${key}:`, err);
-    throw err;
-  });
-  officerWriteQueues.set(key, next.finally(() => {
-    if (officerWriteQueues.get(key) === next) {
-      officerWriteQueues.delete(key);
-    }
-  }));
-  return next;
-}
-
-// ============================================================================
-// CƠ CHẾ GHI TỆP NGUYÊN TỬ (ATOMIC WRITE) & SAO LƯU ROLLING BACKUP
-// Đảm bảo file không bao giờ bị hỏng dù mất điện hoặc ngắt kết nối đột ngột
-// ============================================================================
-function atomicWriteJsonSync(filePath, dataObj, officerId = null) {
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-  const jsonStr = JSON.stringify(dataObj, null, 2);
-  const filename = path.basename(filePath);
-
-  // 1. Sao lưu .bak
-  if (fs.existsSync(filePath)) {
-    try {
-      fs.copyFileSync(filePath, filePath + '.bak');
-    } catch (e) {}
-
-    // 2. Rolling backup (Lưu tối đa 10 bản lịch sử gần nhất cho mỗi cán bộ)
-    try {
-      const ts = new Date().toISOString().replace(/[:.]/g, '-');
-      const baseName = filename.replace(/\.json$/i, '');
-      const rollingPath = path.join(BACKUPS_ROLLING_DIR, `${baseName}_${ts}.json`);
-      fs.copyFileSync(filePath, rollingPath);
-
-      const allRolling = fs.readdirSync(BACKUPS_ROLLING_DIR)
-        .filter(f => f.startsWith(baseName + '_') && f.endsWith('.json'))
-        .sort();
-      if (allRolling.length > 10) {
-        for (let i = 0; i < allRolling.length - 10; i++) {
-          try { fs.unlinkSync(path.join(BACKUPS_ROLLING_DIR, allRolling[i])); } catch (e) {}
-        }
-      }
-    } catch (e) {
-      console.warn("[Backup Rolling] Cảnh báo:", e.message);
-    }
-  }
-
-  // 3. Ghi ra tệp tạm thời rồi hoán đổi nguyên tử (Atomic Rename)
-  const tempPath = path.join(dir, `.${filename}.tmp.${process.pid}.${Date.now()}.${Math.floor(Math.random() * 1000000)}`);
-  fs.writeFileSync(tempPath, jsonStr, 'utf8');
-  fs.renameSync(tempPath, filePath);
-}
-
-// ============================================================================
-// HỆ THỐNG SAO LƯU ĐỊNH KỲ TOÀN BỘ CSDL (PERIODIC SNAPSHOT)
-// Mỗi 30 phút tự động tạo 1 snapshot của toàn bộ các phiên làm việc
-// ============================================================================
-function runPeriodicBackup() {
-  try {
-    if (!fs.existsSync(SESSIONS_DIR)) return;
-    const sessionFiles = fs.readdirSync(SESSIONS_DIR).filter(f => f.endsWith('.json') && !f.endsWith('.bak') && !f.startsWith('.'));
-    if (sessionFiles.length === 0) return;
-
-    const ts = new Date().toISOString().replace(/[:.]/g, '-');
-    const destDir = path.join(BACKUPS_PERIODIC_DIR, `Backup_${ts}`);
-    if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
-
-    let copied = 0;
-    sessionFiles.forEach(f => {
-      try {
-        fs.copyFileSync(path.join(SESSIONS_DIR, f), path.join(destDir, f));
-        copied++;
-      } catch (e) {}
-    });
-
-    console.log(`[Periodic Backup] Đã lưu an toàn snapshot (${copied} tệp session) tại: ${path.basename(destDir)}`);
-
-    // Dọn dẹp giữ lại 48 bản gần nhất (24 giờ liên tục)
-    const allBackups = fs.readdirSync(BACKUPS_PERIODIC_DIR)
-      .filter(f => f.startsWith('Backup_'))
-      .sort();
-    if (allBackups.length > 48) {
-      for (let i = 0; i < allBackups.length - 48; i++) {
-        const oldBackupDir = path.join(BACKUPS_PERIODIC_DIR, allBackups[i]);
-        try { fs.rmSync(oldBackupDir, { recursive: true, force: true }); } catch (e) {}
-      }
-    }
-  } catch (err) {
-    console.error("[Periodic Backup] Lỗi sao lưu định kỳ:", err);
-  }
-}
-
-// Chạy định kỳ mỗi 30 phút
-setInterval(runPeriodicBackup, 30 * 60 * 1000);
-// Chạy 1 lần sau 4 giây khi khởi động
-setTimeout(runPeriodicBackup, 4000);
-
-function createDefaultSession(officerId, quarter, year) {
-  const cfg = getOfficersConfig();
-  const off = cfg[officerId] || {
-    id: officerId,
-    name: officerId,
-    role: "KTV",
-    group: "Giao dịch viên",
-    title: "Giao dịch viên",
-    specialty: "",
-    isLeader: false,
-    approverTitle: "TRƯỞNG PHÒNG",
-    approverName: "Hoàng Anh Sơn"
-  };
-
-  const isTP = (off.role === 'TP');
-
-  const defaultQuarterPlan = (off.defaultPlan && off.defaultPlan.length > 0)
-    ? off.defaultPlan.map((p, idx) => ({
-        id: "P" + (idx + 1),
-        name: p.name,
-        type: p.type || "AII_REGULAR",
-        deadline: p.deadline || "Hằng ngày",
-        isNQ57: !!p.isNQ57,
-        isKey: !!p.isKey
-      }))
-    : [];
-
-  return {
-    officer: {
-      name: off.name,
-      role: off.role,
-      officerId: off.id,
-      quarter: quarter || "Quý III",
-      year: Number(year) || 2026,
-      specialty: off.specialty || "",
-      leaderTitle: off.approverTitle || (isTP ? "PHÓ GIÁM ĐỐC" : "TRƯỞNG PHÒNG"),
-      leaderName: off.approverName || (isTP ? "Trịnh Khắc Chính" : "Hoàng Anh Sơn"),
-      managedUnits: off.managedUnits || []
-    },
-    quarterPlan: defaultQuarterPlan,
-    unitCompletionPercent: 100,
-    generalCriteria: {
-      c1: 5.0, c2: 5.0,
-      c3: 2.5, c4: 2.5, c5: 2.5, c6: 2.5,
-      c7: 2.5, c8: 2.5, c9: 2.5, c10: 2.5
-    },
-    selfRatingNote: "",
-    leaderRatingProposal: "",
-    status: "draft",
-    lastSaved: new Date().toISOString()
-  };
-}
-
-// Gui phan hoi JSON kem CORS
 function sendJson(res, statusCode, data) {
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
@@ -364,37 +213,45 @@ function sendJson(res, statusCode, data) {
   res.end(JSON.stringify(data));
 }
 
-
-// Doc file mat khau auth_passwords.json
-function getAuthPasswords() {
-  try {
-    if (fs.existsSync(AUTH_FILE)) {
-      return JSON.parse(fs.readFileSync(AUTH_FILE, 'utf8'));
-    }
-  } catch (err) {
-    console.error("Loi doc auth_passwords.json:", err);
+async function getAuthPasswords() {
+  if (kpiDb) {
+    try {
+      const docs = await kpiDb.collection('auth_passwords').find({}).toArray();
+      if (docs && docs.length > 0) {
+        const map = {};
+        docs.forEach(d => {
+          map[d.officerId] = { hash: d.hash, createdAt: d.createdAt, updatedAt: d.updatedAt };
+        });
+        return map;
+      }
+    } catch (e) {}
   }
+  const fallbackFile = path.join(BASE_DIR, 'kpi_data', 'auth_passwords.json');
+  try {
+    if (fs.existsSync(fallbackFile)) {
+      return JSON.parse(fs.readFileSync(fallbackFile, 'utf8'));
+    }
+  } catch (err) {}
   return {};
 }
 
-// Ghi file mat khau auth_passwords.json
-function saveAuthPasswords(data) {
-  try {
-    fs.writeFileSync(AUTH_FILE, JSON.stringify(data, null, 2), 'utf8');
-    return true;
-  } catch (err) {
-    console.error("Loi ghi auth_passwords.json:", err);
-    return false;
+async function saveAuthPasswords(data) {
+  if (kpiDb) {
+    try {
+      const col = kpiDb.collection('auth_passwords');
+      for (const [id, item] of Object.entries(data)) {
+        await col.updateOne({ officerId: id }, { $set: { officerId: id, ...item } }, { upsert: true });
+      }
+      return true;
+    } catch (e) {}
   }
+  return false;
 }
 
-// Băm mật khẩu SHA-256
 function hashPassword(password) {
   return crypto.createHash('sha256').update(String(password).trim()).digest('hex');
 }
 
-
-// Tinh toan ty le hoan thanh thang tu danh sach cong viec (hang)
 function calculateMonthPctFromRows(monthObj, role) {
   if (!monthObj) return 0;
   if (monthObj.completionPercent !== undefined && Number(monthObj.completionPercent) > 0) {
@@ -453,9 +310,59 @@ function calculateMonthPctFromRows(monthObj, role) {
   return Math.round(finalMonthPct * 10) / 10;
 }
 
-// Tao HTTP Server
-const server = http.createServer((req, res) => {
-  // CORS Preflight
+function createDefaultSession(officerId, quarter, year, offConfig) {
+  const off = offConfig || {
+    id: officerId,
+    name: officerId,
+    role: "KTV",
+    group: "Giao dịch viên",
+    title: "Giao dịch viên",
+    specialty: "",
+    isLeader: false,
+    approverTitle: "TRƯỞNG PHÒNG",
+    approverName: "Hoàng Anh Sơn"
+  };
+
+  const isTP = (off.role === 'TP');
+  const defaultQuarterPlan = (off.defaultPlan && off.defaultPlan.length > 0)
+    ? off.defaultPlan.map((p, idx) => ({
+        id: "P" + (idx + 1),
+        name: p.name,
+        type: p.type || "AII_REGULAR",
+        deadline: p.deadline || "Hằng ngày",
+        isNQ57: !!p.isNQ57,
+        isKey: !!p.isKey
+      }))
+    : [];
+
+  return {
+    officer: {
+      name: off.name,
+      role: off.role,
+      officerId: off.id,
+      quarter: quarter || "Quý III",
+      year: Number(year) || 2026,
+      specialty: off.specialty || "",
+      leaderTitle: off.approverTitle || (isTP ? "PHÓ GIÁM ĐỐC" : "TRƯỞNG PHÒNG"),
+      leaderName: off.approverName || (isTP ? "Trịnh Khắc Chính" : "Hoàng Anh Sơn"),
+      managedUnits: off.managedUnits || []
+    },
+    quarterPlan: defaultQuarterPlan,
+    unitCompletionPercent: 100,
+    generalCriteria: {
+      c1: 5.0, c2: 5.0,
+      c3: 2.5, c4: 2.5, c5: 2.5, c6: 2.5,
+      c7: 2.5, c8: 2.5, c9: 2.5, c10: 2.5
+    },
+    selfRatingNote: "",
+    leaderRatingProposal: "",
+    status: "draft",
+    lastSaved: new Date().toISOString()
+  };
+}
+
+// Tạo HTTP Server
+const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
@@ -470,10 +377,9 @@ const server = http.createServer((req, res) => {
   const pathname = parsedUrl.pathname;
   const searchParams = parsedUrl.searchParams;
 
-  // --- API 0: Kiem tra ban quyen & Giay phep thiet bi (License & Copyright Verification) ---
+  // API 0: License
   if (pathname === '/api/license' && req.method === 'GET') {
     const isAuthorized = isAuthorAuthorizedMachine();
-    const currentHost = os.hostname();
     return sendJson(res, 200, {
       success: true,
       author: AUTHOR_INFO.author,
@@ -482,22 +388,17 @@ const server = http.createServer((req, res) => {
       copyright: AUTHOR_INFO.copyright,
       legalBasis: AUTHOR_INFO.legalBasis,
       authorizedDevice: AUTHOR_INFO.authorizedHostname,
-      currentDevice: currentHost,
+      currentDevice: os.hostname(),
       isAuthorizedDevice: isAuthorized,
       canEditApp: isAuthorized,
-      mode: isAuthorized ? "AUTHOR_ADMIN_MODE" : "PROTECTED_USER_MODE",
-      message: isAuthorized
-        ? "Thiết bị chính thức của tác giả Trần Quốc Hoàng (Được phép quản trị, chỉnh sửa và cấu hình toàn bộ hệ thống)."
-        : "Bản quyền phần mềm thuộc về tác giả Trần Quốc Hoàng. Chế độ phân phối: Khóa tính năng chỉnh sửa hệ thống trên thiết bị này."
+      mode: isAuthorized ? "AUTHOR_ADMIN_MODE" : "PROTECTED_USER_MODE"
     });
   }
 
-  // --- API 1: Kiem tra trang thai may chu ---
-  
-  // --- API 6: Kiem tra trang thai mat khau cua can bo ---
+  // API Auth Status
   if (pathname === '/api/auth/status' && req.method === 'GET') {
     const officerId = searchParams.get('officerId');
-    const authData = getAuthPasswords();
+    const authData = await getAuthPasswords();
     if (!officerId) {
       const statusMap = {};
       for (const [id, item] of Object.entries(authData)) {
@@ -509,81 +410,72 @@ const server = http.createServer((req, res) => {
     return sendJson(res, 200, { success: true, officerId, hasPassword });
   }
 
-  // --- API 7: Thiet lap mat khau lan dau ---
+  // API Set Password
   if (pathname === '/api/auth/set-password' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
         const payload = JSON.parse(body);
-        const officerId = payload.officerId;
-        const password = payload.password;
+        const { officerId, password } = payload;
         if (!officerId || !password || String(password).trim().length < 4) {
           return sendJson(res, 400, { success: false, error: "Mật khẩu phải có ít nhất 4 ký tự" });
         }
-        const authData = getAuthPasswords();
+        const authData = await getAuthPasswords();
         authData[officerId] = {
           hash: hashPassword(password),
           createdAt: authData[officerId] ? authData[officerId].createdAt : new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
-        saveAuthPasswords(authData);
+        await saveAuthPasswords(authData);
         return sendJson(res, 200, { success: true, message: "Đã thiết lập mật khẩu thành công" });
       } catch (err) {
-        return sendJson(res, 400, { success: false, error: "Du lieu khong hop le: " + err.message });
+        return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ" });
       }
     });
     return;
   }
 
-  // --- API 8: Xac thuc mat khau dang nhap ---
+  // API Verify Password
   if (pathname === '/api/auth/verify' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
         const payload = JSON.parse(body);
-        const officerId = payload.officerId;
-        const password = payload.password;
-        if (!officerId || !password) {
-          return sendJson(res, 400, { success: false, error: "Vui lòng nhập mật khẩu" });
-        }
-        const authData = getAuthPasswords();
+        const { officerId, password } = payload;
+        const authData = await getAuthPasswords();
         const userAuth = authData[officerId];
         if (!userAuth || !userAuth.hash) {
           return sendJson(res, 200, { success: false, error: "Tài khoản chưa thiết lập mật khẩu", notSet: true });
         }
-        const inputHash = hashPassword(password);
-        if (inputHash === userAuth.hash) {
+        if (hashPassword(password) === userAuth.hash) {
           return sendJson(res, 200, { success: true, message: "Xác thực thành công" });
         } else {
           return sendJson(res, 200, { success: false, error: "Mật khẩu không chính xác" });
         }
       } catch (err) {
-        return sendJson(res, 400, { success: false, error: "Du lieu khong hop le: " + err.message });
+        return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ" });
       }
     });
     return;
   }
 
-  // --- API 8b: Nguoi dung tu doi mat khau ca nhan ---
+  // API Change Password
   if (pathname === '/api/auth/change-password' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
         const payload = JSON.parse(body);
-        const officerId = payload.officerId;
-        const oldPassword = payload.oldPassword;
-        const newPassword = payload.newPassword;
+        const { officerId, oldPassword, newPassword } = payload;
         if (!officerId || !newPassword || String(newPassword).trim().length < 4) {
           return sendJson(res, 400, { success: false, error: "Mật khẩu mới phải có ít nhất 4 ký tự" });
         }
-        const authData = getAuthPasswords();
+        const authData = await getAuthPasswords();
         const userAuth = authData[officerId];
         if (userAuth && userAuth.hash) {
-          const oldHash = hashPassword(oldPassword || '');
-          if (oldHash !== userAuth.hash && payload.adminOfficerId !== 'hoang') {
+          if (hashPassword(oldPassword || '') !== userAuth.hash && payload.adminOfficerId !== 'hoang') {
             return sendJson(res, 400, { success: false, error: "Mật khẩu hiện tại không chính xác" });
           }
         }
@@ -592,87 +484,61 @@ const server = http.createServer((req, res) => {
           createdAt: userAuth ? userAuth.createdAt : new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
-        saveAuthPasswords(authData);
+        await saveAuthPasswords(authData);
         return sendJson(res, 200, { success: true, message: "Đã đổi mật khẩu thành công" });
       } catch (err) {
-        return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ: " + err.message });
+        return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ" });
       }
     });
     return;
   }
 
-  // --- API 8c: Quan tri vien (Hoang) dat truc tiep mat khau cho can bo ---
+  // API Admin Set Password
   if (pathname === '/api/auth/admin-set-password' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
         const payload = JSON.parse(body);
-        const adminId = payload.adminOfficerId;
-        const targetOfficerId = payload.targetOfficerId;
-        const newPassword = payload.newPassword;
-        const isAuthorized = isAuthorAuthorizedMachine() || adminId === 'hoang';
+        const { adminOfficerId, targetOfficerId, newPassword } = payload;
+        const isAuthorized = isAuthorAuthorizedMachine() || adminOfficerId === 'hoang';
         if (!isAuthorized) {
-          return sendJson(res, 403, { success: false, error: "BẢN QUYỀN: Thao tác quản trị hệ thống chỉ dành riêng cho Quản trị viên (Hoàng)!" });
+          return sendJson(res, 403, { success: false, error: "Quyền quản trị bị từ chối!" });
         }
-        if (!targetOfficerId || !newPassword || String(newPassword).trim().length < 4) {
-          return sendJson(res, 400, { success: false, error: "Mật khẩu mới phải có ít nhất 4 ký tự" });
-        }
-        const authData = getAuthPasswords();
+        const authData = await getAuthPasswords();
         authData[targetOfficerId] = {
           hash: hashPassword(newPassword),
           createdAt: authData[targetOfficerId] ? authData[targetOfficerId].createdAt : new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
-        saveAuthPasswords(authData);
-        return sendJson(res, 200, { success: true, message: `Đã đặt mật khẩu thành công cho cán bộ: ${targetOfficerId}` });
+        await saveAuthPasswords(authData);
+        return sendJson(res, 200, { success: true, message: `Đã đặt mật khẩu cho cán bộ: ${targetOfficerId}` });
       } catch (err) {
-        return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ: " + err.message });
+        return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ" });
       }
     });
     return;
   }
 
-  // --- API 9: Dat lai mat khau (danh cho Admin/Quan tri vien) ---
-  if (pathname === '/api/auth/reset' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
-      try {
-        const payload = JSON.parse(body);
-        const adminId = payload.adminOfficerId;
-        const targetOfficerId = payload.targetOfficerId;
-        const isAuthorized = isAuthorAuthorizedMachine() || adminId === 'hoang';
-        if (!isAuthorized) {
-          return sendJson(res, 403, { success: false, error: "BẢN QUYỀN: Thao tác quản trị hệ thống chỉ được phép thực hiện bởi Quản trị viên (Hoàng) trên thiết bị gốc (kvxv-hoangtq)!" });
-        }
-        const authData = getAuthPasswords();
-        if (authData[targetOfficerId]) {
-          delete authData[targetOfficerId];
-          saveAuthPasswords(authData);
-        }
-        return sendJson(res, 200, { success: true, message: "Đã đặt lại mật khẩu thành công cho cán bộ: " + targetOfficerId });
-      } catch (err) {
-        return sendJson(res, 400, { success: false, error: "Du lieu khong hop le" });
-      }
-    });
-    return;
-  }
-
+  // API Status
   if (pathname === '/api/status' && req.method === 'GET') {
-    const sessionFiles = fs.existsSync(SESSIONS_DIR) ? fs.readdirSync(SESSIONS_DIR).filter(f => f.endsWith('.json') && !f.endsWith('.bak')) : [];
+    let sessionsCount = 0;
+    if (kpiDb) {
+      sessionsCount = await kpiDb.collection('sessions').countDocuments();
+    }
     return sendJson(res, 200, {
       status: "ok",
       serverTime: new Date().toISOString(),
       hostIp: getLanIp(),
       port: PORT,
-      sessionsCount: sessionFiles.length,
-      version: "V18_MultiUser_LAN"
+      sessionsCount,
+      version: "V18_MongoDB_Cloud"
     });
   }
-  // --- API 2: Lay danh sach can bo & phan cong ---
+
+  // API Officers
   if (pathname === '/api/officers' && req.method === 'GET') {
-    const cfg = getOfficersConfig();
+    const cfg = await getOfficersConfig();
     return sendJson(res, 200, {
       success: true,
       officers: cfg,
@@ -680,49 +546,37 @@ const server = http.createServer((req, res) => {
     });
   }
 
-  // --- API 3: Doc phien lam viec ---
+  // API Get Session
   if (pathname === '/api/session' && req.method === 'GET') {
     const officerId = searchParams.get('officerId');
     const quarter = searchParams.get('quarter');
     const year = searchParams.get('year');
 
     if (!officerId) {
-      return sendJson(res, 400, { success: false, error: "Thieu thong so officerId" });
+      return sendJson(res, 400, { success: false, error: "Thiếu thông số officerId" });
     }
 
     const filename = getSessionFilename(officerId, quarter, year);
-    const filePath = path.join(SESSIONS_DIR, filename);
 
-    if (fs.existsSync(filePath)) {
+    if (kpiDb) {
       try {
-        const raw = fs.readFileSync(filePath, 'utf8');
-        const sessionData = JSON.parse(raw);
-        return sendJson(res, 200, {
-          success: true,
-          isNew: false,
-          filename: filename,
-          data: sessionData
-        });
-      } catch (err) {
-        console.error("Loi doc session file:", filePath, err);
-      }
+        const doc = await kpiDb.collection('sessions').findOne({ filename });
+        if (doc && doc.data) {
+          return sendJson(res, 200, { success: true, isNew: false, filename, data: doc.data });
+        }
+      } catch (e) {}
     }
 
-    // Neu chua co file, tao phien mac dinh
-    const defaultData = createDefaultSession(officerId, quarter, year);
-    return sendJson(res, 200, {
-      success: true,
-      isNew: true,
-      filename: filename,
-      data: defaultData
-    });
+    const cfg = await getOfficersConfig();
+    const defaultData = createDefaultSession(officerId, quarter, year, cfg[officerId]);
+    return sendJson(res, 200, { success: true, isNew: true, filename, data: defaultData });
   }
 
-  // --- API 4: Luu phien lam viec an toan (Atomic Write & Preserve Leader Rating) ---
+  // API Save Session (Ghi trực tiếp vào MongoDB vĩnh viễn)
   if (pathname === '/api/session' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
         const payload = JSON.parse(body);
         const officerId = payload.officerId || (payload.officer && payload.officer.officerId) || (payload.state && payload.state.officer && payload.state.officer.officerId);
@@ -731,85 +585,61 @@ const server = http.createServer((req, res) => {
         const state = payload.state || payload;
 
         if (!officerId) {
-          return sendJson(res, 400, { success: false, error: "Thieu thong so officerId" });
+          return sendJson(res, 400, { success: false, error: "Thiếu thông số officerId" });
         }
 
         const filename = getSessionFilename(officerId, quarter, year);
-        const filePath = path.join(SESSIONS_DIR, filename);
+        state.lastSaved = new Date().toISOString();
 
-        // Tuần tự hóa theo cán bộ để chống tranh chấp đồng thời
-        queueOfficerWrite(officerId, async () => {
-          // BẢO TOÀN ĐÁNH GIÁ CỦA LÃNH ĐẠO PHÒNG:
-          // Nếu tệp trên đĩa đã có leaderRatingProposal hoặc leaderRatingNote mà payload của GDV chưa có, giữ nguyên đánh giá của Lãnh đạo
-          if (fs.existsSync(filePath)) {
-            try {
-              const existingDiskData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-              if (existingDiskData.leaderRatingProposal && !state.leaderRatingProposal) {
-                state.leaderRatingProposal = existingDiskData.leaderRatingProposal;
-              }
-              if (existingDiskData.leaderRatingNote && !state.leaderRatingNote) {
-                state.leaderRatingNote = existingDiskData.leaderRatingNote;
-              }
-            } catch (e) {
-              console.warn("[Session Save] Lỗi đọc bảo toàn đánh giá lãnh đạo:", e.message);
+        if (kpiDb) {
+          const sessionsCol = kpiDb.collection('sessions');
+          const existing = await sessionsCol.findOne({ filename });
+          if (existing && existing.data) {
+            if (existing.data.leaderRatingProposal && !state.leaderRatingProposal) {
+              state.leaderRatingProposal = existing.data.leaderRatingProposal;
+            }
+            if (existing.data.leaderRatingNote && !state.leaderRatingNote) {
+              state.leaderRatingNote = existing.data.leaderRatingNote;
             }
           }
+          await sessionsCol.updateOne({ filename }, { $set: { filename, data: state, updatedAt: state.lastSaved } }, { upsert: true });
+        }
 
-          state.lastSaved = new Date().toISOString();
-
-          // Ghi nguyên tử an toàn tuyệt đối 100%
-          atomicWriteJsonSync(filePath, state, officerId);
-
-          sendJson(res, 200, {
-            success: true,
-            message: `Da luu phien lam viec an toan cho ${officerId} (${filename})`,
-            filename: filename,
-            savedAt: state.lastSaved
-          });
-        }).catch(err => {
-          console.error("Loi ghi session an toan:", err);
-          sendJson(res, 500, { success: false, error: "Khong the ghi du lieu: " + err.message });
+        return sendJson(res, 200, {
+          success: true,
+          message: `Đã lưu phiên làm việc lên Cloud cho ${officerId}`,
+          filename,
+          savedAt: state.lastSaved
         });
       } catch (err) {
-        console.error("Loi ghi session:", err);
-        return sendJson(res, 500, { success: false, error: "Khong the ghi du lieu: " + err.message });
+        return sendJson(res, 500, { success: false, error: "Lỗi ghi dữ liệu: " + err.message });
       }
     });
     return;
   }
 
+  // API Leader Proposal
   if (pathname === '/api/leader-proposal' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
         const payload = JSON.parse(body);
         const { officerId, quarter, year, leaderRatingProposal, leaderRatingNote } = payload;
-        if (!officerId) {
-          return sendJson(res, 400, { success: false, error: "Thieu thong so officerId" });
-        }
+        if (!officerId) return sendJson(res, 400, { success: false, error: "Thiếu officerId" });
+
         const filename = getSessionFilename(officerId, quarter, year);
-        const filePath = path.join(SESSIONS_DIR, filename);
-
-        queueOfficerWrite(officerId, async () => {
-          let sess = {};
-          if (fs.existsSync(filePath)) {
-            sess = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        if (kpiDb) {
+          const col = kpiDb.collection('sessions');
+          const doc = await col.findOne({ filename });
+          if (doc && doc.data) {
+            doc.data.leaderRatingProposal = leaderRatingProposal;
+            if (leaderRatingNote !== undefined) doc.data.leaderRatingNote = leaderRatingNote;
+            doc.data.lastSaved = new Date().toISOString();
+            await col.updateOne({ filename }, { $set: { data: doc.data } });
           }
-          sess.leaderRatingProposal = leaderRatingProposal;
-          if (leaderRatingNote !== undefined) sess.leaderRatingNote = leaderRatingNote;
-          sess.lastSaved = new Date().toISOString();
-
-          atomicWriteJsonSync(filePath, sess, officerId);
-
-          sendJson(res, 200, {
-            success: true,
-            message: `Đã lưu đề xuất xếp loại của Lãnh đạo cho cán bộ ${officerId}`,
-            leaderRatingProposal: leaderRatingProposal
-          });
-        }).catch(err => {
-          sendJson(res, 500, { success: false, error: err.message });
-        });
+        }
+        return sendJson(res, 200, { success: true, message: "Đã lưu đánh giá của Lãnh đạo" });
       } catch (err) {
         return sendJson(res, 500, { success: false, error: err.message });
       }
@@ -817,100 +647,11 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // --- API Xuất toàn bộ dữ liệu (Export All) dạng tệp nén an toàn ---
-  if (pathname === '/api/backup/export-all' && req.method === 'GET') {
-    const adminOfficerId = searchParams.get('adminOfficerId');
-    const isAuthorized = isAuthorAuthorizedMachine() || adminOfficerId === 'hoang';
-    if (!isAuthorized) {
-      return sendJson(res, 403, { success: false, error: "BẢN QUYỀN: Thao tác quản trị hệ thống chỉ được phép thực hiện bởi Quản trị viên (Hoàng)!" });
-    }
-    try {
-      const exportData = {
-        exportedAt: new Date().toISOString(),
-        author: AUTHOR_INFO.author,
-        officers_config: getOfficersConfig(),
-        auth_passwords: fs.existsSync(AUTH_FILE) ? JSON.parse(fs.readFileSync(AUTH_FILE, 'utf8')) : {},
-        sessions: {}
-      };
-      if (fs.existsSync(SESSIONS_DIR)) {
-        const files = fs.readdirSync(SESSIONS_DIR).filter(f => f.endsWith('.json'));
-        files.forEach(f => {
-          try {
-            exportData.sessions[f] = JSON.parse(fs.readFileSync(path.join(SESSIONS_DIR, f), 'utf8'));
-          } catch(e){}
-        });
-      }
-      const jsonStr = JSON.stringify(exportData);
-      const gzipped = zlib.gzipSync(Buffer.from(jsonStr, 'utf8'));
-      res.writeHead(200, {
-        'Content-Type': 'application/gzip',
-        'Content-Disposition': `attachment; filename="KPI_ToanPhong_Backup_${new Date().toISOString().slice(0,10)}.kpi"`,
-        'Content-Length': gzipped.length
-      });
-      res.end(gzipped);
-    } catch(err) {
-      sendJson(res, 500, { success: false, error: err.message });
-    }
-    return;
-  }
-
-  // --- API Nạp toàn bộ dữ liệu (Import All) trực tiếp lên web ---
-  if (pathname === '/api/backup/import-all' && req.method === 'POST') {
-    const adminOfficerId = searchParams.get('adminOfficerId');
-    const isAuthorized = isAuthorAuthorizedMachine() || adminOfficerId === 'hoang';
-    if (!isAuthorized) {
-      return sendJson(res, 403, { success: false, error: "BẢN QUYỀN: Thao tác quản trị hệ thống chỉ được phép thực hiện bởi Quản trị viên (Hoàng)!" });
-    }
-    let chunks = [];
-    req.on('data', chunk => chunks.push(chunk));
-    req.on('end', () => {
-      try {
-        const buffer = Buffer.concat(chunks);
-        let jsonStr = '';
-        try {
-          jsonStr = zlib.gunzipSync(buffer).toString('utf8');
-        } catch(e) {
-          jsonStr = buffer.toString('utf8');
-        }
-        const importData = JSON.parse(jsonStr);
-        if (!importData.sessions) {
-          return sendJson(res, 400, { success: false, error: "Tệp dữ liệu không hợp lệ" });
-        }
-        let count = 0;
-        for (const [fname, sess] of Object.entries(importData.sessions)) {
-          fs.writeFileSync(path.join(SESSIONS_DIR, fname), JSON.stringify(sess, null, 2), 'utf8');
-          count++;
-        }
-        if (importData.officers_config) {
-          fs.writeFileSync(CONFIG_FILE, JSON.stringify(importData.officers_config, null, 2), 'utf8');
-        }
-        if (importData.auth_passwords) {
-          fs.writeFileSync(AUTH_FILE, JSON.stringify(importData.auth_passwords, null, 2), 'utf8');
-        }
-        console.log(`[IMPORT] Da nap thanh cong ${count} phien du lieu tu nguoi dung.`);
-        sendJson(res, 200, { success: true, count, message: `Đã nạp thành công dữ liệu ${count} cán bộ lên hệ thống!` });
-      } catch(err) {
-        sendJson(res, 500, { success: false, error: "Lỗi nạp dữ liệu: " + err.message });
-      }
-    });
-    return;
-  }
-
-  // --- API Ép nạp lại dữ liệu chuẩn từ seed_data.json.gz ---
-  if (pathname === '/api/seed/reload' && (req.method === 'GET' || req.method === 'POST')) {
-    const loaded = initSeedDataIfMissing(true);
-    return sendJson(res, 200, {
-      success: true,
-      count: loaded,
-      message: `Đã nạp đè thành công dữ liệu chuẩn của ${loaded} cán bộ từ seed_data.json.gz lên Web!`
-    });
-  }
-
-  // --- API 5: Bang Tong hop KPI toan phong (GDV Tu & Lanh dao) ---
-if (pathname === '/api/summary' && req.method === 'GET') {
+  // API Summary Toàn phòng
+  if (pathname === '/api/summary' && req.method === 'GET') {
     const quarter = searchParams.get('quarter') || "Quý III";
     const year = searchParams.get('year') || "2026";
-    const cfg = getOfficersConfig();
+    const cfg = await getOfficersConfig();
     const officersList = Object.values(cfg);
 
     const summaryList = [];
@@ -920,18 +661,15 @@ if (pathname === '/api/summary' && req.method === 'GET') {
     let completedCount = 0;
     let notCompletedCount = 0;
 
+    let allSessionsMap = {};
+    if (kpiDb) {
+      const docs = await kpiDb.collection('sessions').find({}).toArray();
+      docs.forEach(d => { allSessionsMap[d.filename] = d.data; });
+    }
+
     for (const off of officersList) {
       const filename = getSessionFilename(off.id, quarter, year);
-      let filePath = path.join(SESSIONS_DIR, filename);
-
-      // Thu kiem tra ca ten file co dau tieng Viet (fallback)
-      if (!fs.existsSync(filePath)) {
-        const altFilename = `${off.id}_${quarter.replace(/\s+/g, '')}_${year}.json`;
-        const altPath = path.join(SESSIONS_DIR, altFilename);
-        if (fs.existsSync(altPath)) {
-          filePath = altPath;
-        }
-      }
+      const sess = allSessionsMap[filename];
 
       let item = {
         id: off.id,
@@ -944,86 +682,71 @@ if (pathname === '/api/summary' && req.method === 'GET') {
         isLeader: off.isLeader,
         isKPIAggregator: !!off.isKPIAggregator,
         status: "chua_tao",
-        m1Pct: 0,
-        m2Pct: 0,
-        m3Pct: 0,
-        avgPct: 0,
-        taskScore: 0,
-        generalScore: 30,
-        totalScore: 0,
+        m1Pct: 0, m2Pct: 0, m3Pct: 0, avgPct: 0,
+        taskScore: 0, generalScore: 30, totalScore: 0,
         rating: "Chưa đánh giá",
         leaderRatingProposal: "",
         lastSaved: null
       };
 
-      if (fs.existsSync(filePath)) {
-        try {
-          const raw = fs.readFileSync(filePath, 'utf8');
-          const sess = JSON.parse(raw);
-          item.isSubmitted = !!(sess.isSubmitted || sess.status === 'da_nop');
-          item.submittedAt = sess.submittedAt || null;
-          item.status = item.isSubmitted ? "da_nop" : (sess.status || "da_luu");
-          item.lastSaved = sess.lastSaved || null;
+      if (sess) {
+        item.isSubmitted = !!(sess.isSubmitted || sess.status === 'da_nop');
+        item.submittedAt = sess.submittedAt || null;
+        item.status = item.isSubmitted ? "da_nop" : (sess.status || "da_luu");
+        item.lastSaved = sess.lastSaved || null;
 
-          if (sess.months && Array.isArray(sess.months) && sess.months.length > 0) {
-            let sumPct = 0;
-            let mCount = 0;
-            sess.months.forEach((m, idx) => {
-              let pct = Number(m.completionPercent);
-              if (isNaN(pct) || pct === 0) {
-                pct = calculateMonthPctFromRows(m, off.role);
-              }
-              if (idx === 0) item.m1Pct = pct;
-              if (idx === 1) item.m2Pct = pct;
-              if (idx === 2) item.m3Pct = pct;
-              if (pct > 0) {
-                sumPct += pct;
-                mCount++;
-              }
-            });
-            item.avgPct = mCount > 0 ? Math.round((sumPct / sess.months.length) * 10) / 10 : 0;
-          }
-
-          if (sess.generalCriteria) {
-            let gSum = 0;
-            for (const k of Object.keys(sess.generalCriteria)) {
-              gSum += Number(sess.generalCriteria[k] || 0);
+        if (sess.months && Array.isArray(sess.months) && sess.months.length > 0) {
+          let sumPct = 0;
+          let mCount = 0;
+          sess.months.forEach((m, idx) => {
+            let pct = Number(m.completionPercent);
+            if (isNaN(pct) || pct === 0) {
+              pct = calculateMonthPctFromRows(m, off.role);
             }
-            item.generalScore = Math.min(30, Math.round(gSum * 10) / 10);
-          } else {
-            item.generalScore = 30;
-          }
-
-          item.taskScore = Math.round((item.avgPct * 0.7) * 10) / 10;
-          item.totalScore = Math.round((item.taskScore + item.generalScore) * 10) / 10;
-
-          let calculatedRating = "Chưa đánh giá";
-          if (item.totalScore >= 90 && item.avgPct >= 90) {
-            calculatedRating = "Hoàn thành xuất sắc nhiệm vụ";
-          } else if (item.totalScore >= 75 && item.avgPct >= 75) {
-            calculatedRating = "Hoàn thành tốt nhiệm vụ";
-          } else if (item.totalScore >= 50 && item.avgPct >= 50) {
-            calculatedRating = "Hoàn thành nhiệm vụ";
-          } else if (item.totalScore > 0) {
-            calculatedRating = "Không hoàn thành nhiệm vụ";
-          }
-
-          // Mức tự xếp loại của công chức: Ưu tiên lấy mức công chức đã tự chọn (Mẫu 01/03/02a), nếu chưa tự chọn mới dùng tính toán tự động
-          const chosenSelfRating = sess.proposedRating || sess.selfRating || sess.selfRatingProposal;
-          item.formulaRating = calculatedRating;
-          item.proposedRating = chosenSelfRating || calculatedRating;
-          item.rating = item.proposedRating;
-
-          item.leaderRatingProposal = sess.leaderRatingProposal || item.rating;
-
-          if (item.isSubmitted) submittedCount++;
-          if (item.rating.includes("xuất sắc")) excellentCount++;
-          else if (item.rating.includes("tốt")) goodCount++;
-          else if (item.rating.includes("Không hoàn thành")) notCompletedCount++;
-          else if (item.rating.includes("Hoàn thành")) completedCount++;
-        } catch (err) {
-          console.error("Loi doc session tong hop:", filePath, err);
+            if (idx === 0) item.m1Pct = pct;
+            if (idx === 1) item.m2Pct = pct;
+            if (idx === 2) item.m3Pct = pct;
+            if (pct > 0) {
+              sumPct += pct;
+              mCount++;
+            }
+          });
+          item.avgPct = mCount > 0 ? Math.round((sumPct / sess.months.length) * 10) / 10 : 0;
         }
+
+        if (sess.generalCriteria) {
+          let gSum = 0;
+          for (const k of Object.keys(sess.generalCriteria)) {
+            gSum += Number(sess.generalCriteria[k] || 0);
+          }
+          item.generalScore = Math.min(30, Math.round(gSum * 10) / 10);
+        }
+
+        item.taskScore = Math.round((item.avgPct * 0.7) * 10) / 10;
+        item.totalScore = Math.round((item.taskScore + item.generalScore) * 10) / 10;
+
+        let calculatedRating = "Chưa đánh giá";
+        if (item.totalScore >= 90 && item.avgPct >= 90) {
+          calculatedRating = "Hoàn thành xuất sắc nhiệm vụ";
+        } else if (item.totalScore >= 75 && item.avgPct >= 75) {
+          calculatedRating = "Hoàn thành tốt nhiệm vụ";
+        } else if (item.totalScore >= 50 && item.avgPct >= 50) {
+          calculatedRating = "Hoàn thành nhiệm vụ";
+        } else if (item.totalScore > 0) {
+          calculatedRating = "Không hoàn thành nhiệm vụ";
+        }
+
+        const chosenSelfRating = sess.proposedRating || sess.selfRating || sess.selfRatingProposal;
+        item.formulaRating = calculatedRating;
+        item.proposedRating = chosenSelfRating || calculatedRating;
+        item.rating = item.proposedRating;
+        item.leaderRatingProposal = sess.leaderRatingProposal || item.rating;
+
+        if (item.isSubmitted) submittedCount++;
+        if (item.rating.includes("xuất sắc")) excellentCount++;
+        else if (item.rating.includes("tốt")) goodCount++;
+        else if (item.rating.includes("Không hoàn thành")) notCompletedCount++;
+        else if (item.rating.includes("Hoàn thành")) completedCount++;
       }
 
       summaryList.push(item);
@@ -1031,19 +754,18 @@ if (pathname === '/api/summary' && req.method === 'GET') {
 
     const totalOfficers = summaryList.length;
     const maxExcellentAllowed = Math.round(totalOfficers * 0.2);
-    const isExcellentExceeded = excellentCount > maxExcellentAllowed;
 
     return sendJson(res, 200, {
       success: true,
-      quarter: quarter,
-      year: year,
+      quarter,
+      year,
       officers: summaryList,
       stats: {
         totalOfficers,
         submittedCount,
         excellentCount,
         maxExcellentAllowed,
-        isExcellentExceeded,
+        isExcellentExceeded: excellentCount > maxExcellentAllowed,
         goodCount,
         completedCount,
         notCompletedCount
@@ -1051,7 +773,7 @@ if (pathname === '/api/summary' && req.method === 'GET') {
     });
   }
 
-    // --- SERVE GIAO DIEN WEB CHINH (HTML VỚI BỘ NHỚ ĐỆM RAM & NÉN GZIP) ---
+  // Serve Frontend HTML
   if (pathname === '/' || pathname === '/index.html' || pathname === '/app') {
     refreshHtmlCache();
     if (cachedHtml.rawBuffer) {
@@ -1059,92 +781,25 @@ if (pathname === '/api/summary' && req.method === 'GET') {
         res.writeHead(304, { 'ETag': cachedHtml.etag });
         return res.end();
       }
-
-      const acceptEncoding = req.headers['accept-encoding'] || '';
-      if (acceptEncoding.includes('gzip') && cachedHtml.gzipBuffer) {
-        res.writeHead(200, {
-          'Content-Type': 'text/html; charset=utf-8',
-          'Content-Encoding': 'gzip',
-          'Content-Length': cachedHtml.gzipBuffer.length,
-          'ETag': cachedHtml.etag,
-          'Cache-Control': 'no-cache, must-revalidate',
-          'Vary': 'Accept-Encoding'
-        });
-        return res.end(cachedHtml.gzipBuffer);
-      } else {
-        res.writeHead(200, {
-          'Content-Type': 'text/html; charset=utf-8',
-          'Content-Length': cachedHtml.rawBuffer.length,
-          'ETag': cachedHtml.etag,
-          'Cache-Control': 'no-cache, must-revalidate'
-        });
-        return res.end(cachedHtml.rawBuffer);
-      }
-    } else {
-      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-      return res.end("Khong tim thay tep giao dien HTML: " + HTML_FILE);
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Encoding': 'gzip',
+        'Content-Length': cachedHtml.gzipBuffer.length,
+        'ETag': cachedHtml.etag,
+        'Cache-Control': 'no-cache, must-revalidate',
+        'Vary': 'Accept-Encoding'
+      });
+      return res.end(cachedHtml.gzipBuffer);
     }
-  }
-
-  // Phuc vu tep tinh neu co yeu cau
-  const safePath = path.normalize(path.join(BASE_DIR, pathname));
-  if (safePath.startsWith(BASE_DIR) && fs.existsSync(safePath) && fs.statSync(safePath).isFile()) {
-    const ext = path.extname(safePath).toLowerCase();
-    const mimeTypes = {
-      '.html': 'text/html; charset=utf-8',
-      '.js': 'application/javascript; charset=utf-8',
-      '.json': 'application/json; charset=utf-8',
-      '.css': 'text/css; charset=utf-8',
-      '.png': 'image/png',
-      '.jpg': 'image/jpeg',
-      '.pdf': 'application/pdf',
-      '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      '.xls': 'application/vnd.ms-excel'
-    };
-    const cType = mimeTypes[ext] || 'application/octet-stream';
-    res.writeHead(200, { 'Content-Type': cType });
-    return fs.createReadStream(safePath).pipe(res);
   }
 
   res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end("404 Not Found");
 });
 
-// Khoi dong may chu
-// Cấu hình tối ưu kết nối HTTP cho 30 máy trạm LAN đồng thời
-server.keepAliveTimeout = 65000;
-server.headersTimeout = 66000;
-server.maxHeadersCount = 2000;
-
-// Bảo vệ tiến trình máy chủ không bao giờ bị dừng đột ngột
-process.on('uncaughtException', (err) => {
-  console.error('[CRITICAL] Bắt lỗi ngoại lệ toàn cục an toàn trong server:', err);
-});
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('[CRITICAL] Bắt lỗi promise rejection toàn cục an toàn:', reason);
-});
-
 server.listen(PORT, HOST, () => {
-  const lanIp = getLanIp();
-  const isAuthorized = isAuthorAuthorizedMachine();
   console.log("============================================================================");
-  console.log("  KBNN KHU VUC XV - PHONG KE TOAN NHA NUOC");
-  console.log("  HE THONG THEO DOI & DANH GIA KPI (ND 335 / QD 1253)");
-  console.log("============================================================================");
-  console.log(` [©] BAN QUYEN PHAN MEM: TRẦN QUỐC HOÀNG (Pho Truong phong KTNN - KBNN KV XV)`);
-  console.log(` [!] THIET BI GOC DUOC PHEP SUA APP: ${AUTHOR_INFO.authorizedHostname}`);
-  console.log(` [+] Thiet bi hien tai:  ${os.hostname()} (${isAuthorized ? "MAY CHU CHINH CUA TAC GIA - TOAN QUYEN CHINH SUA" : "MAY PHAN PHOI - KHOA TINH NANG SUA HE THONG"})`);
-  console.log(` [+] Trang thai:        MAY CHU DANG HOAT DONG`);
-  console.log(` [+] Truy cap cuc bo:   http://localhost:${PORT}`);
-  console.log(` [+] Truy cap mang LAN: http://${lanIp}:${PORT}`);
-  console.log(` [+] Thu muc phien:     ${SESSIONS_DIR}`);
-  console.log("============================================================================");
-  if (!isAuthorized) {
-    console.log("  * CANH BAO: May chu khong chay tren thiet bi goc cua tac gia Tran Quoc Hoang.");
-    console.log("  * Che do bao ve ban quyen da duoc kich hoat: Khoa toan bo tinh nang sua he thong.");
-    console.log("============================================================================");
-  }
-  console.log("  * Chia se duong dan 'http://" + lanIp + ":" + PORT + "' cho moi nguoi trong phong.");
-  console.log("  * Nhan Ctrl+C de dung may chu.");
+  console.log(" KBNN KHU VUC XV - KHO MONGODB CLOUD ĐÃ SẴN SÀNG");
+  console.log(` [+] Truy cập trực tuyến: http://localhost:${PORT}`);
   console.log("============================================================================");
 });
