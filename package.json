@@ -1,0 +1,21 @@
+{
+  "name": "kpi-phong-ktnn-kbxv",
+  "version": "1.0.0",
+  "description": "Hệ thống Quản lý & Đánh giá KPI Phòng Kế toán Nhà nước - KBNN Khu vực XV theo NĐ 335 và QĐ 1253. Bản quyền tác giả: Trần Quốc Hoàng",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": [
+    "kpi",
+    "kbnn",
+    "nd335",
+    "qd1253",
+    "kho-bac-nha-nuoc"
+  ],
+  "author": "Trần Quốc Hoàng (kvxv-hoangtq)",
+  "license": "ISC"
+}
