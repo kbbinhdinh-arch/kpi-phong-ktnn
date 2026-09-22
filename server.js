@@ -64,6 +64,39 @@ if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
 if (!fs.existsSync(BACKUPS_ROLLING_DIR)) fs.mkdirSync(BACKUPS_ROLLING_DIR, { recursive: true });
 if (!fs.existsSync(BACKUPS_PERIODIC_DIR)) fs.mkdirSync(BACKUPS_PERIODIC_DIR, { recursive: true });
 
+// Tu dong nap du lieu goc tu seed_data.json.gz (khi trien khai tren Cloud / Render)
+function initSeedDataIfMissing() {
+  const gzPath = path.join(BASE_DIR, 'seed_data.json.gz');
+  if (!fs.existsSync(gzPath)) return;
+  try {
+    const sessionCount = fs.existsSync(SESSIONS_DIR) ? fs.readdirSync(SESSIONS_DIR).filter(x => x.endsWith('.json')).length : 0;
+    if (sessionCount < 5) {
+      console.log('[SEED] Phat hien goi du lieu goc seed_data.json.gz, dang tu dong nap du lieu...');
+      const buf = fs.readFileSync(gzPath);
+      const raw = zlib.gunzipSync(buf);
+      const seed = JSON.parse(raw.toString('utf8'));
+      if (seed.officers_config && !fs.existsSync(CONFIG_FILE)) {
+        fs.writeFileSync(CONFIG_FILE, JSON.stringify(seed.officers_config, null, 2), 'utf8');
+      }
+      if (seed.auth_passwords && !fs.existsSync(AUTH_FILE)) {
+        fs.writeFileSync(AUTH_FILE, JSON.stringify(seed.auth_passwords, null, 2), 'utf8');
+      }
+      if (seed.sessions) {
+        for (const [fname, sessData] of Object.entries(seed.sessions)) {
+          const sPath = path.join(SESSIONS_DIR, fname);
+          if (!fs.existsSync(sPath)) {
+            fs.writeFileSync(sPath, JSON.stringify(sessData, null, 2), 'utf8');
+          }
+        }
+      }
+      console.log(`[SEED] Da nap thanh cong du lieu 21 can bo tu seed_data.json.gz!`);
+    }
+  } catch (err) {
+    console.error('[SEED] Loi khi nap seed_data.json.gz:', err);
+  }
+}
+initSeedDataIfMissing();
+
 
 // Lay dia chi IP mang LAN
 function getLanIp() {
@@ -706,6 +739,75 @@ const server = http.createServer((req, res) => {
         });
       } catch (err) {
         return sendJson(res, 500, { success: false, error: err.message });
+      }
+    });
+    return;
+  }
+
+  // --- API Xuất toàn bộ dữ liệu (Export All) dạng tệp nén an toàn ---
+  if (pathname === '/api/backup/export-all' && req.method === 'GET') {
+    try {
+      const exportData = {
+        exportedAt: new Date().toISOString(),
+        author: AUTHOR_INFO.author,
+        officers_config: getOfficersConfig(),
+        auth_passwords: fs.existsSync(AUTH_FILE) ? JSON.parse(fs.readFileSync(AUTH_FILE, 'utf8')) : {},
+        sessions: {}
+      };
+      if (fs.existsSync(SESSIONS_DIR)) {
+        const files = fs.readdirSync(SESSIONS_DIR).filter(f => f.endsWith('.json'));
+        files.forEach(f => {
+          try {
+            exportData.sessions[f] = JSON.parse(fs.readFileSync(path.join(SESSIONS_DIR, f), 'utf8'));
+          } catch(e){}
+        });
+      }
+      const jsonStr = JSON.stringify(exportData);
+      const gzipped = zlib.gzipSync(Buffer.from(jsonStr, 'utf8'));
+      res.writeHead(200, {
+        'Content-Type': 'application/gzip',
+        'Content-Disposition': `attachment; filename="KPI_ToanPhong_Backup_${new Date().toISOString().slice(0,10)}.kpi"`,
+        'Content-Length': gzipped.length
+      });
+      res.end(gzipped);
+    } catch(err) {
+      sendJson(res, 500, { success: false, error: err.message });
+    }
+    return;
+  }
+
+  // --- API Nạp toàn bộ dữ liệu (Import All) trực tiếp lên web ---
+  if (pathname === '/api/backup/import-all' && req.method === 'POST') {
+    let chunks = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', () => {
+      try {
+        const buffer = Buffer.concat(chunks);
+        let jsonStr = '';
+        try {
+          jsonStr = zlib.gunzipSync(buffer).toString('utf8');
+        } catch(e) {
+          jsonStr = buffer.toString('utf8');
+        }
+        const importData = JSON.parse(jsonStr);
+        if (!importData.sessions) {
+          return sendJson(res, 400, { success: false, error: "Tệp dữ liệu không hợp lệ" });
+        }
+        let count = 0;
+        for (const [fname, sess] of Object.entries(importData.sessions)) {
+          fs.writeFileSync(path.join(SESSIONS_DIR, fname), JSON.stringify(sess, null, 2), 'utf8');
+          count++;
+        }
+        if (importData.officers_config) {
+          fs.writeFileSync(CONFIG_FILE, JSON.stringify(importData.officers_config, null, 2), 'utf8');
+        }
+        if (importData.auth_passwords) {
+          fs.writeFileSync(AUTH_FILE, JSON.stringify(importData.auth_passwords, null, 2), 'utf8');
+        }
+        console.log(`[IMPORT] Da nap thanh cong ${count} phien du lieu tu nguoi dung.`);
+        sendJson(res, 200, { success: true, count, message: `Đã nạp thành công dữ liệu ${count} cán bộ lên hệ thống!` });
+      } catch(err) {
+        sendJson(res, 500, { success: false, error: "Lỗi nạp dữ liệu: " + err.message });
       }
     });
     return;
