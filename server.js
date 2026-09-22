@@ -51,7 +51,7 @@ const HTML_FILE = path.join(BASE_DIR, 'App_KPI_PhongKTNN_KBXV_V18_DaFixLoiIn.htm
 // ============================================================================
 // KẾT NỐI MONGODB ATLAS (LƯU TRỮ LÂU DÀI TRÊN CLOUD)
 // ============================================================================
-const MONGODB_URI = "mongodb+srv://kbbinhdinh_db_user:ZvCQmfp24YwNudJS@@kpi-ktnn-db.olx4piw.mongodb.net/?appName=kpi-ktnn-db";
+const MONGODB_URI = "mongodb+srv://kbbinhdinh_db_user:ZvCQmfp24YwNudJS@kpi-ktnn-db.olx4piw.mongodb.net/?appName=kpi-ktnn-db";
 let dbClient = null;
 let kpiDb = null;
 
