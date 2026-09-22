@@ -2658,13 +2658,14 @@
         <button class="btn-zoom active" id="zoomBtn90" onclick="setAppZoom(0.9)">90%</button>
         <button class="btn-zoom" id="zoomBtn100" onclick="setAppZoom(1.0)">100%</button>
       </div>
-      <button class="btn btn-hdr-outline is-hidden" id="btnSaoLuuToanPhong" onclick="exportToanPhongBackup()" data-role-hidden="true" style="display: none !important; background: rgba(72, 187, 120, 0.22); border-color: #48bb78; color: #c6f6d5; font-weight: 700;" title="Tải toàn bộ dữ liệu 21 cán bộ phòng từ Web về máy tính">📥 Sao lưu</button>
+      <button class="btn btn-hdr-outline is-hidden" id="btnSaoLuuToanPhong" onclick="exportToanPhongBackup()" data-role-hidden="true" style="display: none !important; background: rgba(72, 187, 120, 0.22); border-color: #48bb78; color: #c6f6d5; font-weight: 700;" title="Tải toàn bộ dữ liệu 35 cán bộ phòng từ Web về máy tính">📥 Sao lưu</button>
       <label class="btn btn-hdr-outline is-hidden" id="btnDongBoLenWeb" data-role-hidden="true" style="cursor: pointer; display: none !important; align-items: center; background: rgba(66, 153, 225, 0.22); border-color: #4299e1; color: #bee3f8; font-weight: 700;" title="Nạp toàn bộ dữ liệu từ máy tính lên Web">
         📤 Đồng bộ Web <input type="file" id="inputImportToanPhong" accept=".kpi,.json" style="display: none;" onchange="handleImportToanPhong(event)">
       </label>
-      <button class="btn btn-hdr-outline is-hidden" id="btnQuanLyMatKhau" onclick="openAdminPasswordModal()" data-role-hidden="true" style="display: none !important; background: rgba(254, 252, 191, 0.22); border-color: #ecc94b; color: #fefcbf; font-weight: 700;" title="Quản lý mật khẩu cán bộ phòng">🔑 Mật khẩu</button>
+      <button class="btn btn-hdr-outline is-hidden" id="btnQuanLyMatKhau" onclick="openAdminPasswordModal()" data-role-hidden="true" style="display: none !important; background: rgba(254, 252, 191, 0.22); border-color: #ecc94b; color: #fefcbf; font-weight: 700;" title="Quản lý mật khẩu 35 cán bộ phòng (Quản trị viên)">🔑 Mật khẩu phòng</button>
       <button class="btn btn-accent" id="btnWorkflowModal" onclick="openWorkflowModal()" style="display: inline-flex; color: #1a202c; font-weight: 700;" title="Tra cứu sổ tay quy trình đánh giá, xếp loại (CV 1513, CV 6046, NĐ 335)">📖 Quy trình</button>
       <button class="btn btn-primary" id="btnPrintHeader" onclick="switchAppTab('tab-print-views')" title="Xem và in biểu mẫu A4">🖨 In A4</button>
+      <button class="btn btn-hdr-outline" id="btnDoiMatKhauHeader" onclick="openChangePasswordModal()" style="display: inline-flex; background: rgba(254, 252, 191, 0.22); border-color: #ecc94b; color: #fefcbf; font-weight: 700;" title="Đổi mật khẩu tài khoản đang đăng nhập">🔑 Đổi mật khẩu</button>
       <button class="btn btn-hdr-outline" id="btnLogoutHeader" onclick="logoutUser()" style="background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.4); font-weight: 700;" title="Đăng xuất khỏi tài khoản hiện tại">
         🚪 Đăng xuất (<span id="headerLoggedName">Hoàng</span>)
       </button>
@@ -8652,17 +8653,135 @@ async function verifyOfficerPassword(officerId, password) {
 
 
 // ==========================================
+// CHỨC NĂNG ĐỔI MẬT KHẨU CÁ NHÂN (CHO MỌI CÁN BỘ)
+// ==========================================
+
+function openChangePasswordModal() {
+  const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || (appState.officer && (appState.officer.id || appState.officer.officerId)) || '';
+  if (!loggedUser) {
+    alert("Vui lòng đăng nhập để đổi mật khẩu!");
+    return;
+  }
+  const cfg = (window.OFFICERS_ASSIGNMENTS && window.OFFICERS_ASSIGNMENTS[loggedUser]) || {};
+  const offName = cfg.name || (appState.officer && appState.officer.name) || loggedUser;
+
+  const nameEl = document.getElementById('changePwdOfficerName');
+  const idEl = document.getElementById('changePwdOfficerId');
+  if (nameEl) nameEl.innerText = offName;
+  if (idEl) idEl.innerText = loggedUser;
+
+  const oldInp = document.getElementById('changePwdOld');
+  const newInp = document.getElementById('changePwdNew');
+  const cfmInp = document.getElementById('changePwdConfirm');
+  const errEl = document.getElementById('changePwdErrorMsg');
+
+  if (oldInp) oldInp.value = '';
+  if (newInp) newInp.value = '';
+  if (cfmInp) cfmInp.value = '';
+  if (errEl) { errEl.style.display = 'none'; errEl.innerText = ''; }
+
+  const modal = document.getElementById('changePasswordModal');
+  if (modal) modal.classList.add('active');
+  if (oldInp) oldInp.focus();
+}
+
+function closeChangePasswordModal() {
+  const modal = document.getElementById('changePasswordModal');
+  if (modal) modal.classList.remove('active');
+}
+
+async function submitChangePassword() {
+  const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || (appState.officer && (appState.officer.id || appState.officer.officerId));
+  if (!loggedUser) {
+    alert("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+    return;
+  }
+
+  const oldPwd = (document.getElementById('changePwdOld').value || '').trim();
+  const newPwd = (document.getElementById('changePwdNew').value || '').trim();
+  const confirmPwd = (document.getElementById('changePwdConfirm').value || '').trim();
+  const errEl = document.getElementById('changePwdErrorMsg');
+
+  const showError = (msg) => {
+    if (errEl) {
+      errEl.innerText = msg;
+      errEl.style.display = 'block';
+    } else {
+      alert(msg);
+    }
+  };
+
+  if (!oldPwd) {
+    showError("⚠️ Vui lòng nhập mật khẩu hiện tại!");
+    document.getElementById('changePwdOld').focus();
+    return;
+  }
+  if (!newPwd || newPwd.length < 4) {
+    showError("⚠️ Mật khẩu mới phải có ít nhất 4 ký tự!");
+    document.getElementById('changePwdNew').focus();
+    return;
+  }
+  if (newPwd !== confirmPwd) {
+    showError("⚠️ Mật khẩu xác nhận không trùng khớp!");
+    document.getElementById('changePwdConfirm').focus();
+    return;
+  }
+
+  const btn = document.getElementById('btnSubmitChangePwd');
+  if (btn) { btn.disabled = true; btn.innerText = "⏳ Đang xử lý..."; }
+
+  try {
+    // 1. Xác thực mật khẩu cũ
+    const verifyRes = await verifyOfficerPassword(loggedUser, oldPwd);
+    if (!verifyRes || !verifyRes.success) {
+      showError("❌ Mật khẩu hiện tại không chính xác!");
+      if (btn) { btn.disabled = false; btn.innerText = "💾 Cập nhật mật khẩu"; }
+      document.getElementById('changePwdOld').focus();
+      return;
+    }
+
+    // 2. Gửi mật khẩu mới lên server
+    let serverOk = false;
+    try {
+      const res = await fetch(`${CURRENT_SERVER_HOST}/api/auth/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ officerId: loggedUser, oldPassword: oldPwd, newPassword: newPwd })
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) serverOk = true;
+      }
+    } catch(e) {}
+
+    // Fallback nếu server dùng set-password
+    if (!serverOk) {
+      await setOfficerPassword(loggedUser, newPwd);
+    } else {
+      const hash = await hashPasswordBrowser(newPwd);
+      const localMap = getLocalAuthMap();
+      localMap[loggedUser] = { hash, updatedAt: new Date().toISOString() };
+      saveLocalAuthMap(localMap);
+    }
+
+    alert(`✅ ĐÃ ĐỔI MẬT KHẨU THÀNH CÔNG!\n\nMật khẩu mới của đồng chí đã được cập nhật an toàn.`);
+    closeChangePasswordModal();
+  } catch(err) {
+    showError("Lỗi đổi mật khẩu: " + err.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerText = "💾 Cập nhật mật khẩu"; }
+  }
+}
+
+// ==========================================
 // CHỨC NĂNG QUẢN LÝ & ĐẶT LẠI MẬT KHẨU (ADMIN HOÀNG)
 // ==========================================
 
 async function openAdminPasswordModal() {
-  if (window.APP_AUTHOR_INFO && !window.APP_AUTHOR_INFO.isAuthorizedDevice) {
-    alert("BẢN QUYỀN TÁC GIẢ: Thao tác quản trị hệ thống chỉ được phép thực hiện trên máy chủ gốc của tác giả Trần Quốc Hoàng (kvxv-hoangtq)!");
-    return;
-  }
-  const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || (appState.officer && appState.officer.officerId) || 'hoang';
-  if (loggedUser !== 'hoang') {
-    alert('Chức năng Quản lý Mật khẩu chỉ dành riêng cho Quản trị viên hệ thống!');
+  const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || (appState.officer && (appState.officer.id || appState.officer.officerId)) || '';
+  const isAuthor = !!(window.APP_AUTHOR_INFO && window.APP_AUTHOR_INFO.isAuthorizedDevice);
+  if (!isAuthor && loggedUser !== 'hoang') {
+    alert("BẢN QUYỀN TÁC GIẢ: Thao tác quản lý mật khẩu phòng chỉ dành riêng cho Quản trị viên (Hoàng)!");
     return;
   }
   const modal = document.getElementById('adminPasswordModal');
@@ -8674,6 +8793,45 @@ async function openAdminPasswordModal() {
 function closeAdminPasswordModal() {
   const modal = document.getElementById('adminPasswordModal');
   if (modal) modal.classList.remove('active');
+}
+
+async function adminDirectSetPasswordPrompt(targetOfficerId, officerName) {
+  const newPwd = prompt(`🔑 ĐẶT / ĐỔI MẬT KHẨU CHO CÁN BỘ:\n👉 ${officerName} (${targetOfficerId})\n\nNhập mật khẩu mới muốn cấp cho cán bộ này (tối thiểu 4 ký tự):`, '123456');
+  if (newPwd === null) return;
+  const trimmed = String(newPwd).trim();
+  if (trimmed.length < 4) {
+    alert('⚠️ Mật khẩu phải có ít nhất 4 ký tự!');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${CURRENT_SERVER_HOST}/api/auth/admin-set-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        targetOfficerId,
+        newPassword: trimmed,
+        adminOfficerId: 'hoang'
+      })
+    });
+    if (!res.ok) {
+      await fetch(`${CURRENT_SERVER_HOST}/api/auth/set-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ officerId: targetOfficerId, password: trimmed })
+      });
+    }
+  } catch(e) {
+    console.warn('Lỗi gọi API server, lưu local:', e);
+  }
+
+  const hash = await hashPasswordBrowser(trimmed);
+  const localMap = getLocalAuthMap();
+  localMap[targetOfficerId] = { hash, updatedAt: new Date().toISOString() };
+  saveLocalAuthMap(localMap);
+
+  alert(`✅ ĐÃ CẬP NHẬT MẬT KHẨU THÀNH CÔNG CHO:\n👉 ${officerName} (${targetOfficerId})\n\nMật khẩu mới là: ${trimmed}`);
+  await renderAdminPasswordTable();
 }
 
 async function renderAdminPasswordTable() {
@@ -8729,11 +8887,17 @@ async function renderAdminPasswordTable() {
 
     const statusBadge = hasPwd
       ? '<span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:12px; font-size:11.5px; font-weight:700; background:#f0fff4; color:#22543d; border:1px solid #c6f6d5;">🟢 Đã có mật khẩu</span>'
-      : '<span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:12px; font-size:11.5px; font-weight:600; background:#edf2f7; color:#718096; border:1px solid #e2e8f0;">⚪ Chưa đặt mật khẩu</span>';
+      : '<span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:12px; font-size:11.5px; font-weight:600; background:#fffaf0; color:#dd6b20; border:1px solid #feebc8;">⚪ Chưa đặt mật khẩu</span>';
 
-    const actionBtn = hasPwd
-      ? `<button type="button" class="btn btn-danger btn-sm" onclick="adminResetOfficerPassword('${offId}', '${(off.name || offId).replace(/'/g, "\\'")}')" style="font-size:12px; padding:4px 10px; font-weight:700;" title="Xóa mật khẩu của cán bộ này">🔄 Đặt lại</button>`
-      : `<span style="font-size:11.5px; color:#a0aec0; font-style:italic;">Chưa cần đặt lại</span>`;
+    const safeName = (off.name || offId).replace(/'/g, "\\'");
+    
+    // Nút Đổi/Đặt mật khẩu luôn hiển thị cho MỌI cán bộ (kể cả 16 cán bộ mới bổ sung)
+    const setBtn = `<button type="button" class="btn btn-warning btn-sm" onclick="adminDirectSetPasswordPrompt('${offId}', '${safeName}')" style="font-size:11.5px; padding:3px 8px; font-weight:700; background:#d69e2e; color:#fff; border:none; border-radius:4px; margin-right:4px;" title="Đặt hoặc đổi mật khẩu mới cho cán bộ này">🔑 Đổi MK</button>`;
+
+    // Nút Xóa/Đặt lại mật khẩu
+    const resetBtn = hasPwd
+      ? `<button type="button" class="btn btn-danger btn-sm" onclick="adminResetOfficerPassword('${offId}', '${safeName}')" style="font-size:11.5px; padding:3px 8px; font-weight:700; border-radius:4px;" title="Xóa mật khẩu để cán bộ tự đặt lại khi đăng nhập">🔄 Xóa MK</button>`
+      : `<button type="button" class="btn btn-secondary btn-sm" onclick="adminDirectSetPasswordPrompt('${offId}', '${safeName}')" style="font-size:11.5px; padding:3px 8px; font-weight:600; border-radius:4px;" title="Tài khoản chưa có mật khẩu, bấm để cấp mật khẩu ban đầu">➕ Cấp MK</button>`;
 
     html += `
       <tr style="border-bottom: 1px solid #e2e8f0; hover: background-color: #f7fafc;">
@@ -8743,7 +8907,10 @@ async function renderAdminPasswordTable() {
         </td>
         <td style="padding: 10px 12px;">${roleBadge}</td>
         <td style="padding: 10px 12px; text-align: center;">${statusBadge}</td>
-        <td style="padding: 10px 12px; text-align: center;">${actionBtn}</td>
+        <td style="padding: 10px 12px; text-align: center; white-space: nowrap;">
+          ${setBtn}
+          ${resetBtn}
+        </td>
       </tr>
     `;
   });
@@ -8752,7 +8919,7 @@ async function renderAdminPasswordTable() {
       </tbody>
     </table>
     <div style="margin-top: 14px; font-size: 11.5px; color: #718096; text-align: right;">
-      * Khi cán bộ được đặt lại mật khẩu, màn hình đăng nhập của cán bộ đó sẽ lập tức chuyển sang chế độ thiết lập mật khẩu lần đầu.
+      * Nút <b>"🔑 Đổi MK"</b> cho phép Quản trị viên cấp/đổi trực tiếp mật khẩu cho bất kỳ cán bộ nào. Nút <b>"🔄 Xóa MK"</b> sẽ đặt lại để cán bộ tự đặt mật khẩu khi đăng nhập.
     </div>
   `;
 
@@ -9165,10 +9332,11 @@ function updateUserInterfaceByRole() {
   setHeaderBtnVisible('btnUserGuideHeader', true);
   setHeaderBtnVisible('btnSaoLuuJson', false);
   setHeaderBtnVisible('btnPhucHoiJson', false);
-  setHeaderBtnVisible('btnSaoLuuToanPhong', isAdmin);
-  setHeaderBtnVisible('btnDongBoLenWeb', isHoangAdmin);
+  setHeaderBtnVisible('btnSaoLuuToanPhong', (isAdmin || isLeader));
+  setHeaderBtnVisible('btnDongBoLenWeb', (isAdmin || isLeader));
   setHeaderBtnVisible('btnDatLaiDefault', (isAdmin && isAuthorMachine));
-  setHeaderBtnVisible('btnQuanLyMatKhau', (isAdmin && isAuthorMachine));
+  setHeaderBtnVisible('btnQuanLyMatKhau', isHoangAdmin);
+  setHeaderBtnVisible('btnDoiMatKhauHeader', true);
   setHeaderBtnVisible('btnWorkflowModal', true);
   setHeaderBtnVisible('btnPrintHeader', true);
   setHeaderBtnVisible('btnLogoutHeader', true);
@@ -9291,16 +9459,22 @@ function updateUserInterfaceByRole() {
   }
 
   // Cấu hình Sub-tabs trong Tab chung Kế hoạch Quý:
+  const quarterSubNavEl = document.getElementById('quarterSubNavTabs');
   const subPlanBtn = document.getElementById('btn-sub-plan');
   const subQuarterResBtn = document.getElementById('btn-sub-quarter-res');
   const subPrintBtn = document.getElementById('btn-sub-print-views');
 
+  // Mẫu 01 (Đơn vị) chỉ dành cho Trưởng phòng, Mẫu 03 (Cá nhân) chỉ dành cho Phó Trưởng phòng.
+  // Giao dịch viên (GDV) KHÔNG lập Mẫu 01/03 nên ẩn thanh Sub-tab Kế hoạch đối với GDV.
+  if (quarterSubNavEl) {
+    quarterSubNavEl.style.display = (isLeader || isAdmin) ? 'flex' : 'none';
+  }
   if (subPlanBtn) {
-    subPlanBtn.style.display = 'inline-flex';
+    subPlanBtn.style.display = (isLeader || isAdmin) ? 'inline-flex' : 'none';
     subPlanBtn.innerText = isTP ? '📋 Kế hoạch Đơn vị (M01)' : '📋 Kế hoạch Cá nhân (M03)';
   }
   if (subQuarterResBtn) {
-    subQuarterResBtn.style.display = isLeader ? 'inline-flex' : 'none';
+    subQuarterResBtn.style.display = (isLeader || isAdmin) ? 'inline-flex' : 'none';
     subQuarterResBtn.innerText = isTP ? '📈 Kết quả Đơn vị (M02)' : '📈 Kết quả Cá nhân (M04)';
   }
   if (subPrintBtn) {
@@ -10038,7 +10212,7 @@ function importJsonBackup(event) {
   reader.readAsText(file);
 }
 
-// Xuất toàn bộ dữ liệu 21 cán bộ phòng thành tệp .kpi về máy tính
+// Xuất toàn bộ dữ liệu 35 cán bộ phòng thành tệp .kpi về máy tính
 function exportToanPhongBackup() {
   const btn = document.getElementById('btnSaoLuuToanPhong');
   const originalText = btn ? btn.innerText : '';
@@ -10060,7 +10234,7 @@ function exportToanPhongBackup() {
       a.click();
       window.URL.revokeObjectURL(url);
       if (btn) btn.innerText = originalText;
-      alert('Đã tải thành công bản sao lưu toàn bộ dữ liệu 21 cán bộ về máy tính!');
+      alert('Đã tải thành công bản sao lưu toàn bộ dữ liệu 35 cán bộ về máy tính!');
     })
     .catch(err => {
       if (btn) btn.innerText = originalText;
@@ -10068,12 +10242,12 @@ function exportToanPhongBackup() {
     });
 }
 
-// Nạp tệp sao lưu từ máy tính lên Web để đồng bộ toàn bộ 21 cán bộ
+// Nạp tệp sao lưu từ máy tính lên Web để đồng bộ toàn bộ 35 cán bộ
 function handleImportToanPhong(event) {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
 
-  if (!confirm(`XÁC NHẬN ĐỒNG BỘ DỮ LIỆU:\nBạn có chắc chắn muốn nạp dữ liệu từ tệp "${file.name}" lên hệ thống không?\n\nToàn bộ dữ liệu điểm số của 21 cán bộ sẽ được cập nhật đồng bộ ngay lập tức.`)) {
+  if (!confirm(`XÁC NHẬN ĐỒNG BỘ DỮ LIỆU:\nBạn có chắc chắn muốn nạp dữ liệu từ tệp "${file.name}" lên hệ thống không?\n\nToàn bộ dữ liệu điểm số của 35 cán bộ sẽ được cập nhật đồng bộ ngay lập tức.`)) {
     event.target.value = '';
     return;
   }
@@ -11738,6 +11912,53 @@ function mapRawRowsFlexible(rawRows) {
 
   <!-- Quick Lookup Modal for Workflow -->
   
+  <!-- Modal Đổi Mật Khẩu Cá Nhân (Dành cho mọi cán bộ) -->
+  <div id="changePasswordModal" class="modal-backdrop" onclick="if(event.target === this) closeChangePasswordModal()">
+    <div class="modal-container" style="max-width: 440px; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.25); background: #ffffff;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #1a365d, #2b6cb0); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 15.5px; color: #fefcbf; display: flex; align-items: center; gap: 8px;">
+          <span>🔑</span> ĐỔI MẬT KHẨU CÁ NHÂN
+        </h3>
+        <button class="modal-close-btn" onclick="closeChangePasswordModal()" title="Đóng" style="color: #fff; font-size: 20px; background: none; border: none; cursor: pointer;">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <div style="background: #ebf8ff; border: 1px solid #bee3f8; border-radius: 6px; padding: 10px 14px; font-size: 12.5px; color: #2b6cb0; margin-bottom: 16px;">
+          Tài khoản: <strong id="changePwdOfficerName">...</strong> (<span id="changePwdOfficerId">...</span>)
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; font-size: 12px; font-weight: 700; color: #2d3748; margin-bottom: 4px;">Mật khẩu hiện tại:</label>
+          <div style="position: relative;">
+            <input type="password" id="changePwdOld" class="form-control" placeholder="Nhập mật khẩu hiện tại..." style="width: 100%; height: 36px; padding-right: 36px; font-size: 13px;" onkeydown="if(event.key==='Enter') document.getElementById('changePwdNew').focus()">
+            <span onclick="togglePasswordVisibility('changePwdOld', this)" style="position: absolute; right: 10px; top: 7px; cursor: pointer; font-size: 15px; user-select: none;" title="Hiện/Ẩn mật khẩu">👁️</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; font-size: 12px; font-weight: 700; color: #2d3748; margin-bottom: 4px;">Mật khẩu mới (tối thiểu 4 ký tự):</label>
+          <div style="position: relative;">
+            <input type="password" id="changePwdNew" class="form-control" placeholder="Nhập mật khẩu mới..." style="width: 100%; height: 36px; padding-right: 36px; font-size: 13px;" onkeydown="if(event.key==='Enter') document.getElementById('changePwdConfirm').focus()">
+            <span onclick="togglePasswordVisibility('changePwdNew', this)" style="position: absolute; right: 10px; top: 7px; cursor: pointer; font-size: 15px; user-select: none;" title="Hiện/Ẩn mật khẩu">👁️</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 12px; font-weight: 700; color: #2d3748; margin-bottom: 4px;">Xác nhận lại mật khẩu mới:</label>
+          <div style="position: relative;">
+            <input type="password" id="changePwdConfirm" class="form-control" placeholder="Nhập lại mật khẩu mới..." style="width: 100%; height: 36px; padding-right: 36px; font-size: 13px;" onkeydown="if(event.key==='Enter') submitChangePassword()">
+            <span onclick="togglePasswordVisibility('changePwdConfirm', this)" style="position: absolute; right: 10px; top: 7px; cursor: pointer; font-size: 15px; user-select: none;" title="Hiện/Ẩn mật khẩu">👁️</span>
+          </div>
+        </div>
+
+        <div id="changePwdErrorMsg" style="display: none; color: #c53030; font-size: 12px; font-weight: 700; margin-bottom: 12px; padding: 8px 12px; background: #fff5f5; border-radius: 4px; border: 1px solid #feb2b2;"></div>
+      </div>
+      <div style="padding: 12px 20px; background: #f7fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 8px;">
+        <button type="button" class="btn btn-secondary" onclick="closeChangePasswordModal()" style="font-weight: 600; padding: 6px 16px;">Hủy bỏ</button>
+        <button type="button" id="btnSubmitChangePwd" class="btn btn-primary" onclick="submitChangePassword()" style="font-weight: 700; padding: 6px 18px; background: #2b6cb0; border-color: #2b6cb0;">💾 Cập nhật mật khẩu</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal Quản lý Mật khẩu Cán bộ (Dành riêng cho Quản trị viên Hoàng) -->
   <div id="adminPasswordModal" class="modal-backdrop" onclick="if(event.target === this) closeAdminPasswordModal()">
     <div class="modal-container" style="max-width: 780px; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.25);">

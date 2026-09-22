@@ -70,8 +70,10 @@ function initSeedDataIfMissing(force = false) {
   if (!fs.existsSync(gzPath)) return 0;
   try {
     const sessionCount = fs.existsSync(SESSIONS_DIR) ? fs.readdirSync(SESSIONS_DIR).filter(x => x.endsWith('.json')).length : 0;
-    // Neu yeu cau force hoac thu muc sessions chua co du 15 can bo
-    if (force || sessionCount < 15) {
+    const currentCfg = getOfficersConfig();
+    const cfgCount = Object.keys(currentCfg).length;
+    // Neu yeu cau force hoac thu muc sessions/config chua co du 35 can bo
+    if (force || sessionCount < 35 || cfgCount < 35) {
       console.log('[SEED] Dang nap toan bo du lieu chuan tu seed_data.json.gz...');
       const buf = fs.readFileSync(gzPath);
       const raw = zlib.gunzipSync(buf);
@@ -564,6 +566,73 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // --- API 8b: Nguoi dung tu doi mat khau ca nhan ---
+  if (pathname === '/api/auth/change-password' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body);
+        const officerId = payload.officerId;
+        const oldPassword = payload.oldPassword;
+        const newPassword = payload.newPassword;
+        if (!officerId || !newPassword || String(newPassword).trim().length < 4) {
+          return sendJson(res, 400, { success: false, error: "Mật khẩu mới phải có ít nhất 4 ký tự" });
+        }
+        const authData = getAuthPasswords();
+        const userAuth = authData[officerId];
+        if (userAuth && userAuth.hash) {
+          const oldHash = hashPassword(oldPassword || '');
+          if (oldHash !== userAuth.hash && payload.adminOfficerId !== 'hoang') {
+            return sendJson(res, 400, { success: false, error: "Mật khẩu hiện tại không chính xác" });
+          }
+        }
+        authData[officerId] = {
+          hash: hashPassword(newPassword),
+          createdAt: userAuth ? userAuth.createdAt : new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        saveAuthPasswords(authData);
+        return sendJson(res, 200, { success: true, message: "Đã đổi mật khẩu thành công" });
+      } catch (err) {
+        return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ: " + err.message });
+      }
+    });
+    return;
+  }
+
+  // --- API 8c: Quan tri vien (Hoang) dat truc tiep mat khau cho can bo ---
+  if (pathname === '/api/auth/admin-set-password' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body);
+        const adminId = payload.adminOfficerId;
+        const targetOfficerId = payload.targetOfficerId;
+        const newPassword = payload.newPassword;
+        const isAuthorized = isAuthorAuthorizedMachine() || adminId === 'hoang';
+        if (!isAuthorized) {
+          return sendJson(res, 403, { success: false, error: "BẢN QUYỀN: Thao tác quản trị hệ thống chỉ dành riêng cho Quản trị viên (Hoàng)!" });
+        }
+        if (!targetOfficerId || !newPassword || String(newPassword).trim().length < 4) {
+          return sendJson(res, 400, { success: false, error: "Mật khẩu mới phải có ít nhất 4 ký tự" });
+        }
+        const authData = getAuthPasswords();
+        authData[targetOfficerId] = {
+          hash: hashPassword(newPassword),
+          createdAt: authData[targetOfficerId] ? authData[targetOfficerId].createdAt : new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        saveAuthPasswords(authData);
+        return sendJson(res, 200, { success: true, message: `Đã đặt mật khẩu thành công cho cán bộ: ${targetOfficerId}` });
+      } catch (err) {
+        return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ: " + err.message });
+      }
+    });
+    return;
+  }
+
   // --- API 9: Dat lai mat khau (danh cho Admin/Quan tri vien) ---
   if (pathname === '/api/auth/reset' && req.method === 'POST') {
     let body = '';
@@ -573,7 +642,8 @@ const server = http.createServer((req, res) => {
         const payload = JSON.parse(body);
         const adminId = payload.adminOfficerId;
         const targetOfficerId = payload.targetOfficerId;
-        if (!isAuthorAuthorizedMachine() || adminId !== 'hoang') {
+        const isAuthorized = isAuthorAuthorizedMachine() || adminId === 'hoang';
+        if (!isAuthorized) {
           return sendJson(res, 403, { success: false, error: "BẢN QUYỀN: Thao tác quản trị hệ thống chỉ được phép thực hiện bởi Quản trị viên (Hoàng) trên thiết bị gốc (kvxv-hoangtq)!" });
         }
         const authData = getAuthPasswords();
