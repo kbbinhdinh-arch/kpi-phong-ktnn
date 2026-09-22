@@ -3640,6 +3640,7 @@
         </div>
         <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
           <button class="btn btn-sm" id="btnSavePlan" onclick="saveCurrentScreenData('Kế hoạch Quý (Mẫu 01/03)')" style="background: #2b6cb0; color: #fff; font-weight: 700; box-shadow: 0 2px 4px rgba(0,0,0,0.15); display: inline-flex; align-items: center; gap: 5px; border-radius: 6px; padding: 6px 14px; font-size: 12.5px; cursor: pointer;" title="Lưu toàn bộ danh sách nhiệm vụ Kế hoạch Quý vào CSDL hệ thống">💾 Lưu Kế hoạch (M01/03)</button>
+          <button class="btn btn-sm" id="btnExtractFromM01" onclick="openExtractFromM01Modal()" style="background: #1e3a8a; color: #ffffff; font-weight: 700; box-shadow: 0 2px 4px rgba(0,0,0,0.15); display: inline-flex; align-items: center; gap: 5px; border-radius: 6px; padding: 6px 12px; font-size: 12.5px; cursor: pointer;" title="Trích xuất các nhiệm vụ từ Kế hoạch Quý Đơn vị (Mẫu 01) của Trưởng phòng vào Kế hoạch Cá nhân (Mẫu 03)">📋 Trích xuất từ Mẫu 01</button>
           <button class="btn btn-accent btn-sm" id="btnXemKeHoachQuy" onclick="openPlanPreviewModal()" style="color: #1a202c; font-weight: 700; box-shadow: var(--shadow-sm);">👁 Xem Mẫu 03</button>
           
           <button class="btn btn-primary btn-sm" onclick="addPlanTask()" title="Thêm thủ công 1 nhiệm vụ mới vào bảng">➕ Thêm thủ công</button>
@@ -5286,6 +5287,8 @@ function renderPlanTable() {
   const tbody = document.getElementById('planTableBody');
   const isTP = (appState.officer.role === "TP");
   document.getElementById('planTitleBadge').innerText = isTP ? "Mẫu số 01 - Kế hoạch Đơn vị" : "Mẫu số 03 - Kế hoạch Cá nhân";
+  const btnExtract = document.getElementById('btnExtractFromM01');
+  if (btnExtract) { btnExtract.style.display = isTP ? 'none' : 'inline-flex'; }
   const btnSavePlan = document.getElementById('btnSavePlan');
   if (btnSavePlan) {
     btnSavePlan.innerText = isTP ? "💾 Lưu Kế hoạch Đơn vị (M01)" : "💾 Lưu Kế hoạch Cá nhân (M03)";
@@ -9296,7 +9299,7 @@ function updateUserInterfaceByRole() {
   const subPrintBtn = document.getElementById('btn-sub-print-views');
 
   if (subPlanBtn) {
-    subPlanBtn.style.display = isLeader ? 'inline-flex' : 'none';
+    subPlanBtn.style.display = 'inline-flex';
     subPlanBtn.innerText = isTP ? '📋 Kế hoạch Đơn vị (M01)' : '📋 Kế hoạch Cá nhân (M03)';
   }
   if (subQuarterResBtn) {
@@ -11220,6 +11223,161 @@ function cleanCorruptedTasksFromPlan() {
 }
 
 // 1-Click fast load button
+
+// ==================== TRÍCH XUẤT NHIỆM VỤ TỪ MẪU 01 SANG MẪU 03 ====================
+function openExtractFromM01Modal() {
+  const modal = document.getElementById('extractFromM01Modal');
+  if (!modal) return;
+
+  const sourceTasks = window.OFFICIAL_26_TASKS || [];
+  const tbody = document.getElementById('extractM01TableBody');
+  if (!tbody) return;
+
+  const currentTaskNames = new Set((appState.quarterPlan || []).map(p => (p.name || '').trim().toLowerCase()));
+
+  tbody.innerHTML = sourceTasks.map((t, idx) => {
+    const isAlreadyInPlan = currentTaskNames.has((t.name || '').trim().toLowerCase());
+    const typeLabel = t.type === 'AI_KEY' ? 'A.I - Trọng tâm' : (t.type === 'AII_REGULAR' ? 'A.II - Thường xuyên' : 'B - Địa phương');
+    const badgeColor = t.type === 'AI_KEY' ? '#c53030' : (t.type === 'AII_REGULAR' ? '#2b6cb0' : '#276749');
+
+    return `
+      <tr class="extract-m01-row" data-name="${escapeHtml((t.name || '').toLowerCase())}">
+        <td style="text-align: center;">
+          <input type="checkbox" class="chk-extract-task" data-idx="${idx}" ${isAlreadyInPlan ? 'checked' : ''} onchange="updateExtractM01Count()">
+        </td>
+        <td style="text-align: center; font-weight: bold;">${idx + 1}</td>
+        <td><span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; color: #fff; background: ${badgeColor};">${typeLabel}</span></td>
+        <td style="font-weight: 600; color: #2d3748;">
+          ${escapeHtml(t.name)}
+          ${isAlreadyInPlan ? '<span style="font-size: 11px; color: #28a745; margin-left: 6px; font-weight: normal;">(Đã có trong M03)</span>' : ''}
+        </td>
+        <td style="text-align: center; font-size: 12px;">${escapeHtml(t.deadline || '')}</td>
+        <td style="text-align: center;">${t.isNQ57 ? '<span class="tag tag-nq57">NQ 57</span>' : '-'}</td>
+      </tr>
+    `;
+  }).join('');
+
+  updateExtractM01Count();
+  modal.style.display = 'flex';
+}
+
+function closeExtractFromM01Modal() {
+  const modal = document.getElementById('extractFromM01Modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function updateExtractM01Count() {
+  const checkboxes = document.querySelectorAll('.chk-extract-task:checked');
+  const countEl = document.getElementById('extractM01SelectedCount');
+  if (countEl) countEl.innerText = `Đã chọn: ${checkboxes.length} nhiệm vụ`;
+}
+
+function toggleAllExtractM01Checkboxes(check) {
+  const checkboxes = document.querySelectorAll('.chk-extract-task');
+  checkboxes.forEach(cb => {
+    const row = cb.closest('tr');
+    if (!row || row.style.display !== 'none') {
+      cb.checked = check;
+    }
+  });
+  const master = document.getElementById('chkExtractSelectAll');
+  if (master) master.checked = check;
+  updateExtractM01Count();
+}
+
+function filterExtractM01Table(query) {
+  const q = (query || '').trim().toLowerCase();
+  const rows = document.querySelectorAll('.extract-m01-row');
+  rows.forEach(r => {
+    const text = r.getAttribute('data-name') || '';
+    r.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+}
+
+function applyExtractSelectedTasks(replace) {
+  const sourceTasks = window.OFFICIAL_26_TASKS || [];
+  const checkboxes = document.querySelectorAll('.chk-extract-task:checked');
+  if (checkboxes.length === 0) {
+    alert("Vui lòng chọn ít nhất một nhiệm vụ để trích xuất!");
+    return;
+  }
+
+  const selectedTasks = [];
+  checkboxes.forEach(cb => {
+    const idx = parseInt(cb.getAttribute('data-idx'));
+    if (!isNaN(idx) && sourceTasks[idx]) {
+      selectedTasks.push(JSON.parse(JSON.stringify(sourceTasks[idx])));
+    }
+  });
+
+  if (replace) {
+    if (!confirm(`Bạn có chắc muốn THAY THẾ toàn bộ Kế hoạch Mẫu 03 bằng ${selectedTasks.length} nhiệm vụ đã chọn từ Mẫu 01?`)) {
+      return;
+    }
+    appState.quarterPlan = selectedTasks.map((t, i) => {
+      t.id = "M03-" + (i + 1);
+      return t;
+    });
+    alert(`Đã thay thế toàn bộ Kế hoạch Mẫu 03 bằng ${selectedTasks.length} nhiệm vụ trích xuất từ Mẫu 01!`);
+  } else {
+    const existingNames = new Set((appState.quarterPlan || []).map(p => (p.name || '').trim().toLowerCase()));
+    let addedCount = 0;
+    selectedTasks.forEach(t => {
+      const tLower = (t.name || '').trim().toLowerCase();
+      if (!existingNames.has(tLower)) {
+        t.id = "M03-" + ((appState.quarterPlan || []).length + 1);
+        if (!appState.quarterPlan) appState.quarterPlan = [];
+        appState.quarterPlan.push(t);
+        existingNames.add(tLower);
+        addedCount++;
+      }
+    });
+    alert(`Đã trích xuất và bổ sung thành công ${addedCount} nhiệm vụ mới từ Mẫu 01 vào Kế hoạch Mẫu 03!`);
+  }
+
+  saveState();
+  renderPlanTable();
+  renderQuarterResultsTable();
+  closeExtractFromM01Modal();
+}
+
+function quickLoadAllM01Tasks() {
+  const sourceTasks = window.OFFICIAL_26_TASKS || [];
+  if (sourceTasks.length === 0) {
+    alert("Không tìm thấy dữ liệu nhiệm vụ chuẩn Mẫu 01!");
+    return;
+  }
+
+  const isReplace = confirm("Bấm [OK] để THAY THẾ toàn bộ Kế hoạch Mẫu 03 bằng 27 nhiệm vụ chuẩn từ Mẫu 01.\nBấm [Cancel] để BỔ SUNG thêm (bảo lưu nhiệm vụ hiện tại).");
+  
+  if (isReplace) {
+    appState.quarterPlan = JSON.parse(JSON.stringify(sourceTasks)).map((t, i) => {
+      t.id = "M03-" + (i + 1);
+      return t;
+    });
+  } else {
+    const existingNames = new Set((appState.quarterPlan || []).map(p => (p.name || '').trim().toLowerCase()));
+    let added = 0;
+    sourceTasks.forEach(t => {
+      const tLower = (t.name || '').trim().toLowerCase();
+      if (!existingNames.has(tLower)) {
+        const copy = JSON.parse(JSON.stringify(t));
+        copy.id = "M03-" + ((appState.quarterPlan || []).length + 1);
+        if (!appState.quarterPlan) appState.quarterPlan = [];
+        appState.quarterPlan.push(copy);
+        existingNames.add(tLower);
+        added++;
+      }
+    });
+  }
+
+  saveState();
+  renderPlanTable();
+  renderQuarterResultsTable();
+  closeExtractFromM01Modal();
+  alert(`Đã hoàn tất trích xuất nhiệm vụ từ Mẫu 01 vào Kế hoạch Mẫu 03!`);
+}
+
 function resetPlanToStandardWithQuy3() {
   const officerId = appState.officer.officerId || 'hoang';
   const generalTasks = getStandardGeneralTasksForOfficer(officerId);
@@ -12009,7 +12167,65 @@ function mapRawRowsFlexible(rawRows) {
 
 
 
-  <!-- Modal Phân bổ Nhiệm vụ t
+  
+  <!-- Modal Trích xuất / Phân bổ Nhiệm vụ từ Mẫu 01 sang Mẫu 03 -->
+  <div id="extractFromM01Modal" class="modal-backdrop" onclick="if(event.target === this) closeExtractFromM01Modal()" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.65); z-index: 9999; justify-content: center; align-items: center; padding: 16px;">
+    <div class="modal-container" style="background: #ffffff; border-radius: 8px; max-width: 1000px; width: 95vw; max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px solid #cbd5e0;">
+      <!-- Header -->
+      <div class="modal-header" style="padding: 12px 20px; background: linear-gradient(135deg, #1a365d, #2b6cb0); color: #fff; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 20px;">📋</span>
+          <div>
+            <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: #fefcbf;">TRÍCH XUẤT NHIỆM VỤ TỪ KẾ HOẠCH ĐƠN VỊ (MẪU 01) SANG MẪU 03</h3>
+            <p style="margin: 2px 0 0 0; font-size: 11.5px; color: #e2e8f0;">Lựa chọn các nhiệm vụ thuộc Kế hoạch Quý III của Đơn vị (Phòng KTNN) để trích xuất vào Kế hoạch Cá nhân</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="closeExtractFromM01Modal()" style="background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; line-height: 1; padding: 0 4px;" title="Đóng">&times;</button>
+      </div>
+
+      <!-- Toolbar / Filter -->
+      <div style="padding: 10px 20px; background: #edf2f7; border-bottom: 1px solid #cbd5e0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button type="button" class="btn btn-sm btn-outline" onclick="toggleAllExtractM01Checkboxes(true)" style="font-size: 12px; padding: 4px 10px; background: #fff;">☑️ Chọn tất cả</button>
+          <button type="button" class="btn btn-sm btn-outline" onclick="toggleAllExtractM01Checkboxes(false)" style="font-size: 12px; padding: 4px 10px; background: #fff;">⬜ Bỏ chọn</button>
+          <span id="extractM01SelectedCount" style="font-size: 12px; font-weight: 600; color: #2b6cb0; margin-left: 6px;">Đã chọn: 0 nhiệm vụ</span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="text" id="extractM01SearchInput" oninput="filterExtractM01Table(this.value)" placeholder="🔍 Tìm kiếm nhiệm vụ..." style="padding: 5px 10px; font-size: 12px; border: 1px solid #cbd5e0; border-radius: 4px; width: 220px;">
+        </div>
+      </div>
+
+      <!-- Body: Task List -->
+      <div class="modal-body" style="padding: 14px 20px; background: #f8fafc; overflow-y: auto; flex: 1;">
+        <table class="app-table" style="width: 100%; font-size: 12.5px; border-collapse: collapse;">
+          <thead>
+            <tr style="background: #e2e8f0; position: sticky; top: 0; z-index: 2;">
+              <th style="width: 40px; text-align: center;"><input type="checkbox" id="chkExtractSelectAll" onchange="toggleAllExtractM01Checkboxes(this.checked)"></th>
+              <th style="width: 45px; text-align: center;">STT</th>
+              <th style="width: 135px;">Phân nhóm</th>
+              <th>Tên nhiệm vụ (Trích xuất từ Mẫu 01)</th>
+              <th style="width: 110px; text-align: center;">Thời hạn</th>
+              <th style="width: 65px; text-align: center;">NQ 57</th>
+            </tr>
+          </thead>
+          <tbody id="extractM01TableBody">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer: Actions -->
+      <div class="modal-footer" style="padding: 12px 20px; background: #edf2f7; border-top: 1px solid #cbd5e0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <button type="button" class="btn btn-sm" onclick="quickLoadAllM01Tasks()" style="background: #276749; color: #fff; font-weight: 700; padding: 6px 14px; font-size: 12px;" title="Nạp nhanh toàn bộ 27 nhiệm vụ từ Mẫu 01 vào Kế hoạch Mẫu 03">⚡ Trích xuất toàn bộ 27 nhiệm vụ Mẫu 01</button>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn btn-sm btn-outline" onclick="closeExtractFromM01Modal()" style="padding: 6px 14px; font-size: 12px;">Hủy bỏ</button>
+          <button type="button" class="btn btn-sm" onclick="applyExtractSelectedTasks(false)" style="background: #2b6cb0; color: #fff; font-weight: 700; padding: 6px 14px; font-size: 12px;" title="Thêm các nhiệm vụ đã chọn vào Kế hoạch, giữ nguyên các nhiệm vụ hiện có">➕ Bổ sung vào Mẫu 03</button>
+          <button type="button" class="btn btn-sm" onclick="applyExtractSelectedTasks(true)" style="background: #c53030; color: #fff; font-weight: 700; padding: 6px 14px; font-size: 12px;" title="Thay thế toàn bộ bảng Kế hoạch bằng các nhiệm vụ đã chọn">🔄 Thay thế toàn bộ Mẫu 03</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 
 </body>
 </html>
