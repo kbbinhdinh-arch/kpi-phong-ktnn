@@ -65,37 +65,40 @@ if (!fs.existsSync(BACKUPS_ROLLING_DIR)) fs.mkdirSync(BACKUPS_ROLLING_DIR, { rec
 if (!fs.existsSync(BACKUPS_PERIODIC_DIR)) fs.mkdirSync(BACKUPS_PERIODIC_DIR, { recursive: true });
 
 // Tu dong nap du lieu goc tu seed_data.json.gz (khi trien khai tren Cloud / Render)
-function initSeedDataIfMissing() {
+function initSeedDataIfMissing(force = false) {
   const gzPath = path.join(BASE_DIR, 'seed_data.json.gz');
-  if (!fs.existsSync(gzPath)) return;
+  if (!fs.existsSync(gzPath)) return 0;
   try {
     const sessionCount = fs.existsSync(SESSIONS_DIR) ? fs.readdirSync(SESSIONS_DIR).filter(x => x.endsWith('.json')).length : 0;
-    if (sessionCount < 5) {
-      console.log('[SEED] Phat hien goi du lieu goc seed_data.json.gz, dang tu dong nap du lieu...');
+    // Neu yeu cau force hoac thu muc sessions chua co du 15 can bo
+    if (force || sessionCount < 15) {
+      console.log('[SEED] Dang nap toan bo du lieu chuan tu seed_data.json.gz...');
       const buf = fs.readFileSync(gzPath);
       const raw = zlib.gunzipSync(buf);
       const seed = JSON.parse(raw.toString('utf8'));
-      if (seed.officers_config && !fs.existsSync(CONFIG_FILE)) {
+      if (seed.officers_config) {
         fs.writeFileSync(CONFIG_FILE, JSON.stringify(seed.officers_config, null, 2), 'utf8');
       }
-      if (seed.auth_passwords && !fs.existsSync(AUTH_FILE)) {
+      if (seed.auth_passwords) {
         fs.writeFileSync(AUTH_FILE, JSON.stringify(seed.auth_passwords, null, 2), 'utf8');
       }
+      let loaded = 0;
       if (seed.sessions) {
         for (const [fname, sessData] of Object.entries(seed.sessions)) {
           const sPath = path.join(SESSIONS_DIR, fname);
-          if (!fs.existsSync(sPath)) {
-            fs.writeFileSync(sPath, JSON.stringify(sessData, null, 2), 'utf8');
-          }
+          fs.writeFileSync(sPath, JSON.stringify(sessData, null, 2), 'utf8');
+          loaded++;
         }
       }
-      console.log(`[SEED] Da nap thanh cong du lieu 21 can bo tu seed_data.json.gz!`);
+      console.log(`[SEED] Da nap de thanh cong du lieu ${loaded} can bo tu seed_data.json.gz!`);
+      return loaded;
     }
   } catch (err) {
     console.error('[SEED] Loi khi nap seed_data.json.gz:', err);
   }
+  return 0;
 }
-initSeedDataIfMissing();
+initSeedDataIfMissing(true); // Luon nap de du lieu goc khi khoi dong
 
 
 // Lay dia chi IP mang LAN
@@ -811,6 +814,16 @@ const server = http.createServer((req, res) => {
       }
     });
     return;
+  }
+
+  // --- API Ép nạp lại dữ liệu chuẩn từ seed_data.json.gz ---
+  if (pathname === '/api/seed/reload' && (req.method === 'GET' || req.method === 'POST')) {
+    const loaded = initSeedDataIfMissing(true);
+    return sendJson(res, 200, {
+      success: true,
+      count: loaded,
+      message: `Đã nạp đè thành công dữ liệu chuẩn của ${loaded} cán bộ từ seed_data.json.gz lên Web!`
+    });
   }
 
   // --- API 5: Bang Tong hop KPI toan phong (GDV Tu & Lanh dao) ---
