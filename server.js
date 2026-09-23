@@ -66,6 +66,7 @@ async function connectMongo() {
     kpiDb = dbClient.db('kpi_ktnn_db');
     console.log("[MongoDB] Đã kết nối thành công tới MongoDB Atlas Cloud Database!");
     await initCloudSeedData();
+    await syncOfficerRolesMigration();
   } catch (err) {
     console.error("[MongoDB] Lỗi kết nối MongoDB:", err);
   }
@@ -110,6 +111,62 @@ async function initCloudSeedData() {
   }
 }
 
+// Chuẩn hóa và chuyển giao chức danh Thủ kho tiền trên MongoDB Atlas
+// Bảo toàn 100% dữ liệu, điểm số, mật khẩu và phiên làm việc
+async function syncOfficerRolesMigration() {
+  try {
+    if (!kpiDb) return;
+    const configCol = kpiDb.collection('officers_config');
+    const sessionsCol = kpiDb.collection('sessions');
+
+    const qnTrangTitle = "Giao dịch viên - Thủ kho tiền";
+    const qnTrangSpecialty = "Thủ kho tiền, tổng hợp các báo cáo liên quan đến công tác kho quỹ; Kế toán hoàn thuế do Thuế tỉnh gửi; TK chuyên thu BHXH (TK 3743); Báo cáo xử phạt VPHC lĩnh vực Kế toán.";
+
+    const qnThuyTitle = "Giao dịch viên";
+    const qnThuySpecialty = "Hành chính, văn thư, lưu trữ của Phòng; Kế toán Liên kho bạc; Báo cáo công tác cải cách hành chính, TTHC (lĩnh vực kế toán); In, lưu trữ Bảng thanh toán tự động điện, nước, viễn thông.";
+
+    // 1. Cập nhật bảng thông tin cán bộ (officers_config)
+    await configCol.updateOne(
+      { id: 'qn_trang' },
+      { $set: { title: qnTrangTitle, specialty: qnTrangSpecialty } }
+    );
+    await configCol.updateOne(
+      { id: 'qn_thuy_le' },
+      { $set: { title: qnThuyTitle, specialty: qnThuySpecialty } }
+    );
+
+    // 2. Cập nhật chức danh trong các phiên làm việc của qn_trang mà không thay đổi điểm số/kết quả
+    const trangSessions = await sessionsCol.find({ filename: { $regex: /^qn_trang/i } }).toArray();
+    for (const s of trangSessions) {
+      if (s.data && s.data.officer) {
+        if (s.data.officer.title !== qnTrangTitle || s.data.officer.specialty !== qnTrangSpecialty) {
+          await sessionsCol.updateOne(
+            { _id: s._id },
+            { $set: { "data.officer.title": qnTrangTitle, "data.officer.specialty": qnTrangSpecialty } }
+          );
+        }
+      }
+    }
+
+    // 3. Cập nhật chức danh trong các phiên làm việc của qn_thuy_le mà không thay đổi điểm số/kết quả
+    const thuySessions = await sessionsCol.find({ filename: { $regex: /^qn_thuy_le/i } }).toArray();
+    for (const s of thuySessions) {
+      if (s.data && s.data.officer) {
+        if (s.data.officer.title !== qnThuyTitle || s.data.officer.specialty !== qnThuySpecialty) {
+          await sessionsCol.updateOne(
+            { _id: s._id },
+            { $set: { "data.officer.title": qnThuyTitle, "data.officer.specialty": qnThuySpecialty } }
+          );
+        }
+      }
+    }
+
+    console.log("[MIGRATION] Đã hoàn tất đồng bộ chức danh: Nguyễn Thị Thu Trang (Thủ kho tiền) và Võ Thị Lệ Thuỷ (GDV) trên Cloud!");
+  } catch (err) {
+    console.error("[MIGRATION] Lỗi đồng bộ chức danh MongoDB:", err);
+  }
+}
+
 connectMongo();
 
 // Lấy IP mạng LAN
@@ -127,6 +184,11 @@ function getLanIp() {
 
 // Đọc danh sách cán bộ từ MongoDB hoặc file JSON dự phòng
 async function getOfficersConfig() {
+  const qnTrangTitle = "Giao dịch viên - Thủ kho tiền";
+  const qnTrangSpecialty = "Thủ kho tiền, tổng hợp các báo cáo liên quan đến công tác kho quỹ; Kế toán hoàn thuế do Thuế tỉnh gửi; TK chuyên thu BHXH (TK 3743); Báo cáo xử phạt VPHC lĩnh vực Kế toán.";
+  const qnThuyTitle = "Giao dịch viên";
+  const qnThuySpecialty = "Hành chính, văn thư, lưu trữ của Phòng; Kế toán Liên kho bạc; Báo cáo công tác cải cách hành chính, TTHC (lĩnh vực kế toán); In, lưu trữ Bảng thanh toán tự động điện, nước, viễn thông.";
+
   if (kpiDb) {
     try {
       const docs = await kpiDb.collection('officers_config').find({}).toArray();
@@ -137,6 +199,14 @@ async function getOfficersConfig() {
           cfg[key] = d;
           delete cfg[key]._id;
         });
+        if (cfg.qn_trang) {
+          cfg.qn_trang.title = qnTrangTitle;
+          cfg.qn_trang.specialty = qnTrangSpecialty;
+        }
+        if (cfg.qn_thuy_le) {
+          cfg.qn_thuy_le.title = qnThuyTitle;
+          cfg.qn_thuy_le.specialty = qnThuySpecialty;
+        }
         return cfg;
       }
     } catch (e) {
@@ -146,7 +216,16 @@ async function getOfficersConfig() {
   const fallbackFile = path.join(BASE_DIR, 'kpi_data', 'officers_config.json');
   try {
     if (fs.existsSync(fallbackFile)) {
-      return JSON.parse(fs.readFileSync(fallbackFile, 'utf8'));
+      const cfg = JSON.parse(fs.readFileSync(fallbackFile, 'utf8'));
+      if (cfg.qn_trang) {
+        cfg.qn_trang.title = qnTrangTitle;
+        cfg.qn_trang.specialty = qnTrangSpecialty;
+      }
+      if (cfg.qn_thuy_le) {
+        cfg.qn_thuy_le.title = qnThuyTitle;
+        cfg.qn_thuy_le.specialty = qnThuySpecialty;
+      }
+      return cfg;
     }
   } catch (err) {}
   return {};
@@ -722,6 +801,7 @@ const server = http.createServer(async (req, res) => {
           if (importData.auth_passwords) {
             await saveAuthPasswords(importData.auth_passwords);
           }
+          await syncOfficerRolesMigration();
         }
 
         console.log(`[IMPORT CLOUD] Đã nạp thành công ${count} phiên dữ liệu lên MongoDB từ file máy tính.`);
@@ -731,6 +811,15 @@ const server = http.createServer(async (req, res) => {
       }
     });
     return;
+  }
+
+  // --- API Chuẩn hóa Chức danh trên Cloud (Thủ kho tiền: Thu Trang, GDV: Lệ Thủy) ---
+  if (pathname === '/api/sync-roles' && (req.method === 'GET' || req.method === 'POST')) {
+    await syncOfficerRolesMigration();
+    return sendJson(res, 200, {
+      success: true,
+      message: "Đã chuẩn hóa và đồng bộ chính xác chức danh: Nguyễn Thị Thu Trang (GDV - Thủ kho tiền) và Võ Thị Lệ Thuỷ (GDV) trên MongoDB Cloud!"
+    });
   }
 
   // API Summary Toàn phòng
