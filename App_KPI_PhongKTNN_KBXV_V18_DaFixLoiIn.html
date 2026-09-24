@@ -3659,6 +3659,9 @@
         <button type="button" id="btn-sub-print-views" class="sub-nav-btn" onclick="switchQuarterSubTab('tab-print-views')">
           🖨 In Mẫu số 01
         </button>
+        <button type="button" id="btn-sub-export-excel-menu" class="btn btn-sm" onclick="openExportFormsModal()" style="margin-left: auto; background: #276749; color: #fff; font-weight: 700; border: 1px solid #22543d; display: inline-flex; align-items: center; gap: 5px; border-radius: 4px; padding: 4px 12px; height: 32px; font-size: 12px; cursor: pointer;" title="Mở danh mục kết xuất các biểu mẫu Kế hoạch & Kết quả (Mẫu 01, 02, 03, 04) ra Excel">
+          📊 Xuất Excel Biểu mẫu (Mẫu 01-04) ▾
+        </button>
       </div>
 
       <div id="tab-plan" class="sub-tab-pane active">
@@ -3671,6 +3674,7 @@
           <button class="btn btn-sm" id="btnSavePlan" onclick="saveCurrentScreenData('Kế hoạch Quý (Mẫu 01/03)')" style="background: #2b6cb0; color: #fff; font-weight: 700; box-shadow: 0 2px 4px rgba(0,0,0,0.15); display: inline-flex; align-items: center; gap: 5px; border-radius: 6px; padding: 6px 14px; font-size: 12.5px; cursor: pointer;" title="Lưu toàn bộ danh sách nhiệm vụ Kế hoạch Quý vào CSDL hệ thống">💾 Lưu Kế hoạch (M01/03)</button>
           <button class="btn btn-sm" id="btnExtractFromM01" onclick="openExtractFromM01Modal()" style="background: #1e3a8a; color: #ffffff; font-weight: 700; box-shadow: 0 2px 4px rgba(0,0,0,0.15); display: inline-flex; align-items: center; gap: 5px; border-radius: 6px; padding: 6px 12px; font-size: 12.5px; cursor: pointer;" title="Trích xuất các nhiệm vụ từ Kế hoạch Quý Đơn vị (Mẫu 01) của Trưởng phòng vào Kế hoạch Cá nhân (Mẫu 03)">📋 Trích xuất từ Mẫu 01</button>
           <button class="btn btn-accent btn-sm" id="btnXemKeHoachQuy" onclick="openPlanPreviewModal()" style="color: #1a202c; font-weight: 700; box-shadow: var(--shadow-sm);">👁 Xem Mẫu 03</button>
+          <button class="btn btn-sm" id="btnExportPlanExcel" onclick="exportPlanToExcel()" style="background: #276749; color: #ffffff; border: 1px solid #22543d; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; box-shadow: var(--shadow-sm); border-radius: 6px; padding: 6px 12px; font-size: 12.5px; cursor: pointer;" title="Kết xuất Kế hoạch Quý ra tệp Excel (.xls)">📊 Xuất Excel (Mẫu 03)</button>
           
           <button class="btn btn-primary btn-sm" onclick="addPlanTask()" title="Thêm thủ công 1 nhiệm vụ mới vào bảng">➕ Thêm thủ công</button>
           <label class="btn btn-sm" style="cursor: pointer; margin: 0; background: #276749; color: #ffffff; border: 1px solid #22543d; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; box-shadow: var(--shadow-sm);" title="Nhập danh sách nhiệm vụ từ tệp Excel (.xlsx hoặc .csv)">
@@ -3705,9 +3709,10 @@
           <h3 style="font-size: 15px; color: var(--primary);">Báo cáo Kết quả thực hiện nhiệm vụ Kế hoạch Quý</h3>
           <p style="font-size: 12px; color: var(--text-muted);"><span id="resultsTitleBadge" class="tag tag-nq57"></span> (Nộp chậm nhất ngày 21 tháng cuối quý)</p>
         </div>
-        <div style="display: flex; gap: 8px; align-items: center;">
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
           <button class="btn btn-sm" id="btnSaveQuarterResults" onclick="saveCurrentScreenData('Báo cáo Kết quả Quý (Mẫu 02/04)')" style="background: #2b6cb0; color: #fff; font-weight: 700; box-shadow: 0 2px 4px rgba(0,0,0,0.15); display: inline-flex; align-items: center; gap: 5px; border-radius: 6px; padding: 6px 14px; font-size: 12.5px; cursor: pointer;" title="Lưu báo cáo kết quả thực hiện nhiệm vụ Quý vào CSDL hệ thống">💾 Lưu Kết Quả Quý (M02/04)</button>
           <button class="btn btn-accent btn-sm" id="btnXemKetQuaQuy" onclick="openResultPreviewModal()" style="color: #1a202c; font-weight: 700; box-shadow: var(--shadow-sm);">👁 Xem Mẫu 04 (Kết quả cá nhân)</button>
+          <button class="btn btn-sm" id="btnExportResultExcel" onclick="exportQuarterResultToExcel()" style="background: #276749; color: #ffffff; border: 1px solid #22543d; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; box-shadow: var(--shadow-sm); border-radius: 6px; padding: 6px 12px; font-size: 12.5px; cursor: pointer;" title="Kết xuất Báo cáo Kết quả Quý ra tệp Excel (.xls)">📊 Xuất Excel (Mẫu 04)</button>
         </div>
       </div>
 
@@ -5280,7 +5285,7 @@ function renderProfile() {
     el.style.display = isLeader ? '' : 'none';
   });
 
-  // Dynamic button labels for Preview
+  // Dynamic button labels for Preview & Excel Export
   const isTP = (appState.officer.role === "TP");
   const btnXemPlan = document.getElementById('btnXemKeHoachQuy');
   if (btnXemPlan) {
@@ -5289,6 +5294,16 @@ function renderProfile() {
   const btnXemRes = document.getElementById('btnXemKetQuaQuy');
   if (btnXemRes) {
     btnXemRes.innerText = isTP ? "👁 Xem Mẫu 02 (Kết quả Đơn vị)" : "👁 Xem Mẫu 04 (Kết quả Cá nhân)";
+  }
+  const btnExportPlan = document.getElementById('btnExportPlanExcel');
+  if (btnExportPlan) {
+    btnExportPlan.innerText = isTP ? "📊 Xuất Excel (Mẫu 01)" : "📊 Xuất Excel (Mẫu 03)";
+    btnExportPlan.title = isTP ? "Kết xuất Kế hoạch Đơn vị (Mẫu 01) ra tệp Excel (.xls)" : "Kết xuất Kế hoạch Cá nhân (Mẫu 03) ra tệp Excel (.xls)";
+  }
+  const btnExportRes = document.getElementById('btnExportResultExcel');
+  if (btnExportRes) {
+    btnExportRes.innerText = isTP ? "📊 Xuất Excel (Mẫu 02)" : "📊 Xuất Excel (Mẫu 04)";
+    btnExportRes.title = isTP ? "Kết xuất Báo cáo Kết quả Đơn vị (Mẫu 02) ra tệp Excel (.xls)" : "Kết xuất Báo cáo Kết quả Cá nhân (Mẫu 04) ra tệp Excel (.xls)";
   }
 }
 
@@ -5353,6 +5368,10 @@ function renderPlanTable() {
   const btnSavePlan = document.getElementById('btnSavePlan');
   if (btnSavePlan) {
     btnSavePlan.innerText = isTP ? "💾 Lưu Kế hoạch Đơn vị (M01)" : "💾 Lưu Kế hoạch Cá nhân (M03)";
+  }
+  const btnExportPlan = document.getElementById('btnExportPlanExcel');
+  if (btnExportPlan) {
+    btnExportPlan.innerText = isTP ? "📊 Xuất Excel (Mẫu 01)" : "📊 Xuất Excel (Mẫu 03)";
   }
 
   tbody.innerHTML = appState.quarterPlan.map((p, idx) => `
@@ -10259,6 +10278,10 @@ function updateUserInterfaceByRole() {
     subQuarterResBtn.style.display = (isLeader || isAdmin) ? 'inline-flex' : 'none';
     subQuarterResBtn.innerText = isTP ? '📈 Kết quả Đơn vị (M02)' : '📈 Kết quả Cá nhân (M04)';
   }
+  const subExportBtn = document.getElementById('btn-sub-export-excel-menu');
+  if (subExportBtn) {
+    subExportBtn.style.display = (isLeader || isAdmin) ? 'inline-flex' : 'none';
+  }
   if (subPrintBtn) {
     subPrintBtn.style.display = 'inline-flex';
     subPrintBtn.innerText = '🖨 In Mẫu số 01';
@@ -10554,6 +10577,10 @@ function renderQuarterResultsTable() {
   const btnSaveRes = document.getElementById('btnSaveQuarterResults');
   if (btnSaveRes) {
     btnSaveRes.innerText = isTP ? "💾 Lưu Kết quả Đơn vị (M02)" : "💾 Lưu Kết quả Cá nhân (M04)";
+  }
+  const btnExportRes = document.getElementById('btnExportResultExcel');
+  if (btnExportRes) {
+    btnExportRes.innerText = isTP ? "📊 Xuất Excel (Mẫu 02)" : "📊 Xuất Excel (Mẫu 04)";
   }
 
   tbody.innerHTML = (appState.quarterPlan || []).map((p, idx) => {
@@ -11132,6 +11159,10 @@ function openPlanPreviewModal() {
 
   const titleEl = document.getElementById('planPreviewModalTitle');
   if (titleEl) titleEl.innerText = "XEM TRƯỚC: " + formSubtitle.toUpperCase();
+  const btnModalExpPlan = document.getElementById('btnModalExportPlan');
+  if (btnModalExpPlan) {
+    btnModalExpPlan.innerText = isTP ? "📊 Xuất Excel (Mẫu 01)" : "📊 Xuất Excel (Mẫu 03)";
+  }
 
   // Tự động sửa và định dạng các dòng thời hạn
   appState.quarterPlan.forEach(p => {
@@ -11312,6 +11343,10 @@ function openResultPreviewModal() {
 
   const titleEl = document.getElementById('resultPreviewModalTitle');
   if (titleEl) titleEl.innerText = "XEM TRƯỚC: " + formSubtitle.toUpperCase();
+  const btnModalExpRes = document.getElementById('btnModalExportResult');
+  if (btnModalExpRes) {
+    btnModalExpRes.innerText = isTP ? "📊 Xuất Excel (Mẫu 02)" : "📊 Xuất Excel (Mẫu 04)";
+  }
 
   appState.quarterPlan.forEach(p => {
     p.deadline = formatExcelDeadline(p.deadline);
@@ -11478,6 +11513,529 @@ function toggleLocalTasksSection(modalType, show) {
   document.querySelectorAll(cls).forEach(el => {
     el.style.display = show ? '' : 'none';
   });
+}
+
+// ==========================================================================
+// KẾT XUẤT EXCEL KẾ HOẠCH QUÝ (MẪU 01 - ĐƠN VỊ / MẪU 03 - CÁ NHÂN)
+// ==========================================================================
+function exportPlanToExcel(forceFormNum) {
+  const officer = appState.officer || {};
+  let isTP = (officer.role === "TP");
+  if (forceFormNum === 'M01' || forceFormNum === '01') isTP = true;
+  if (forceFormNum === 'M03' || forceFormNum === '03') isTP = false;
+
+  const formNum = isTP ? "Mẫu số 01" : "Mẫu số 03";
+  const quarterRaw = officer.quarter || "Quý III";
+  const quarterStr = quarterRaw.toUpperCase();
+  const yearStr = officer.year || 2026;
+  const formTitle = isTP 
+    ? `BẢNG KẾ HOẠCH, CHƯƠNG TRÌNH CÔNG TÁC ${quarterStr} NĂM ${yearStr} CỦA PHÒNG KẾ TOÁN NHÀ NƯỚC`
+    : `BẢNG KẾ HOẠCH, CHƯƠNG TRÌNH CÔNG TÁC ${quarterStr} NĂM ${yearStr} CỦA CÁ NHÂN`;
+
+  const qClean = quarterRaw.replace(/\s+/g, '_');
+  const nameClean = (officer.name || 'Cong_Chuc').trim().replace(/\s+/g, '_');
+  const filename = isTP 
+    ? `Mau01_KeHoach_DonVi_PhongKTNN_KBXV_${qClean}_${yearStr}_${nameClean}.xls`
+    : `Mau03_KeHoach_CaNhan_${qClean}_${yearStr}_${nameClean}.xls`;
+
+  // Thông tin cấp duyệt (bên trái)
+  let sigLeftTitle = (document.getElementById('modalPlanLeaderTitle') && document.getElementById('modalPlanLeaderTitle').value.trim())
+    || (document.getElementById('planSigLeftTitleEl') && document.getElementById('planSigLeftTitleEl').innerText.trim())
+    || officer.leaderTitle
+    || (isTP ? "PHÓ GIÁM ĐỐC" : "TRƯỞNG PHÒNG");
+
+  let sigLeftName = (document.getElementById('modalPlanLeaderName') && document.getElementById('modalPlanLeaderName').value.trim())
+    || (document.getElementById('planSigLeftNameEl') && document.getElementById('planSigLeftNameEl').innerText.trim())
+    || officer.leaderName
+    || (isTP ? "Trịnh Khắc Chính" : "Hoàng Anh Sơn");
+
+  // Thông tin người lập (bên phải)
+  const sigRightTitle = isTP ? "TRƯỞNG PHÒNG" : ((officer.role === "PTP") ? "PHÓ TRƯỞNG PHÒNG" : "NGƯỜI LẬP BIỂU");
+  const sigRightName = officer.name || "Người lập";
+
+  const groupAI = (appState.quarterPlan || []).filter(p => p.type === 'AI_KEY');
+  const groupAII = (appState.quarterPlan || []).filter(p => p.type === 'AII_REGULAR');
+  const groupB = (appState.quarterPlan || []).filter(p => p.type === 'B_LOCAL');
+
+  let rowsHtml = '';
+  // Dòng A
+  rowsHtml += `
+    <tr style="font-weight: bold; background-color: #f7f7f7;">
+      <td style="text-align: center; border: .5pt solid windowtext;">A</td>
+      <td colspan="2" style="border: .5pt solid windowtext; text-align: left;">${isTP ? "Nhiệm vụ Giám đốc KBNN khu vực XV giao" : "Nhiệm vụ Giám đốc KBNN giao"}</td>
+    </tr>
+  `;
+
+  // Dòng I
+  rowsHtml += `
+    <tr style="font-weight: bold; font-style: italic; background-color: #fafafa;">
+      <td style="text-align: center; border: .5pt solid windowtext;">I</td>
+      <td colspan="2" style="border: .5pt solid windowtext; text-align: left;">Nhiệm vụ trọng tâm</td>
+    </tr>
+  `;
+  if (groupAI.length > 0) {
+    groupAI.forEach((t, i) => {
+      const dl = formatExcelDeadline(t.deadline);
+      rowsHtml += `
+        <tr>
+          <td style="text-align: center; border: .5pt solid windowtext; mso-number-format: '\\@';">${i + 1}</td>
+          <td style="text-align: left; border: .5pt solid windowtext; mso-number-format: '\\@';">${escapeHtml(t.name)}</td>
+          <td style="text-align: center; border: .5pt solid windowtext;">${escapeHtml(dl)}</td>
+        </tr>
+      `;
+    });
+  } else {
+    rowsHtml += `
+      <tr>
+        <td style="text-align: center; border: .5pt solid windowtext; font-style: italic;">-</td>
+        <td style="text-align: left; border: .5pt solid windowtext; font-style: italic; color: #555555;">Không phát sinh nhiệm vụ trọng tâm</td>
+        <td style="text-align: center; border: .5pt solid windowtext; font-style: italic; color: #555555;">-</td>
+      </tr>
+    `;
+  }
+
+  // Dòng II
+  rowsHtml += `
+    <tr style="font-weight: bold; font-style: italic; background-color: #fafafa;">
+      <td style="text-align: center; border: .5pt solid windowtext;">II</td>
+      <td colspan="2" style="border: .5pt solid windowtext; text-align: left;">Nhiệm vụ thường xuyên, trọng yếu</td>
+    </tr>
+  `;
+  if (groupAII.length > 0) {
+    groupAII.forEach((t, i) => {
+      const dl = formatExcelDeadline(t.deadline);
+      rowsHtml += `
+        <tr>
+          <td style="text-align: center; border: .5pt solid windowtext; mso-number-format: '\\@';">${i + 1}</td>
+          <td style="text-align: left; border: .5pt solid windowtext; mso-number-format: '\\@';">${escapeHtml(t.name)}</td>
+          <td style="text-align: center; border: .5pt solid windowtext;">${escapeHtml(dl)}</td>
+        </tr>
+      `;
+    });
+  } else {
+    rowsHtml += `
+      <tr>
+        <td style="text-align: center; border: .5pt solid windowtext; font-style: italic;">-</td>
+        <td style="text-align: left; border: .5pt solid windowtext; font-style: italic; color: #555555;">Không phát sinh</td>
+        <td style="text-align: center; border: .5pt solid windowtext; font-style: italic; color: #555555;">-</td>
+      </tr>
+    `;
+  }
+
+  // Dòng B
+  rowsHtml += `
+    <tr style="font-weight: bold; background-color: #f7f7f7;">
+      <td style="text-align: center; border: .5pt solid windowtext;">B</td>
+      <td colspan="2" style="border: .5pt solid windowtext; text-align: left;">Nhiệm vụ do địa phương giao (nếu có)</td>
+    </tr>
+  `;
+  if (groupB.length > 0) {
+    groupB.forEach((t, i) => {
+      const dl = formatExcelDeadline(t.deadline);
+      rowsHtml += `
+        <tr>
+          <td style="text-align: center; border: .5pt solid windowtext; mso-number-format: '\\@';">${i + 1}</td>
+          <td style="text-align: left; border: .5pt solid windowtext; mso-number-format: '\\@';">${escapeHtml(t.name)}</td>
+          <td style="text-align: center; border: .5pt solid windowtext;">${escapeHtml(dl)}</td>
+        </tr>
+      `;
+    });
+  } else {
+    rowsHtml += `
+      <tr>
+        <td style="text-align: center; border: .5pt solid windowtext; font-style: italic;">-</td>
+        <td style="text-align: left; border: .5pt solid windowtext; font-style: italic; color: #555555;">Không phát sinh</td>
+        <td style="text-align: center; border: .5pt solid windowtext; font-style: italic; color: #555555;">-</td>
+      </tr>
+    `;
+  }
+
+  const sheetName = isTP ? "KeHoach_Mau01" : "KeHoach_Mau03";
+
+  const excelHtml = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office" 
+      xmlns:x="urn:schemas-microsoft-com:office:excel" 
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<!--[if gte mso 9]>
+<xml>
+ <x:ExcelWorkbook>
+  <x:ExcelWorksheets>
+   <x:ExcelWorksheet>
+    <x:Name>${sheetName}</x:Name>
+    <x:WorksheetOptions>
+     <x:DisplayGridlines/>
+     <x:Print>
+      <x:Orientation>Portrait</x:Orientation>
+      <x:ValidPrinterInfo/>
+      <x:PaperSizeIndex>9</x:PaperSizeIndex>
+      <x:Scale>95</x:Scale>
+     </x:Print>
+    </x:WorksheetOptions>
+   </x:ExcelWorksheet>
+  </x:ExcelWorksheets>
+ </x:ExcelWorkbook>
+</xml>
+<![endif]-->
+<style>
+  br { mso-data-placement: same-cell; }
+  body, table {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 11pt;
+    color: #000000;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  th, td {
+    border: .5pt solid windowtext;
+    padding: 5px 8px;
+    vertical-align: middle;
+  }
+  th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+    text-align: center;
+  }
+  .no-border, .no-border td {
+    border: none !important;
+  }
+</style>
+</head>
+<body style="padding: 15px; font-family: 'Times New Roman', Times, serif;">
+  <table class="no-border" style="width: 100%; margin-bottom: 12px;">
+    <tr>
+      <td style="width: 44%; text-align: center; vertical-align: top;" class="no-border">
+        <div style="font-size: 11pt; font-weight: bold; text-transform: uppercase;">KHO BẠC NHÀ NƯỚC KHU VỰC XV</div>
+        <div style="font-size: 11pt; font-weight: bold; text-transform: uppercase;">PHÒNG KẾ TOÁN NHÀ NƯỚC</div>
+        <div style="font-weight: bold;">-------------</div>
+      </td>
+      <td style="width: 56%; text-align: center; vertical-align: top;" class="no-border">
+        <div style="text-align: right; font-style: italic; font-weight: bold; font-size: 11pt; margin-bottom: 3px;">${formNum}</div>
+        <div style="font-size: 11pt; font-weight: bold; text-transform: uppercase;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+        <div style="font-size: 11.5pt; font-weight: bold;">Độc lập - Tự do - Hạnh phúc</div>
+        <div style="font-weight: bold;">-------------------</div>
+      </td>
+    </tr>
+  </table>
+
+  <div style="text-align: center; font-size: 13pt; font-weight: bold; margin: 15px 0 16px 0; text-transform: uppercase; line-height: 1.4;">
+    ${formTitle}
+  </div>
+
+  <table>
+    <thead>
+      <tr style="background-color: #f2f2f2; text-align: center; font-weight: bold;">
+        <th style="width: 50px; border: .5pt solid windowtext; padding: 6px;">STT</th>
+        <th style="width: 470px; border: .5pt solid windowtext; padding: 6px;">Nhiệm vụ</th>
+        <th style="width: 150px; border: .5pt solid windowtext; padding: 6px;">Thời hạn hoàn thành</th>
+      </tr>
+      <tr style="background-color: #e2e8f0; text-align: center; font-weight: bold; font-size: 10pt;">
+        <th style="border: .5pt solid windowtext;">1</th>
+        <th style="border: .5pt solid windowtext;">2</th>
+        <th style="border: .5pt solid windowtext;">3</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml}
+    </tbody>
+  </table>
+
+  <table class="no-border" style="width: 100%; margin-top: 25px;">
+    <tr>
+      <td style="width: 50%; text-align: center; vertical-align: top;" class="no-border">
+        <div style="font-style: italic; font-size: 10.5pt;">Gia Lai, ngày ….. tháng ….. năm ${yearStr}</div>
+        <div style="font-weight: bold; text-transform: uppercase; margin-top: 4px; font-size: 11pt;">${escapeHtml(sigLeftTitle)}</div>
+        <div style="font-style: italic; font-size: 10pt;">(Ký, ghi rõ họ tên)</div>
+        <br><br><br><br>
+        <div style="font-weight: bold; font-size: 11.5pt;">${escapeHtml(sigLeftName)}</div>
+      </td>
+      <td style="width: 50%; text-align: center; vertical-align: top;" class="no-border">
+        <div style="font-style: italic; font-size: 10.5pt;">Gia Lai, ngày ….. tháng ….. năm ${yearStr}</div>
+        <div style="font-weight: bold; text-transform: uppercase; margin-top: 4px; font-size: 11pt;">${escapeHtml(sigRightTitle)}</div>
+        <div style="font-style: italic; font-size: 10pt;">(Ký, ghi rõ họ tên${isTP ? ", đóng dấu nếu có" : ""})</div>
+        <br><br><br><br>
+        <div style="font-weight: bold; font-size: 11.5pt;">${escapeHtml(sigRightName)}</div>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`.trim();
+
+  const blob = new Blob(['\uFEFF' + excelHtml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  const downloadUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(downloadUrl), 1500);
+  if (typeof showToast === 'function') {
+    showToast(`Đã kết xuất tệp Excel ${formNum} thành công!`);
+  } else {
+    alert(`Đã kết xuất tệp Excel ${formNum} thành công!`);
+  }
+}
+
+// ==========================================================================
+// KẾT XUẤT EXCEL KẾT QUẢ QUÝ (MẪU 02 - ĐƠN VỊ / MẪU 04 - CÁ NHÂN)
+// ==========================================================================
+function exportQuarterResultToExcel(forceFormNum) {
+  const officer = appState.officer || {};
+  let isTP = (officer.role === "TP");
+  if (forceFormNum === 'M02' || forceFormNum === '02') isTP = true;
+  if (forceFormNum === 'M04' || forceFormNum === '04') isTP = false;
+
+  const formNum = isTP ? "Mẫu số 02" : "Mẫu số 04";
+  const quarterRaw = officer.quarter || "Quý III";
+  const quarterStr = quarterRaw.toUpperCase();
+  const yearStr = officer.year || 2026;
+  const formTitle = isTP 
+    ? `KẾT QUẢ THỰC HIỆN NHIỆM VỤ THEO BẢNG KẾ HOẠCH, CHƯƠNG TRÌNH CÔNG TÁC ${quarterStr} NĂM ${yearStr} CỦA PHÒNG KẾ TOÁN NHÀ NƯỚC`
+    : `KẾT QUẢ THỰC HIỆN NHIỆM VỤ THEO BẢNG KẾ HOẠCH, CHƯƠNG TRÌNH CÔNG TÁC ${quarterStr} NĂM ${yearStr} CỦA CÁ NHÂN`;
+
+  const qClean = quarterRaw.replace(/\s+/g, '_');
+  const nameClean = (officer.name || 'Cong_Chuc').trim().replace(/\s+/g, '_');
+  const filename = isTP 
+    ? `Mau02_KetQua_DonVi_PhongKTNN_KBXV_${qClean}_${yearStr}_${nameClean}.xls`
+    : `Mau04_KetQua_CaNhan_${qClean}_${yearStr}_${nameClean}.xls`;
+
+  // Thông tin cấp duyệt (bên trái)
+  let sigLeftTitle = (document.getElementById('modalResultLeaderTitle') && document.getElementById('modalResultLeaderTitle').value.trim())
+    || (document.getElementById('resSigLeftTitleEl') && document.getElementById('resSigLeftTitleEl').innerText.trim())
+    || officer.leaderTitle
+    || (isTP ? "PHÓ GIÁM ĐỐC" : "TRƯỞNG PHÒNG");
+
+  let sigLeftName = (document.getElementById('modalResultLeaderName') && document.getElementById('modalResultLeaderName').value.trim())
+    || (document.getElementById('resSigLeftNameEl') && document.getElementById('resSigLeftNameEl').innerText.trim())
+    || officer.leaderName
+    || (isTP ? "Trịnh Khắc Chính" : "Hoàng Anh Sơn");
+
+  // Thông tin người lập (bên phải)
+  const sigRightTitle = isTP ? "TRƯỞNG PHÒNG" : ((officer.role === "PTP") ? "PHÓ TRƯỞNG PHÒNG" : "NGƯỜI LẬP BIỂU");
+  const sigRightName = officer.name || "Người lập";
+
+  const groupAI = (appState.quarterPlan || []).filter(p => p.type === 'AI_KEY');
+  const groupAII = (appState.quarterPlan || []).filter(p => p.type === 'AII_REGULAR');
+  const groupB = (appState.quarterPlan || []).filter(p => p.type === 'B_LOCAL');
+
+  function renderResultExcelRows(items, emptyText) {
+    if (!items || items.length === 0) {
+      return `<tr><td style="border: .5pt solid windowtext; text-align: center; font-style: italic;">-</td><td colspan="6" style="border: .5pt solid windowtext; font-style: italic; color: #555555; text-align: left;">${emptyText}</td></tr>`;
+    }
+    return items.map((t, idx) => {
+      const dl = formatExcelDeadline(t.deadline);
+      const isDone = (t.resultStatus !== 'pending');
+      const prod = t.resultProduct || 'Báo cáo số .../BC-KTNN';
+      const rsn = t.resultReason || '';
+      const note = t.isNQ57 ? 'NQ 57' : (t.isKey ? 'Trọng tâm' : '');
+      const statusText = isDone ? 'Đã hoàn thành' : 'Chưa hoàn thành';
+      const statusColor = isDone ? '#276749' : '#c53030';
+      return `
+        <tr>
+          <td style="border: .5pt solid windowtext; text-align: center; mso-number-format: '\\@';">${idx + 1}</td>
+          <td style="border: .5pt solid windowtext; text-align: left; mso-number-format: '\\@';">${escapeHtml(t.name)}</td>
+          <td style="border: .5pt solid windowtext; text-align: center;">${escapeHtml(dl)}</td>
+          <td style="border: .5pt solid windowtext; text-align: center; font-weight: bold; color: ${statusColor};">${statusText}</td>
+          <td style="border: .5pt solid windowtext; text-align: left; mso-number-format: '\\@';">${escapeHtml(prod)}</td>
+          <td style="border: .5pt solid windowtext; text-align: left; mso-number-format: '\\@';">${escapeHtml(rsn)}</td>
+          <td style="border: .5pt solid windowtext; text-align: center;">${escapeHtml(note)}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  let rowsHtml = '';
+  rowsHtml += `
+    <tr style="font-weight: bold; background-color: #f7f7f7;">
+      <td style="border: .5pt solid windowtext; text-align: center;">A</td>
+      <td colspan="6" style="border: .5pt solid windowtext; text-align: left;">${isTP ? "Nhiệm vụ Giám đốc KBNN khu vực XV giao" : "Nhiệm vụ Giám đốc KBNN giao"}</td>
+    </tr>
+    <tr style="font-weight: bold; font-style: italic; background-color: #fafafa;">
+      <td style="border: .5pt solid windowtext; text-align: center;">I</td>
+      <td colspan="6" style="border: .5pt solid windowtext; text-align: left;">Nhiệm vụ trọng tâm</td>
+    </tr>
+    ${renderResultExcelRows(groupAI, 'Không phát sinh nhiệm vụ trọng tâm')}
+    <tr style="font-weight: bold; font-style: italic; background-color: #fafafa;">
+      <td style="border: .5pt solid windowtext; text-align: center;">II</td>
+      <td colspan="6" style="border: .5pt solid windowtext; text-align: left;">Nhiệm vụ thường xuyên, trọng yếu</td>
+    </tr>
+    ${renderResultExcelRows(groupAII, 'Không phát sinh')}
+    <tr style="font-weight: bold; background-color: #f7f7f7;">
+      <td style="border: .5pt solid windowtext; text-align: center;">B</td>
+      <td colspan="6" style="border: .5pt solid windowtext; text-align: left;">Nhiệm vụ do địa phương giao (nếu có)</td>
+    </tr>
+    ${renderResultExcelRows(groupB, 'Không phát sinh')}
+  `;
+
+  const sheetName = isTP ? "KetQua_Mau02" : "KetQua_Mau04";
+
+  const excelHtml = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office" 
+      xmlns:x="urn:schemas-microsoft-com:office:excel" 
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<!--[if gte mso 9]>
+<xml>
+ <x:ExcelWorkbook>
+  <x:ExcelWorksheets>
+   <x:ExcelWorksheet>
+    <x:Name>${sheetName}</x:Name>
+    <x:WorksheetOptions>
+     <x:DisplayGridlines/>
+     <x:Print>
+      <x:Orientation>Landscape</x:Orientation>
+      <x:ValidPrinterInfo/>
+      <x:PaperSizeIndex>9</x:PaperSizeIndex>
+      <x:Scale>85</x:Scale>
+     </x:Print>
+    </x:WorksheetOptions>
+   </x:ExcelWorksheet>
+  </x:ExcelWorksheets>
+ </x:ExcelWorkbook>
+</xml>
+<![endif]-->
+<style>
+  br { mso-data-placement: same-cell; }
+  body, table {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 10pt;
+    color: #000000;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  th, td {
+    border: .5pt solid windowtext;
+    padding: 5px 6px;
+    vertical-align: middle;
+  }
+  th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+    text-align: center;
+  }
+  .no-border, .no-border td {
+    border: none !important;
+  }
+</style>
+</head>
+<body style="padding: 15px; font-family: 'Times New Roman', Times, serif;">
+  <table class="no-border" style="width: 100%; margin-bottom: 12px;">
+    <tr>
+      <td style="width: 44%; text-align: center; vertical-align: top;" class="no-border">
+        <div style="font-size: 11pt; font-weight: bold; text-transform: uppercase;">KHO BẠC NHÀ NƯỚC KHU VỰC XV</div>
+        <div style="font-size: 11pt; font-weight: bold; text-transform: uppercase;">PHÒNG KẾ TOÁN NHÀ NƯỚC</div>
+        <div style="font-weight: bold;">-------------</div>
+      </td>
+      <td style="width: 56%; text-align: center; vertical-align: top;" class="no-border">
+        <div style="text-align: right; font-style: italic; font-weight: bold; font-size: 11pt; margin-bottom: 3px;">${formNum}</div>
+        <div style="font-size: 11pt; font-weight: bold; text-transform: uppercase;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+        <div style="font-size: 11.5pt; font-weight: bold;">Độc lập - Tự do - Hạnh phúc</div>
+        <div style="font-weight: bold;">-------------------</div>
+      </td>
+    </tr>
+  </table>
+
+  <div style="text-align: center; font-size: 13pt; font-weight: bold; margin: 15px 0 16px 0; text-transform: uppercase; line-height: 1.4;">
+    ${formTitle}
+  </div>
+
+  <table>
+    <thead>
+      <tr style="background-color: #f2f2f2; text-align: center; font-weight: bold;">
+        <th style="width: 45px; border: .5pt solid windowtext; padding: 6px;">STT</th>
+        <th style="width: 290px; border: .5pt solid windowtext; padding: 6px;">Nhiệm vụ</th>
+        <th style="width: 115px; border: .5pt solid windowtext; padding: 6px;">Thời hạn hoàn thành</th>
+        <th style="width: 130px; border: .5pt solid windowtext; padding: 6px;">Tiến độ thực hiện<br><span style="font-size: 8.5pt; font-weight: normal;">(Đã HT / Chưa HT)</span></th>
+        <th style="width: 170px; border: .5pt solid windowtext; padding: 6px;">Sản phẩm<br><span style="font-size: 8.5pt; font-weight: normal;">(Số văn bản, ngày PH)</span></th>
+        <th style="width: 140px; border: .5pt solid windowtext; padding: 6px;">Giải trình</th>
+        <th style="width: 85px; border: .5pt solid windowtext; padding: 6px;">Ghi chú</th>
+      </tr>
+      <tr style="background-color: #e2e8f0; text-align: center; font-weight: bold; font-size: 9.5pt;">
+        <th style="border: .5pt solid windowtext;">1</th>
+        <th style="border: .5pt solid windowtext;">2</th>
+        <th style="border: .5pt solid windowtext;">3</th>
+        <th style="border: .5pt solid windowtext;">4</th>
+        <th style="border: .5pt solid windowtext;">5</th>
+        <th style="border: .5pt solid windowtext;">6</th>
+        <th style="border: .5pt solid windowtext;">7</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml}
+    </tbody>
+  </table>
+
+  <p style="font-size: 10pt; font-style: italic; margin-top: 8px;">Lưu ý: Đối với những nhiệm vụ phát sinh, gửi kèm văn bản giao nhiệm vụ của cấp có thẩm quyền.</p>
+
+  <table class="no-border" style="width: 100%; margin-top: 25px;">
+    <tr>
+      <td style="width: 50%; text-align: center; vertical-align: top;" class="no-border">
+        <div style="font-style: italic; font-size: 10.5pt;">Gia Lai, ngày ….. tháng ….. năm ${yearStr}</div>
+        <div style="font-weight: bold; text-transform: uppercase; margin-top: 4px; font-size: 11pt;">${escapeHtml(sigLeftTitle)}</div>
+        <div style="font-style: italic; font-size: 10pt;">(Ký, ghi rõ họ tên)</div>
+        <br><br><br><br>
+        <div style="font-weight: bold; font-size: 11.5pt;">${escapeHtml(sigLeftName)}</div>
+      </td>
+      <td style="width: 50%; text-align: center; vertical-align: top;" class="no-border">
+        <div style="font-style: italic; font-size: 10.5pt;">Gia Lai, ngày ….. tháng ….. năm ${yearStr}</div>
+        <div style="font-weight: bold; text-transform: uppercase; margin-top: 4px; font-size: 11pt;">${escapeHtml(sigRightTitle)}</div>
+        <div style="font-style: italic; font-size: 10pt;">(Ký, ghi rõ họ tên${isTP ? ", đóng dấu nếu có" : ""})</div>
+        <br><br><br><br>
+        <div style="font-weight: bold; font-size: 11.5pt;">${escapeHtml(sigRightName)}</div>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`.trim();
+
+  const blob = new Blob(['\uFEFF' + excelHtml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  const downloadUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(downloadUrl), 1500);
+  if (typeof showToast === 'function') {
+    showToast(`Đã kết xuất tệp Excel ${formNum} thành công!`);
+  } else {
+    alert(`Đã kết xuất tệp Excel ${formNum} thành công!`);
+  }
+}
+
+// Modal Menu Kết xuất Biểu mẫu Mẫu 01, 02, 03, 04
+function openExportFormsModal() {
+  const modal = document.getElementById('exportFormsModal');
+  if (!modal) return;
+  const officer = appState.officer || {};
+  const isTP = (officer.role === 'TP');
+  const descEl = document.getElementById('exportFormsCurrentOfficerDesc');
+  if (descEl) {
+    descEl.innerText = `${officer.name || 'Công chức'} (${isTP ? 'Trưởng phòng' : 'Phó Trưởng phòng / Cá nhân'}) — Mặc định: ${isTP ? 'Mẫu 01 & Mẫu 02' : 'Mẫu 03 & Mẫu 04'}`;
+  }
+  modal.style.display = 'flex';
+}
+
+function closeExportFormsModal() {
+  const modal = document.getElementById('exportFormsModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function exportBothPlanAndResult() {
+  exportPlanToExcel();
+  setTimeout(() => {
+    exportQuarterResultToExcel();
+  }, 600);
 }
 // ==========================================================================
 // EXCEL CELL NOTE POPOVER HANDLERS (EXACT VIEWPORT ADJACENT POSITIONING)
@@ -13220,6 +13778,7 @@ async function rollbackToSnapshot(snapshotId, timeLabel) {
                 <li><b>Mẫu 04 (Lãnh đạo):</b> Báo cáo Kết quả thực hiện nhiệm vụ Quý của Cá nhân (Phó Trưởng phòng).</li>
                 <li><b>Mẫu 01 (Cá nhân GDV & Lãnh đạo):</b> Phiếu theo dõi, đánh giá, xếp loại chất lượng công chức quý.</li>
                 <li><b>Mẫu 02a (Cá nhân GDV & Lãnh đạo):</b> Bảng chấm điểm chi tiết kết quả thực hiện nhiệm vụ (tháng & tổng hợp cả quý).</li>
+                <li><b>📊 Kết xuất Excel (Mẫu 01, 02, 03, 04):</b> Bấm nút <b>"📊 Xuất Excel"</b> tại màn hình Kế hoạch/Kết quả hoặc trong cửa sổ Xem trước, hoặc bấm <b>"📊 Xuất Excel Biểu mẫu (Mẫu 01-04) ▾"</b> trên thanh tab Kế hoạch Quý để tải file Excel chuẩn.</li>
               </ul>
             </div>
 
@@ -13269,6 +13828,7 @@ async function rollbackToSnapshot(snapshotId, timeLabel) {
         <h3 id="planPreviewModalTitle" style="color: var(--accent-gold); margin: 0; font-size: 15px;">XEM TRƯỚC: BẢNG KẾ HOẠCH CÔNG TÁC QUÝ</h3>
         <div style="display: flex; gap: 8px; align-items: center;">
           <button class="btn btn-accent btn-sm" onclick="printElement('planPreviewModalSheet')" style="color: #1a202c; font-weight: 700;">🖨 In biểu mẫu này</button>
+          <button class="btn btn-sm" id="btnModalExportPlan" onclick="exportPlanToExcel()" style="background: #276749; color: #fff; font-weight: 700; border: 1px solid #22543d; display: inline-flex; align-items: center; gap: 4px; border-radius: 4px; padding: 4px 12px; font-size: 12px; cursor: pointer;" title="Kết xuất Kế hoạch ra tệp Excel (.xls)">📊 Xuất Excel</button>
           <button class="modal-close-btn" onclick="closePlanPreviewModal()" title="Đóng">&times;</button>
         </div>
       </div>
@@ -13287,12 +13847,77 @@ async function rollbackToSnapshot(snapshotId, timeLabel) {
         <h3 id="resultPreviewModalTitle" style="color: var(--accent-gold); margin: 0; font-size: 15px;">XEM TRƯỚC: BÁO CÁO KẾT QUẢ CÔNG TÁC QUÝ</h3>
         <div style="display: flex; gap: 8px; align-items: center;">
           <button class="btn btn-accent btn-sm" onclick="printElement('resultPreviewModalSheet')" style="color: #1a202c; font-weight: 700;">🖨 In biểu mẫu này</button>
+          <button class="btn btn-sm" id="btnModalExportResult" onclick="exportQuarterResultToExcel()" style="background: #276749; color: #fff; font-weight: 700; border: 1px solid #22543d; display: inline-flex; align-items: center; gap: 4px; border-radius: 4px; padding: 4px 12px; font-size: 12px; cursor: pointer;" title="Kết xuất Báo cáo Kết quả ra tệp Excel (.xls)">📊 Xuất Excel</button>
           <button class="modal-close-btn" onclick="closeResultPreviewModal()" title="Đóng">&times;</button>
         </div>
       </div>
       <div class="modal-body" style="padding: 24px; background: #f8fafc; overflow-y: auto;">
         <div id="resultPreviewModalSheet" style="background: #fff; border: 1px solid #cbd5e0; padding: 30px; border-radius: 6px; box-shadow: var(--shadow-sm); max-width: 950px; margin: 0 auto; color: #000; font-family: 'Times New Roman', Times, serif; font-size: 13pt; line-height: 1.4;">
           <!-- Dynamically populated -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Danh mục Kết xuất Excel Biểu mẫu Kế hoạch & Kết quả (Mẫu 01, 02, 03, 04) -->
+  <div id="exportFormsModal" class="modal-backdrop" onclick="if(event.target === this) closeExportFormsModal()" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.65); z-index: 9999; justify-content: center; align-items: center; padding: 16px;">
+    <div class="modal-container" style="background: #ffffff; border-radius: 8px; max-width: 680px; width: 95vw; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 1px solid #cbd5e0; overflow: hidden;">
+      <div class="modal-header" style="padding: 12px 18px; background: linear-gradient(135deg, #1a365d, #2b6cb0); color: #fff; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 14.5px; font-weight: 700; color: #fefcbf; display: flex; align-items: center; gap: 8px;">
+          📊 KẾT XUẤT BIỂU MẪU KẾ HOẠCH & KẾT QUẢ RA EXCEL
+        </h3>
+        <button type="button" class="modal-close-btn" onclick="closeExportFormsModal()" style="background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; line-height: 1;" title="Đóng">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px; background: #f8fafc;">
+        <p style="font-size: 12.5px; color: #4a5568; margin-bottom: 14px; line-height: 1.5;">
+          Hệ thống hỗ trợ kết xuất chuẩn file Microsoft Excel (.xls) theo đúng thể thức văn bản hành chính và quy định tại Quyết định 1253/QĐ-BTC & Nghị định 335/2025/NĐ-CP:
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+          <!-- Khối Đơn vị -->
+          <div style="background: #fff; border: 1px solid #cbd5e0; border-radius: 6px; padding: 12px; border-top: 3px solid #2b6cb0;">
+            <div style="font-weight: 700; color: #1a365d; font-size: 13px; margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
+              🏢 CẤP ĐƠN VỊ (TRƯỞNG PHÒNG)
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button type="button" class="btn btn-sm" onclick="exportPlanToExcel('M01')" style="background: #276749; color: #fff; font-weight: 700; text-align: left; padding: 8px 12px; border-radius: 4px; border: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                <span>📄 Mẫu số 01 - Kế hoạch Đơn vị</span>
+                <span style="font-size: 11px; opacity: 0.9;">📥 .xls</span>
+              </button>
+              <button type="button" class="btn btn-sm" onclick="exportQuarterResultToExcel('M02')" style="background: #234e52; color: #fff; font-weight: 700; text-align: left; padding: 8px 12px; border-radius: 4px; border: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                <span>📈 Mẫu số 02 - Kết quả Đơn vị</span>
+                <span style="font-size: 11px; opacity: 0.9;">📥 .xls</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Khối Cá nhân -->
+          <div style="background: #fff; border: 1px solid #cbd5e0; border-radius: 6px; padding: 12px; border-top: 3px solid #d69e2e;">
+            <div style="font-weight: 700; color: #744210; font-size: 13px; margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
+              👤 CẤP CÁ NHÂN (PHÓ TRƯỞNG PHÒNG)
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button type="button" class="btn btn-sm" onclick="exportPlanToExcel('M03')" style="background: #276749; color: #fff; font-weight: 700; text-align: left; padding: 8px 12px; border-radius: 4px; border: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                <span>📄 Mẫu số 03 - Kế hoạch Cá nhân</span>
+                <span style="font-size: 11px; opacity: 0.9;">📥 .xls</span>
+              </button>
+              <button type="button" class="btn btn-sm" onclick="exportQuarterResultToExcel('M04')" style="background: #234e52; color: #fff; font-weight: 700; text-align: left; padding: 8px 12px; border-radius: 4px; border: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                <span>📈 Mẫu số 04 - Kết quả Cá nhân</span>
+                <span style="font-size: 11px; opacity: 0.9;">📥 .xls</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tải trọn bộ -->
+        <div style="background: #edf2f7; border: 1px dashed #cbd5e0; border-radius: 6px; padding: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <div style="font-weight: 700; font-size: 12.5px; color: #2d3748;">📦 Xuất trọn bộ biểu mẫu của cán bộ hiện tại:</div>
+            <div style="font-size: 11.5px; color: #718096;" id="exportFormsCurrentOfficerDesc">Tải cả Kế hoạch và Kết quả thực hiện</div>
+          </div>
+          <button type="button" class="btn btn-sm btn-primary" onclick="exportBothPlanAndResult()" style="font-weight: 700; padding: 7px 16px;">
+            📥 Tải trọn bộ (2 tệp Excel)
+          </button>
         </div>
       </div>
     </div>
