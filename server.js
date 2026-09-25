@@ -82,26 +82,204 @@ const HOST = '0.0.0.0';
 const HTML_FILE = path.join(BASE_DIR, 'App_KPI_PhongKTNN_KBXV_V18_DaFixLoiIn.html');
 
 // ============================================================================
-// KẾT NỐI MONGODB ATLAS (LƯU TRỮ LÂU DÀI TRÊN CLOUD)
+// HỆ THỐNG CƠ SỞ DỮ LIỆU TỆP TIN CỤC BỘ (LOCAL FILE DATABASE SYSTEM)
+// Cho phép chạy 100% Offline trên mạng nội bộ KBNN không cần Internet / MongoDB
+// ============================================================================
+const DATA_DIR = path.join(BASE_DIR, 'data');
+const SESSIONS_DIR = path.join(DATA_DIR, 'sessions');
+const SNAPSHOTS_DIR = path.join(DATA_DIR, 'snapshots');
+const OFFICERS_FILE = path.join(DATA_DIR, 'officers_config.json');
+const AUTH_FILE = path.join(DATA_DIR, 'auth_passwords.json');
+
+function ensureLocalDataDirs() {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  if (!fs.existsSync(SESSIONS_DIR)) fs.mkdirSync(SESSIONS_DIR, { recursive: true });
+  if (!fs.existsSync(SNAPSHOTS_DIR)) fs.mkdirSync(SNAPSHOTS_DIR, { recursive: true });
+
+  const hasSessions = fs.existsSync(SESSIONS_DIR) && fs.readdirSync(SESSIONS_DIR).filter(f => f.endsWith('.json')).length > 0;
+  if (!hasSessions) {
+    const gzPath = path.join(BASE_DIR, 'seed_data.json.gz');
+    if (fs.existsSync(gzPath)) {
+      try {
+        const seed = JSON.parse(zlib.gunzipSync(fs.readFileSync(gzPath)).toString('utf8'));
+        if (!fs.existsSync(OFFICERS_FILE) && seed.officers_config) {
+          fs.writeFileSync(OFFICERS_FILE, JSON.stringify(seed.officers_config, null, 2), 'utf8');
+        }
+        if (!fs.existsSync(AUTH_FILE) && seed.auth_passwords) {
+          fs.writeFileSync(AUTH_FILE, JSON.stringify(seed.auth_passwords, null, 2), 'utf8');
+        }
+        if (seed.sessions) {
+          for (const [fname, sData] of Object.entries(seed.sessions)) {
+            const p = path.join(SESSIONS_DIR, fname);
+            if (!fs.existsSync(p)) fs.writeFileSync(p, JSON.stringify(sData, null, 2), 'utf8');
+          }
+        }
+        console.log('[LOCAL CSDL] Đã tự động giải nén 53 hồ sơ KPI mẫu và danh bạ 35 cán bộ vào thư mục data/');
+      } catch (e) {
+        console.error('[LOCAL CSDL] Lỗi nạp seed_data cục bộ:', e.message);
+      }
+    }
+  }
+}
+ensureLocalDataDirs();
+
+// Ghi đè an toàn (Atomic Write) tránh lỗi mất file khi mất điện đột ngột
+function safeWriteJsonFile(filePath, data) {
+  try {
+    const tmpPath = filePath + '.tmp';
+    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf8');
+    fs.renameSync(tmpPath, filePath);
+    return true;
+  } catch (e) {
+    try { fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8'); return true; } catch (err2) { return false; }
+  }
+}
+
+function getLocalOfficers() {
+  try {
+    if (fs.existsSync(OFFICERS_FILE)) {
+      return JSON.parse(fs.readFileSync(OFFICERS_FILE, 'utf8'));
+    }
+  } catch (e) {}
+  return {};
+}
+
+function saveLocalOfficers(cfg) {
+  return safeWriteJsonFile(OFFICERS_FILE, cfg);
+}
+
+function getLocalAuth() {
+  try {
+    if (fs.existsSync(AUTH_FILE)) {
+      return JSON.parse(fs.readFileSync(AUTH_FILE, 'utf8'));
+    }
+  } catch (e) {}
+  return {};
+}
+
+function saveLocalAuth(data) {
+  return safeWriteJsonFile(AUTH_FILE, data);
+}
+
+function getLocalSession(filename) {
+  try {
+    const p = path.join(SESSIONS_DIR, filename);
+    if (fs.existsSync(p)) {
+      return JSON.parse(fs.readFileSync(p, 'utf8'));
+    }
+  } catch (e) {}
+  return null;
+}
+
+function saveLocalSession(filename, sessionData) {
+  const p = path.join(SESSIONS_DIR, filename);
+  return safeWriteJsonFile(p, sessionData);
+}
+
+function getAllLocalSessions() {
+  const map = {};
+  try {
+    if (fs.existsSync(SESSIONS_DIR)) {
+      const files = fs.readdirSync(SESSIONS_DIR).filter(f => f.endsWith('.json'));
+      files.forEach(f => {
+        try {
+          map[f] = JSON.parse(fs.readFileSync(path.join(SESSIONS_DIR, f), 'utf8'));
+        } catch (e) {}
+      });
+    }
+  } catch (e) {}
+  return map;
+}
+
+function saveLocalSnapshot(filename, snapshotObj) {
+  try {
+    if (!fs.existsSync(SNAPSHOTS_DIR)) fs.mkdirSync(SNAPSHOTS_DIR, { recursive: true });
+    const snapId = 'snap_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+    const snapFile = path.join(SNAPSHOTS_DIR, `${filename}__${snapId}.json`);
+    const doc = {
+      _id: snapId,
+      filename,
+      ...snapshotObj
+    };
+    fs.writeFileSync(snapFile, JSON.stringify(doc, null, 2), 'utf8');
+
+    const snaps = fs.readdirSync(SNAPSHOTS_DIR).filter(f => f.startsWith(filename + '__')).sort();
+    if (snaps.length > 15) {
+      const toDelete = snaps.slice(0, snaps.length - 15);
+      toDelete.forEach(f => { try { fs.unlinkSync(path.join(SNAPSHOTS_DIR, f)); } catch(e){} });
+    }
+    return snapId;
+  } catch (e) {
+    return null;
+  }
+}
+
+function getLocalSnapshots(filename) {
+  const list = [];
+  try {
+    if (fs.existsSync(SNAPSHOTS_DIR)) {
+      const snaps = fs.readdirSync(SNAPSHOTS_DIR).filter(f => f.startsWith(filename + '__')).sort().reverse();
+      snaps.slice(0, 20).forEach(f => {
+        try {
+          const doc = JSON.parse(fs.readFileSync(path.join(SNAPSHOTS_DIR, f), 'utf8'));
+          list.push({
+            id: doc._id || f,
+            savedAt: doc.savedAt,
+            clientIp: doc.clientIp || 'local',
+            summary: doc.summary || ''
+          });
+        } catch(e){}
+      });
+    }
+  } catch (e) {}
+  return list;
+}
+
+function getLocalSnapshotById(snapshotId) {
+  try {
+    if (fs.existsSync(SNAPSHOTS_DIR)) {
+      const files = fs.readdirSync(SNAPSHOTS_DIR);
+      for (const f of files) {
+        if (f.includes(snapshotId)) {
+          return JSON.parse(fs.readFileSync(path.join(SNAPSHOTS_DIR, f), 'utf8'));
+        }
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+// ============================================================================
+// KẾT NỐI MONGODB ATLAS (LƯU TRỮ LÂU DÀI TRÊN CLOUD NẾU CÓ MẠNG)
 // ============================================================================
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://kbbinhdinh_db_user:ZvCQmfp24YwNudJS@kpi-ktnn-db.olx4piw.mongodb.net/?appName=kpi-ktnn-db";
 let dbClient = null;
 let kpiDb = null;
 
 async function connectMongo() {
+  if (process.env.STORAGE_MODE === 'local') {
+    console.log("============================================================================");
+    console.log(" [CHẾ ĐỘ MÁY CHỦ NỘI BỘ] Đang chạy CSDL TỆP TIN CỤC BỘ (Offline Local Mode).");
+    console.log(" [+] Không kết nối Internet/MongoDB Cloud - Toàn bộ dữ liệu lưu tại data/");
+    console.log("============================================================================");
+    return;
+  }
   if (!MONGODB_URI) {
-    console.warn("[MongoDB] CẢNH BÁO: Chưa cấu hình biến môi trường MONGODB_URI! Hệ thống sẽ dùng bộ nhớ tạm.");
+    console.warn("[MongoDB] Chưa cấu hình MONGODB_URI. Tự động sử dụng CSDL tệp tin cục bộ (data/).");
     return;
   }
   try {
-    dbClient = new MongoClient(MONGODB_URI);
+    // Timeout 3.5 giây để không làm chậm khởi động khi mạng LAN không có internet
+    dbClient = new MongoClient(MONGODB_URI, { serverSelectionTimeoutMS: 3500, connectTimeoutMS: 3500 });
     await dbClient.connect();
     kpiDb = dbClient.db('kpi_ktnn_db');
     console.log("[MongoDB] Đã kết nối thành công tới MongoDB Atlas Cloud Database!");
     await initCloudSeedData();
     await syncOfficerRolesMigration();
   } catch (err) {
-    console.error("[MongoDB] Lỗi kết nối MongoDB:", err);
+    console.warn(`[CHẾ ĐỘ MÁY CHỦ NỘI BỘ] Không thể kết nối MongoDB Cloud (${err.message}).`);
+    console.log("[+] Tự động kích hoạt CSDL TỆP TIN CỤC BỘ (Offline Local Mode) trong thư mục data/!");
+    console.log("[+] 53 hồ sơ KPI và 35 cán bộ đã sẵn sàng phục vụ 100% không cần Internet.");
   }
 }
 
@@ -144,21 +322,31 @@ async function initCloudSeedData() {
   }
 }
 
-// Chuẩn hóa và chuyển giao chức danh Thủ kho tiền trên MongoDB Atlas
-// Bảo toàn 100% dữ liệu, điểm số, mật khẩu và phiên làm việc
+// Chuẩn hóa và chuyển giao chức danh Thủ kho tiền trên MongoDB Atlas / Local
 async function syncOfficerRolesMigration() {
+  const qnTrangTitle = "Giao dịch viên - Thủ kho tiền";
+  const qnTrangSpecialty = "Thủ kho tiền, tổng hợp các báo cáo liên quan đến công tác kho quỹ; Kế toán hoàn thuế do Thuế tỉnh gửi; TK chuyên thu BHXH (TK 3743); Báo cáo xử phạt VPHC lĩnh vực Kế toán.";
+
+  const qnThuyTitle = "Giao dịch viên";
+  const qnThuySpecialty = "Hành chính, văn thư, lưu trữ của Phòng; Kế toán Liên kho bạc; Báo cáo công tác cải cách hành chính, TTHC (lĩnh vực kế toán); In, lưu trữ Bảng thanh toán tự động điện, nước, viễn thông.";
+
+  // Đồng bộ cấu hình cục bộ (Local data)
+  const localOfficers = getLocalOfficers();
+  if (localOfficers.qn_trang) {
+    localOfficers.qn_trang.title = qnTrangTitle;
+    localOfficers.qn_trang.specialty = qnTrangSpecialty;
+  }
+  if (localOfficers.qn_thuy_le) {
+    localOfficers.qn_thuy_le.title = qnThuyTitle;
+    localOfficers.qn_thuy_le.specialty = qnThuySpecialty;
+  }
+  saveLocalOfficers(localOfficers);
+
   try {
     if (!kpiDb) return;
     const configCol = kpiDb.collection('officers_config');
     const sessionsCol = kpiDb.collection('sessions');
 
-    const qnTrangTitle = "Giao dịch viên - Thủ kho tiền";
-    const qnTrangSpecialty = "Thủ kho tiền, tổng hợp các báo cáo liên quan đến công tác kho quỹ; Kế toán hoàn thuế do Thuế tỉnh gửi; TK chuyên thu BHXH (TK 3743); Báo cáo xử phạt VPHC lĩnh vực Kế toán.";
-
-    const qnThuyTitle = "Giao dịch viên";
-    const qnThuySpecialty = "Hành chính, văn thư, lưu trữ của Phòng; Kế toán Liên kho bạc; Báo cáo công tác cải cách hành chính, TTHC (lĩnh vực kế toán); In, lưu trữ Bảng thanh toán tự động điện, nước, viễn thông.";
-
-    // 1. Cập nhật bảng thông tin cán bộ (officers_config)
     await configCol.updateOne(
       { id: 'qn_trang' },
       { $set: { title: qnTrangTitle, specialty: qnTrangSpecialty } }
@@ -168,7 +356,6 @@ async function syncOfficerRolesMigration() {
       { $set: { title: qnThuyTitle, specialty: qnThuySpecialty } }
     );
 
-    // 2. Cập nhật chức danh trong các phiên làm việc của qn_trang mà không thay đổi điểm số/kết quả
     const trangSessions = await sessionsCol.find({ filename: { $regex: /^qn_trang/i } }).toArray();
     for (const s of trangSessions) {
       if (s.data && s.data.officer) {
@@ -181,7 +368,6 @@ async function syncOfficerRolesMigration() {
       }
     }
 
-    // 3. Cập nhật chức danh trong các phiên làm việc của qn_thuy_le mà không thay đổi điểm số/kết quả
     const thuySessions = await sessionsCol.find({ filename: { $regex: /^qn_thuy_le/i } }).toArray();
     for (const s of thuySessions) {
       if (s.data && s.data.officer) {
@@ -193,11 +379,7 @@ async function syncOfficerRolesMigration() {
         }
       }
     }
-
-    console.log("[MIGRATION] Đã hoàn tất đồng bộ chức danh: Nguyễn Thị Thu Trang (Thủ kho tiền) và Võ Thị Lệ Thuỷ (GDV) trên Cloud!");
-  } catch (err) {
-    console.error("[MIGRATION] Lỗi đồng bộ chức danh MongoDB:", err);
-  }
+  } catch (err) {}
 }
 
 connectMongo();
@@ -215,11 +397,18 @@ function scheduleDailyAutoBackup() {
 
   async function performBackup() {
     try {
-      if (!kpiDb) return;
       console.log('[AUTO-BACKUP] Đang thực hiện sao lưu an toàn toàn bộ hệ thống...');
-      const sessionDocs = await kpiDb.collection('sessions').find({}).toArray();
-      const configDocs = await kpiDb.collection('officers_config').find({}).toArray();
-      const authDocs = await kpiDb.collection('auth_passwords').find({}).toArray();
+      let sessionDocs = [];
+      let configDocs = [];
+      let authDocs = [];
+
+      if (kpiDb) {
+        try {
+          sessionDocs = await kpiDb.collection('sessions').find({}).toArray();
+          configDocs = await kpiDb.collection('officers_config').find({}).toArray();
+          authDocs = await kpiDb.collection('auth_passwords').find({}).toArray();
+        } catch (e) {}
+      }
 
       const backupObj = {
         timestamp: new Date().toISOString(),
@@ -229,9 +418,16 @@ function scheduleDailyAutoBackup() {
         officers_config: {},
         auth_passwords: {}
       };
-      sessionDocs.forEach(d => { if (d.filename) backupObj.sessions[d.filename] = d.data; });
-      configDocs.forEach(d => { const id = d.id || d._id; backupObj.officers_config[id] = d; });
-      authDocs.forEach(d => { if (d.officerId) backupObj.auth_passwords[d.officerId] = d; });
+
+      if (kpiDb && sessionDocs.length > 0) {
+        sessionDocs.forEach(d => { if (d.filename) backupObj.sessions[d.filename] = d.data; });
+        configDocs.forEach(d => { const id = d.id || d._id; backupObj.officers_config[id] = d; });
+        authDocs.forEach(d => { if (d.officerId) backupObj.auth_passwords[d.officerId] = d; });
+      } else {
+        backupObj.sessions = getAllLocalSessions();
+        backupObj.officers_config = getLocalOfficers();
+        backupObj.auth_passwords = getLocalAuth();
+      }
 
       const rawJson = Buffer.from(JSON.stringify(backupObj, null, 2), 'utf8');
       const gzipped = zlib.gzipSync(rawJson, { level: 9 });
@@ -324,21 +520,20 @@ async function getOfficersConfig() {
       console.error("Lỗi đọc officers từ MongoDB:", e);
     }
   }
-  const fallbackFile = path.join(BASE_DIR, 'kpi_data', 'officers_config.json');
-  try {
-    if (fs.existsSync(fallbackFile)) {
-      const cfg = JSON.parse(fs.readFileSync(fallbackFile, 'utf8'));
-      if (cfg.qn_trang) {
-        cfg.qn_trang.title = qnTrangTitle;
-        cfg.qn_trang.specialty = qnTrangSpecialty;
-      }
-      if (cfg.qn_thuy_le) {
-        cfg.qn_thuy_le.title = qnThuyTitle;
-        cfg.qn_thuy_le.specialty = qnThuySpecialty;
-      }
-      return cfg;
+  const cfgLocal = getLocalOfficers();
+  if (cfgLocal && Object.keys(cfgLocal).length > 0) {
+    if (cfgLocal.qn_trang) {
+      cfgLocal.qn_trang.title = qnTrangTitle;
+      cfgLocal.qn_trang.specialty = qnTrangSpecialty;
     }
-  } catch (err) {}
+    if (cfgLocal.qn_thuy_le) {
+      cfgLocal.qn_thuy_le.title = qnThuyTitle;
+      cfgLocal.qn_thuy_le.specialty = qnThuySpecialty;
+    }
+    officersConfigCache = cfgLocal;
+    officersConfigCacheTime = Date.now();
+    return cfgLocal;
+  }
   return {};
 }
 
@@ -415,16 +610,11 @@ async function getAuthPasswords() {
       }
     } catch (e) {}
   }
-  const fallbackFile = path.join(BASE_DIR, 'kpi_data', 'auth_passwords.json');
-  try {
-    if (fs.existsSync(fallbackFile)) {
-      return JSON.parse(fs.readFileSync(fallbackFile, 'utf8'));
-    }
-  } catch (err) {}
-  return {};
+  return getLocalAuth();
 }
 
 async function saveAuthPasswords(data) {
+  saveLocalAuth(data);
   if (kpiDb) {
     try {
       const col = kpiDb.collection('auth_passwords');
@@ -434,7 +624,7 @@ async function saveAuthPasswords(data) {
       return true;
     } catch (e) {}
   }
-  return false;
+  return true;
 }
 
 function hashPassword(password) {
@@ -713,15 +903,22 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/status' && req.method === 'GET') {
     let sessionsCount = 0;
     if (kpiDb) {
-      sessionsCount = await kpiDb.collection('sessions').countDocuments();
+      try {
+        sessionsCount = await kpiDb.collection('sessions').countDocuments();
+      } catch(e) {
+        sessionsCount = Object.keys(getAllLocalSessions()).length;
+      }
+    } else {
+      sessionsCount = Object.keys(getAllLocalSessions()).length;
     }
     return sendJson(res, 200, {
       status: "ok",
+      storageMode: kpiDb ? "mongodb_cloud" : "local_file_storage",
       serverTime: new Date().toISOString(),
       hostIp: getLanIp(),
       port: PORT,
       sessionsCount,
-      version: "V18_MongoDB_Cloud"
+      version: "V18_Hybrid_Local_Cloud"
     });
   }
 
@@ -754,6 +951,11 @@ const server = http.createServer(async (req, res) => {
           return sendJson(res, 200, { success: true, isNew: false, filename, data: doc.data });
         }
       } catch (e) {}
+    } else {
+      const localData = getLocalSession(filename);
+      if (localData) {
+        return sendJson(res, 200, { success: true, isNew: false, filename, data: localData });
+      }
     }
 
     const cfg = await getOfficersConfig();
@@ -780,49 +982,67 @@ const server = http.createServer(async (req, res) => {
         const filename = getSessionFilename(officerId, quarter, year);
         state.lastSaved = new Date().toISOString();
 
+        let existingSession = null;
         if (kpiDb) {
-          const sessionsCol = kpiDb.collection('sessions');
-          const existing = await sessionsCol.findOne({ filename });
-          if (existing && existing.data) {
-            const currentStatus = existing.data.status;
-            const senderId = payload.senderId || officerId;
-            const isLeaderOrAdmin = (senderId === 'son' || senderId === 'hoang' || senderId === 'tuan' || senderId === 'anh');
-
-            // 🔒 KIỂM TRA KHÓA DỮ LIỆU: Nếu đã nộp hoặc đã duyệt, cán bộ thường không được sửa
-            if ((currentStatus === 'da_nop' || currentStatus === 'da_duyet') && !isLeaderOrAdmin && payload.action !== 'submit') {
-              return sendJson(res, 403, {
-                success: false,
-                error: "BÁO CÁO ĐÃ NỘP HOẶC ĐÃ ĐƯỢC PHÊ DUYỆT! Dữ liệu đã bị khóa và không thể tự ý sửa đổi.",
-                isLocked: true,
-                status: currentStatus
-              });
-            }
-
-            if (existing.data.leaderRatingProposal && !state.leaderRatingProposal) {
-              state.leaderRatingProposal = existing.data.leaderRatingProposal;
-            }
-            if (existing.data.leaderRatingNote && !state.leaderRatingNote) {
-              state.leaderRatingNote = existing.data.leaderRatingNote;
-            }
-            if (existing.data.status && !state.status) {
-              state.status = existing.data.status;
-            }
-          }
-          await sessionsCol.updateOne({ filename }, { $set: { filename, data: state, updatedAt: state.lastSaved } }, { upsert: true });
-          invalidateSummaryCache();
-
-          // --- 🛡️ BẢO VỆ DỮ LIỆU: CẤT BẢN SAO LỊCH SỬ (SNAPSHOT) ---
           try {
-            const snapshotsCol = kpiDb.collection('session_snapshots');
-            const clientIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
-            
-            // Tính điểm tóm tắt để hiển thị trong lịch sử
-            let snapshotSummary = "";
-            if (state.months && Array.isArray(state.months)) {
-              let mPct = state.months.map(m => m.completionPercent || 0).join(' - ');
-              snapshotSummary = `Tháng: [${mPct}]% - TT: ${state.status || 'da_luu'}`;
-            }
+            const doc = await kpiDb.collection('sessions').findOne({ filename });
+            existingSession = doc && doc.data;
+          } catch(e) {}
+        }
+        if (!existingSession) {
+          existingSession = getLocalSession(filename);
+        }
 
+        if (existingSession) {
+          const currentStatus = existingSession.status;
+          const senderId = payload.senderId || officerId;
+          const isLeaderOrAdmin = (senderId === 'son' || senderId === 'hoang' || senderId === 'tuan' || senderId === 'anh');
+
+          // 🔒 KIỂM TRA KHÓA DỮ LIỆU: Nếu đã nộp hoặc đã duyệt, cán bộ thường không được sửa
+          if ((currentStatus === 'da_nop' || currentStatus === 'da_duyet') && !isLeaderOrAdmin && payload.action !== 'submit') {
+            return sendJson(res, 403, {
+              success: false,
+              error: "BÁO CÁO ĐÃ NỘP HOẶC ĐÃ ĐƯỢC PHÊ DUYỆT! Dữ liệu đã bị khóa và không thể tự ý sửa đổi.",
+              isLocked: true,
+              status: currentStatus
+            });
+          }
+
+          if (existingSession.leaderRatingProposal && !state.leaderRatingProposal) {
+            state.leaderRatingProposal = existingSession.leaderRatingProposal;
+          }
+          if (existingSession.leaderRatingNote && !state.leaderRatingNote) {
+            state.leaderRatingNote = existingSession.leaderRatingNote;
+          }
+          if (existingSession.status && !state.status) {
+            state.status = existingSession.status;
+          }
+        }
+
+        // Luôn ghi đè an toàn vào ổ đĩa máy chủ (data/sessions/)
+        saveLocalSession(filename, state);
+        const clientIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
+        let snapshotSummary = "";
+        if (state.months && Array.isArray(state.months)) {
+          let mPct = state.months.map(m => m.completionPercent || 0).join(' - ');
+          snapshotSummary = `Tháng: [${mPct}]% - TT: ${state.status || 'da_luu'}`;
+        }
+        saveLocalSnapshot(filename, {
+          officerId,
+          quarter: normalizeQuarter(quarter),
+          year: Number(year) || 2026,
+          savedAt: state.lastSaved,
+          clientIp,
+          summary: snapshotSummary,
+          data: state
+        });
+
+        if (kpiDb) {
+          try {
+            const sessionsCol = kpiDb.collection('sessions');
+            await sessionsCol.updateOne({ filename }, { $set: { filename, data: state, updatedAt: state.lastSaved } }, { upsert: true });
+
+            const snapshotsCol = kpiDb.collection('session_snapshots');
             await snapshotsCol.insertOne({
               filename,
               officerId,
@@ -834,7 +1054,6 @@ const server = http.createServer(async (req, res) => {
               data: state
             });
 
-            // Giới hạn số lượng snapshot tối đa (mặc định 15) cho mỗi phiên để bảo vệ dung lượng
             const maxSnapshots = parseInt(process.env.MAX_SNAPSHOTS_PER_OFFICER, 10) || 15;
             const snapCount = await snapshotsCol.countDocuments({ filename });
             if (snapCount > maxSnapshots) {
@@ -848,13 +1067,14 @@ const server = http.createServer(async (req, res) => {
               }
             }
           } catch (snapErr) {
-            console.error('[SNAPSHOT WARNING] Lỗi tạo bản sao lưu snapshot:', snapErr.message);
+            console.warn('[MongoDB WARNING] Lỗi ghi lên Cloud, đã lưu cục bộ an toàn:', snapErr.message);
           }
         }
+        invalidateSummaryCache();
 
         return sendJson(res, 200, {
           success: true,
-          message: `Đã lưu phiên làm việc lên Cloud cho ${officerId}`,
+          message: `Đã lưu thành công phiên làm việc cho cán bộ ${officerId}`,
           filename,
           savedAt: state.lastSaved
         });
@@ -879,24 +1099,38 @@ const server = http.createServer(async (req, res) => {
         const submitTime = new Date().toISOString();
         let targetState = state;
 
-        if (kpiDb) {
-          const sessionsCol = kpiDb.collection('sessions');
-          if (!targetState) {
-            const existing = await sessionsCol.findOne({ filename });
-            targetState = existing && existing.data;
+        if (!targetState) {
+          if (kpiDb) {
+            try {
+              const existing = await kpiDb.collection('sessions').findOne({ filename });
+              targetState = existing && existing.data;
+            } catch(e) {}
           }
-          if (!targetState) return sendJson(res, 404, { success: false, error: "Không tìm thấy dữ liệu phiên" });
+          if (!targetState) targetState = getLocalSession(filename);
+        }
+        if (!targetState) return sendJson(res, 404, { success: false, error: "Không tìm thấy dữ liệu phiên" });
 
-          targetState.status = "da_nop";
-          targetState.isSubmitted = true;
-          targetState.submittedAt = submitTime;
-          targetState.lastSaved = submitTime;
+        targetState.status = "da_nop";
+        targetState.isSubmitted = true;
+        targetState.submittedAt = submitTime;
+        targetState.lastSaved = submitTime;
 
-          await sessionsCol.updateOne({ filename }, { $set: { filename, data: targetState, updatedAt: submitTime } }, { upsert: true });
-          invalidateSummaryCache();
+        // Lưu CSDL cục bộ
+        saveLocalSession(filename, targetState);
+        saveLocalSnapshot(filename, {
+          officerId,
+          quarter: normalizeQuarter(quarter),
+          year: Number(year) || 2026,
+          savedAt: submitTime,
+          clientIp: req.socket.remoteAddress || 'client',
+          summary: '📤 [NỘP KPI QUÝ] Chốt số liệu cá nhân',
+          data: targetState
+        });
 
-          // Lưu snapshot đánh dấu sự kiện nộp bài
+        if (kpiDb) {
           try {
+            const sessionsCol = kpiDb.collection('sessions');
+            await sessionsCol.updateOne({ filename }, { $set: { filename, data: targetState, updatedAt: submitTime } }, { upsert: true });
             await kpiDb.collection('session_snapshots').insertOne({
               filename,
               officerId,
@@ -909,6 +1143,7 @@ const server = http.createServer(async (req, res) => {
             });
           } catch (e) {}
         }
+        invalidateSummaryCache();
 
         return sendJson(res, 200, {
           success: true,
@@ -943,24 +1178,40 @@ const server = http.createServer(async (req, res) => {
         const filename = getSessionFilename(officerId, quarter, year);
         const approveTime = new Date().toISOString();
 
+        let docData = null;
         if (kpiDb) {
-          const sessionsCol = kpiDb.collection('sessions');
-          const doc = await sessionsCol.findOne({ filename });
-          if (!doc || !doc.data) return sendJson(res, 404, { success: false, error: "Không tìm thấy hồ sơ cán bộ" });
-
-          doc.data.status = "da_duyet";
-          doc.data.isApproved = true;
-          doc.data.approvedAt = approveTime;
-          doc.data.approvedBy = leaderOfficerId || "Lãnh đạo phòng";
-          if (leaderRatingProposal) doc.data.leaderRatingProposal = leaderRatingProposal;
-          if (leaderRatingNote !== undefined) doc.data.leaderRatingNote = leaderRatingNote;
-          doc.data.lastSaved = approveTime;
-
-          await sessionsCol.updateOne({ filename }, { $set: { data: doc.data, updatedAt: approveTime } });
-          invalidateSummaryCache();
-
-          // Lưu snapshot đánh dấu phê duyệt
           try {
+            const doc = await kpiDb.collection('sessions').findOne({ filename });
+            docData = doc && doc.data;
+          } catch(e) {}
+        }
+        if (!docData) docData = getLocalSession(filename);
+        if (!docData) return sendJson(res, 404, { success: false, error: "Không tìm thấy hồ sơ cán bộ" });
+
+        docData.status = "da_duyet";
+        docData.isApproved = true;
+        docData.approvedAt = approveTime;
+        docData.approvedBy = leaderOfficerId || "Lãnh đạo phòng";
+        if (leaderRatingProposal) docData.leaderRatingProposal = leaderRatingProposal;
+        if (leaderRatingNote !== undefined) docData.leaderRatingNote = leaderRatingNote;
+        docData.lastSaved = approveTime;
+
+        // Lưu CSDL cục bộ
+        saveLocalSession(filename, docData);
+        saveLocalSnapshot(filename, {
+          officerId,
+          quarter: normalizeQuarter(quarter),
+          year: Number(year) || 2026,
+          savedAt: approveTime,
+          clientIp: req.socket.remoteAddress || 'leader',
+          summary: `✅ [LÃNH ĐẠO DUYỆT] Xếp loại: ${leaderRatingProposal || docData.rating || 'Đạt'}`,
+          data: docData
+        });
+
+        if (kpiDb) {
+          try {
+            const sessionsCol = kpiDb.collection('sessions');
+            await sessionsCol.updateOne({ filename }, { $set: { data: docData, updatedAt: approveTime } });
             await kpiDb.collection('session_snapshots').insertOne({
               filename,
               officerId,
@@ -968,11 +1219,12 @@ const server = http.createServer(async (req, res) => {
               year: Number(year) || 2026,
               savedAt: approveTime,
               clientIp: req.socket.remoteAddress || 'leader',
-              summary: `✅ [LÃNH ĐẠO DUYỆT] Xếp loại: ${leaderRatingProposal || doc.data.rating}`,
-              data: doc.data
+              summary: `✅ [LÃNH ĐẠO DUYỆT] Xếp loại: ${leaderRatingProposal || docData.rating || 'Đạt'}`,
+              data: docData
             });
           } catch (e) {}
         }
+        invalidateSummaryCache();
 
         return sendJson(res, 200, {
           success: true,
@@ -1007,24 +1259,40 @@ const server = http.createServer(async (req, res) => {
         const filename = getSessionFilename(officerId, quarter, year);
         const rejectTime = new Date().toISOString();
 
+        let docData = null;
         if (kpiDb) {
-          const sessionsCol = kpiDb.collection('sessions');
-          const doc = await sessionsCol.findOne({ filename });
-          if (!doc || !doc.data) return sendJson(res, 404, { success: false, error: "Không tìm thấy hồ sơ cán bộ" });
-
-          doc.data.status = "tra_lai";
-          doc.data.isSubmitted = false;
-          doc.data.isApproved = false;
-          doc.data.rejectedAt = rejectTime;
-          doc.data.rejectedBy = leaderOfficerId || "Lãnh đạo phòng";
-          doc.data.rejectReason = rejectReason || "Yêu cầu rà soát, giải trình lại số liệu";
-          doc.data.lastSaved = rejectTime;
-
-          await sessionsCol.updateOne({ filename }, { $set: { data: doc.data, updatedAt: rejectTime } });
-          invalidateSummaryCache();
-
-          // Lưu snapshot đánh dấu trả lại
           try {
+            const doc = await kpiDb.collection('sessions').findOne({ filename });
+            docData = doc && doc.data;
+          } catch(e) {}
+        }
+        if (!docData) docData = getLocalSession(filename);
+        if (!docData) return sendJson(res, 404, { success: false, error: "Không tìm thấy hồ sơ cán bộ" });
+
+        docData.status = "tra_lai";
+        docData.isSubmitted = false;
+        docData.isApproved = false;
+        docData.rejectedAt = rejectTime;
+        docData.rejectedBy = leaderOfficerId || "Lãnh đạo phòng";
+        docData.rejectReason = rejectReason || "Yêu cầu rà soát, giải trình lại số liệu";
+        docData.lastSaved = rejectTime;
+
+        // Lưu CSDL cục bộ
+        saveLocalSession(filename, docData);
+        saveLocalSnapshot(filename, {
+          officerId,
+          quarter: normalizeQuarter(quarter),
+          year: Number(year) || 2026,
+          savedAt: rejectTime,
+          clientIp: req.socket.remoteAddress || 'leader',
+          summary: `↩️ [TRẢ LẠI SỬA] Lý do: ${rejectReason || 'Yêu cầu rà soát'}`,
+          data: docData
+        });
+
+        if (kpiDb) {
+          try {
+            const sessionsCol = kpiDb.collection('sessions');
+            await sessionsCol.updateOne({ filename }, { $set: { data: docData, updatedAt: rejectTime } });
             await kpiDb.collection('session_snapshots').insertOne({
               filename,
               officerId,
@@ -1033,10 +1301,11 @@ const server = http.createServer(async (req, res) => {
               savedAt: rejectTime,
               clientIp: req.socket.remoteAddress || 'leader',
               summary: `↩️ [TRẢ LẠI SỬA] Lý do: ${rejectReason || 'Yêu cầu rà soát'}`,
-              data: doc.data
+              data: docData
             });
           } catch (e) {}
         }
+        invalidateSummaryCache();
 
         return sendJson(res, 200, {
           success: true,
@@ -1061,29 +1330,30 @@ const server = http.createServer(async (req, res) => {
     }
 
     const filename = getSessionFilename(officerId, quarter, year);
-    if (!kpiDb) {
-      return sendJson(res, 200, { success: true, history: [] });
+    let history = [];
+
+    if (kpiDb) {
+      try {
+        const snapshotsCol = kpiDb.collection('session_snapshots');
+        const list = await snapshotsCol.find({ filename })
+          .sort({ savedAt: -1 })
+          .limit(20)
+          .project({ _id: 1, savedAt: 1, clientIp: 1, summary: 1, "data.lastSaved": 1, "data.officer.name": 1 })
+          .toArray();
+
+        history = list.map(item => ({
+          id: item._id.toString(),
+          savedAt: item.savedAt,
+          clientIp: item.clientIp || 'client',
+          summary: item.summary || ''
+        }));
+      } catch (err) {}
+    }
+    if (history.length === 0) {
+      history = getLocalSnapshots(filename);
     }
 
-    try {
-      const snapshotsCol = kpiDb.collection('session_snapshots');
-      const list = await snapshotsCol.find({ filename })
-        .sort({ savedAt: -1 })
-        .limit(20)
-        .project({ _id: 1, savedAt: 1, clientIp: 1, summary: 1, "data.lastSaved": 1, "data.officer.name": 1 })
-        .toArray();
-
-      const history = list.map(item => ({
-        id: item._id.toString(),
-        savedAt: item.savedAt,
-        clientIp: item.clientIp || 'client',
-        summary: item.summary || ''
-      }));
-
-      return sendJson(res, 200, { success: true, filename, history });
-    } catch (err) {
-      return sendJson(res, 500, { success: false, error: "Lỗi đọc lịch sử: " + err.message });
-    }
+    return sendJson(res, 200, { success: true, filename, history });
   }
 
   // --- API KHÔI PHỤC DỮ LIỆU TỪ BẢN SAO LƯU (ROLLBACK TO SNAPSHOT) ---
@@ -1095,12 +1365,20 @@ const server = http.createServer(async (req, res) => {
         const payload = JSON.parse(body);
         const { snapshotId, officerId, quarter, year } = payload;
 
-        if (!snapshotId || !kpiDb) {
-          return sendJson(res, 400, { success: false, error: "Thiếu snapshotId hoặc DB chưa kết nối" });
+        if (!snapshotId) {
+          return sendJson(res, 400, { success: false, error: "Thiếu snapshotId" });
         }
 
-        const snapshotsCol = kpiDb.collection('session_snapshots');
-        const snapDoc = await snapshotsCol.findOne({ _id: new ObjectId(snapshotId) });
+        let snapDoc = null;
+        if (kpiDb) {
+          try {
+            const snapshotsCol = kpiDb.collection('session_snapshots');
+            snapDoc = await snapshotsCol.findOne({ _id: new ObjectId(snapshotId) });
+          } catch(e) {}
+        }
+        if (!snapDoc) {
+          snapDoc = getLocalSnapshotById(snapshotId);
+        }
 
         if (!snapDoc || !snapDoc.data) {
           return sendJson(res, 404, { success: false, error: "Không tìm thấy bản ghi snapshot này!" });
@@ -1111,11 +1389,18 @@ const server = http.createServer(async (req, res) => {
         restoredData.lastSaved = new Date().toISOString();
         restoredData._restoredFrom = snapDoc.savedAt;
 
-        await kpiDb.collection('sessions').updateOne(
-          { filename },
-          { $set: { filename, data: restoredData, updatedAt: restoredData.lastSaved } },
-          { upsert: true }
-        );
+        // Lưu CSDL cục bộ
+        saveLocalSession(filename, restoredData);
+
+        if (kpiDb) {
+          try {
+            await kpiDb.collection('sessions').updateOne(
+              { filename },
+              { $set: { filename, data: restoredData, updatedAt: restoredData.lastSaved } },
+              { upsert: true }
+            );
+          } catch(e) {}
+        }
         invalidateSummaryCache();
 
         console.log(`[ROLLBACK SUCCESS] Đã khôi phục thành công dữ liệu cho ${filename} từ snapshot lúc ${snapDoc.savedAt}`);
@@ -1144,16 +1429,28 @@ const server = http.createServer(async (req, res) => {
         if (!officerId) return sendJson(res, 400, { success: false, error: "Thiếu officerId" });
 
         const filename = getSessionFilename(officerId, quarter, year);
+        let docData = null;
         if (kpiDb) {
-          const col = kpiDb.collection('sessions');
-          const doc = await col.findOne({ filename });
-          if (doc && doc.data) {
-            doc.data.leaderRatingProposal = leaderRatingProposal;
-            if (leaderRatingNote !== undefined) doc.data.leaderRatingNote = leaderRatingNote;
-            doc.data.lastSaved = new Date().toISOString();
-            await col.updateOne({ filename }, { $set: { data: doc.data } });
-            invalidateSummaryCache();
+          try {
+            const col = kpiDb.collection('sessions');
+            const doc = await col.findOne({ filename });
+            docData = doc && doc.data;
+          } catch(e) {}
+        }
+        if (!docData) docData = getLocalSession(filename);
+
+        if (docData) {
+          docData.leaderRatingProposal = leaderRatingProposal;
+          if (leaderRatingNote !== undefined) docData.leaderRatingNote = leaderRatingNote;
+          docData.lastSaved = new Date().toISOString();
+          saveLocalSession(filename, docData);
+
+          if (kpiDb) {
+            try {
+              await kpiDb.collection('sessions').updateOne({ filename }, { $set: { data: docData } });
+            } catch(e) {}
           }
+          invalidateSummaryCache();
         }
         return sendJson(res, 200, { success: true, message: "Đã lưu đánh giá của Lãnh đạo" });
       } catch (err) {
@@ -1182,12 +1479,17 @@ const server = http.createServer(async (req, res) => {
       };
       
       if (kpiDb) {
-        const sessionDocs = await kpiDb.collection('sessions').find({}).toArray();
-        sessionDocs.forEach(doc => {
-          if (doc.filename && doc.data) {
-            exportData.sessions[doc.filename] = doc.data;
-          }
-        });
+        try {
+          const sessionDocs = await kpiDb.collection('sessions').find({}).toArray();
+          sessionDocs.forEach(doc => {
+            if (doc.filename && doc.data) {
+              exportData.sessions[doc.filename] = doc.data;
+            }
+          });
+        } catch(e) {}
+      }
+      if (Object.keys(exportData.sessions).length === 0) {
+        exportData.sessions = getAllLocalSessions();
       }
 
       res.writeHead(200, {
@@ -1200,7 +1502,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // --- API Nạp toàn bộ dữ liệu từ tệp cục bộ lên MongoDB Cloud (Import All) ---
+  // --- API Nạp toàn bộ dữ liệu từ tệp cục bộ lên MongoDB Cloud / Local (Import All) ---
   if (pathname === '/api/backup/import-all' && req.method === 'POST') {
     const adminOfficerId = searchParams.get('adminOfficerId');
     const adminKey = req.headers['x-admin-key'] || searchParams.get('adminKey');
@@ -1226,24 +1528,37 @@ const server = http.createServer(async (req, res) => {
         }
 
         let count = 0;
+        // Luôn ghi đè vào thư mục cục bộ data/
+        for (const [fname, sess] of Object.entries(importData.sessions)) {
+          saveLocalSession(fname, sess);
+          count++;
+        }
+        if (importData.officers_config) {
+          saveLocalOfficers(importData.officers_config);
+        }
+        if (importData.auth_passwords) {
+          saveLocalAuth(importData.auth_passwords);
+        }
+
         if (kpiDb) {
-          const sessionsCol = kpiDb.collection('sessions');
-          for (const [fname, sess] of Object.entries(importData.sessions)) {
-            await sessionsCol.updateOne({ filename: fname }, { $set: { filename: fname, data: sess } }, { upsert: true });
-            count++;
-          }
-
-          if (importData.officers_config) {
-            const configCol = kpiDb.collection('officers_config');
-            for (const [id, cfg] of Object.entries(importData.officers_config)) {
-              await configCol.updateOne({ id }, { $set: cfg }, { upsert: true });
+          try {
+            const sessionsCol = kpiDb.collection('sessions');
+            for (const [fname, sess] of Object.entries(importData.sessions)) {
+              await sessionsCol.updateOne({ filename: fname }, { $set: { filename: fname, data: sess } }, { upsert: true });
             }
-          }
 
-          if (importData.auth_passwords) {
-            await saveAuthPasswords(importData.auth_passwords);
-          }
-          await syncOfficerRolesMigration();
+            if (importData.officers_config) {
+              const configCol = kpiDb.collection('officers_config');
+              for (const [id, cfg] of Object.entries(importData.officers_config)) {
+                await configCol.updateOne({ id }, { $set: cfg }, { upsert: true });
+              }
+            }
+
+            if (importData.auth_passwords) {
+              await saveAuthPasswords(importData.auth_passwords);
+            }
+            await syncOfficerRolesMigration();
+          } catch (e) {}
         }
 
         console.log(`[IMPORT CLOUD] Đã nạp thành công ${count} phiên dữ liệu lên MongoDB từ file máy tính.`);
@@ -1287,27 +1602,34 @@ const server = http.createServer(async (req, res) => {
 
     let allSessionsMap = {};
     if (kpiDb) {
-      const docs = await kpiDb.collection('sessions').find({}, {
-        projection: {
-          filename: 1,
-          "data.status": 1,
-          "data.isSubmitted": 1,
-          "data.submittedAt": 1,
-          "data.approvedAt": 1,
-          "data.approvedBy": 1,
-          "data.rejectReason": 1,
-          "data.lastSaved": 1,
-          "data.months.completionPercent": 1,
-          "data.months.rows": 1,
-          "data.generalCriteria": 1,
-          "data.proposedRating": 1,
-          "data.selfRating": 1,
-          "data.selfRatingProposal": 1,
-          "data.leaderRatingProposal": 1,
-          "data.leaderRatingNote": 1
-        }
-      }).toArray();
-      docs.forEach(d => { allSessionsMap[d.filename] = d.data; });
+      try {
+        const docs = await kpiDb.collection('sessions').find({}, {
+          projection: {
+            filename: 1,
+            "data.status": 1,
+            "data.isSubmitted": 1,
+            "data.submittedAt": 1,
+            "data.approvedAt": 1,
+            "data.approvedBy": 1,
+            "data.rejectReason": 1,
+            "data.lastSaved": 1,
+            "data.months.completionPercent": 1,
+            "data.months.rows": 1,
+            "data.generalCriteria": 1,
+            "data.proposedRating": 1,
+            "data.selfRating": 1,
+            "data.selfRatingProposal": 1,
+            "data.leaderRatingProposal": 1,
+            "data.leaderRatingNote": 1
+          }
+        }).toArray();
+        docs.forEach(d => { allSessionsMap[d.filename] = d.data; });
+      } catch (e) {
+        allSessionsMap = getAllLocalSessions();
+      }
+    }
+    if (Object.keys(allSessionsMap).length === 0) {
+      allSessionsMap = getAllLocalSessions();
     }
 
     for (const off of officersList) {

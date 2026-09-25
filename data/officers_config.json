@@ -1,0 +1,5341 @@
+{
+  "son": {
+    "id": "son",
+    "name": "Hoàng Anh Sơn",
+    "role": "TP",
+    "group": "Lãnh đạo phòng",
+    "title": "Kế toán trưởng - Trưởng phòng KTNN",
+    "specialty": "Chỉ đạo điều hành công tác chung; Chịu trách nhiệm toàn diện hoạt động phòng; Chỉ đạo BCTCNN toàn khu vực và trung tâm; Theo dõi PGD 23-29.",
+    "isLeader": true,
+    "isKPIAggregator": false,
+    "approverTitle": "PHÓ GIÁM ĐỐC",
+    "approverName": "Trịnh Khắc Chính",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "name": "Chỉ đạo thực hiện công tác Báo cáo Tài chính nhà nước toàn khu vực và trung tâm",
+        "type": "AI_KEY",
+        "deadline": "Quý III/2026",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Chỉ đạo triển khai nhiệm vụ trọng tâm và chuyển đổi số theo Nghị quyết số 57-NQ/TW của Phòng KTNN",
+        "type": "AI_KEY",
+        "deadline": "Quý III/2026",
+        "isNQ57": true,
+        "isKey": true
+      },
+      {
+        "name": "Hướng dẫn các phòng giao dịch chế độ nghiệp vụ kế toán toàn địa bàn khu vực; trả lời vướng mắc PGD",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Theo dõi và trực tiếp chỉ đạo xử lý vướng mắc nghiệp vụ tại các Phòng Giao dịch từ số 23 đến số 29",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Lập và triển khai kế hoạch kiểm tra nghiệp vụ các phòng giao dịch, kế hoạch tự kiểm tra hàng năm",
+        "type": "AII_REGULAR",
+        "deadline": "Quý III/2026",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Công tác cung cấp số liệu, làm việc với cơ quan Thanh tra, Kiểm toán toàn khu vực và Trung tâm",
+        "type": "AII_REGULAR",
+        "deadline": "Định kỳ",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Phối hợp cơ quan ban ngành địa phương trong công tác quản lý thu - chi ngân sách nhà nước",
+        "type": "B_LOCAL",
+        "deadline": "Định kỳ",
+        "isNQ57": false,
+        "isKey": false
+      }
+    ]
+  },
+  "hoang": {
+    "id": "hoang",
+    "name": "Trần Quốc Hoàng",
+    "role": "PTP",
+    "group": "Lãnh đạo phòng",
+    "title": "Phó Trưởng phòng Kế toán Nhà nước",
+    "specialty": "Kế toán, thanh toán, Quản lý ngân quỹ, phát hành TPCP; Quản lý TCS, KQKB, BQL kho tiền; Xử lý trung tâm TABMIS; Theo dõi PGD 16-22; Lưu trữ chứng từ.",
+    "isLeader": true,
+    "isKPIAggregator": false,
+    "approverTitle": "TRƯỞNG PHÒNG",
+    "approverName": "Hoàng Anh Sơn",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "name": "Quản lý chương trình KQKB, tham gia Ban quản lý kho tiền, kiểm soát đối chiếu tiền mặt cuối ngày, quản lý ấn chỉ và tài sản quý",
+        "type": "AI_KEY",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Triển khai nhiệm vụ chuyển đổi số và tự động hóa quy trình kế toán theo Nghị quyết số 57-NQ/TW",
+        "type": "AI_KEY",
+        "deadline": "Quý III/2026",
+        "isNQ57": true,
+        "isKey": true
+      },
+      {
+        "name": "Quản lý, vận hành và phê duyệt trên chương trình TCS; cập nhật khai báo mã CQ QĐ thu, tỷ lệ điều tiết theo đề nghị của các đơn vị",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Theo dõi và trực tiếp chỉ đạo xử lý vướng mắc nghiệp vụ tại các Phòng Giao dịch từ số 16 đến số 22",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Theo dõi và chỉ đạo công tác xử lý trung tâm trên TABMIS; báo cáo tồn ngân quỹ, định mức tồn ngân quỹ",
+        "type": "AII_REGULAR",
+        "deadline": "Định kỳ",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Công tác kiểm tra các PGD về nghiệp vụ kế toán theo kế hoạch (lập đề cương, thực hiện kiểm tra, báo cáo kết quả)",
+        "type": "AII_REGULAR",
+        "deadline": "Tháng 9/2026",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Phối hợp với Sở Tài chính và Cục Thuế trong công tác đối chiếu, điều hành nguồn thu và điều tiết ngân sách",
+        "type": "B_LOCAL",
+        "deadline": "Tháng 9/2026",
+        "isNQ57": false,
+        "isKey": false
+      }
+    ]
+  },
+  "tuan": {
+    "id": "tuan",
+    "name": "Lê Minh Tuân",
+    "role": "PTP",
+    "group": "Lãnh đạo phòng",
+    "title": "Phó Trưởng phòng Kế toán Nhà nước",
+    "specialty": "Chỉ đạo kiểm tra thanh toán LKB, Thanh toán LNH, TTSPĐT; Báo cáo, thống kê thu chi NSNN, quản lý ngân quỹ; Theo dõi PGD 01-04.",
+    "isLeader": true,
+    "isKPIAggregator": false,
+    "approverTitle": "TRƯỞNG PHÒNG",
+    "approverName": "Hoàng Anh Sơn",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "name": "Chỉ đạo kiểm tra công tác thanh toán LKB, Thanh toán LNH, TTSPĐT toàn khu vực",
+        "type": "AI_KEY",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Công tác báo cáo, thống kê thu, chi NSNN, các hoạt động nghiệp vụ thuộc phạm vi toàn khu vực, quản lý ngân quỹ nhà nước",
+        "type": "AI_KEY",
+        "deadline": "Định kỳ",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Theo dõi và trực tiếp chỉ đạo xử lý vướng mắc nghiệp vụ tại phòng giao dịch từ số 01 đến số 04",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Kiểm soát chi và ký duyệt luồng chứng từ giấy và trên các chương trình ứng dụng theo phân công",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      }
+    ]
+  },
+  "anh": {
+    "id": "anh",
+    "name": "Lê Văn Ánh",
+    "role": "PTP",
+    "group": "Lãnh đạo phòng",
+    "title": "Phó Trưởng phòng Kế toán Nhà nước",
+    "specialty": "Kiểm soát chi, phê duyệt BA-PKT/BA_NSX_P.KT; Đối chiếu số liệu tài khoản quyết toán vốn KBNN trung tâm 2011 và toàn địa bàn 2010; Phụ trách CTMTQG; Theo dõi PGD 05-15.",
+    "isLeader": true,
+    "isKPIAggregator": false,
+    "approverTitle": "TRƯỞNG PHÒNG",
+    "approverName": "Hoàng Anh Sơn",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "name": "Công tác đối chiếu số liệu các tài khoản thuộc phạm vi quyết toán vốn KBNN tại trung tâm 2011 và toàn địa bàn 2010",
+        "type": "AI_KEY",
+        "deadline": "Hằng tháng",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Phụ trách báo cáo các chương trình mục tiêu quốc gia (CTMTQG), điện báo, báo cáo nhanh, báo cáo đột xuất",
+        "type": "AI_KEY",
+        "deadline": "Định kỳ",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Theo dõi và trực tiếp chỉ đạo xử lý vướng mắc nghiệp vụ tại các phòng giao dịch từ số 05 đến số 15",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Kiểm soát chi và ký duyệt luồng chứng từ giấy và trên các chương trình ứng dụng theo phân công",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      }
+    ]
+  },
+  "tu": {
+    "id": "tu",
+    "name": "Phạm Thị Cẩm Tú",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "title": "Giao dịch viên - Phụ trách Tổng hợp KPI Toàn phòng",
+    "specialty": "Tổng hợp KPI phòng; Báo cáo tự kiểm tra quý năm; Báo cáo lãi phí tiền gửi; Thư ký họp phòng; Công tác TCCB phòng; Quản lý Sở NN&PTNT và các đơn vị nông nghiệp, đất đai, môi trường.",
+    "isLeader": false,
+    "isKPIAggregator": true,
+    "approverTitle": "TRƯỞNG PHÒNG",
+    "approverName": "Hoàng Anh Sơn",
+    "managedUnits": [
+      "Sở Nông nghiệp và Môi trường",
+      "Chi cục Trồng trọt và Bảo vệ thực vật",
+      "Chi cục Chăn nuôi và Thú y",
+      "Chi cục Kiểm lâm",
+      "Chi cục Thủy sản",
+      "Chi cục Phát triển nông thôn",
+      "Chi cục Quản lý chất lượng nông lâm thủy sản",
+      "Chi cục Thủy lợi",
+      "Chi cục Quản lý đất đai",
+      "Chi cục Bảo vệ môi trường",
+      "Trung tâm Khuyến nông",
+      "Trung tâm Quy hoạch nông nghiệp, nông thôn",
+      "Văn phòng Đăng ký đất đai",
+      "Ban quản lý Cảng cá",
+      "Chi đội kiểm ngư (mật)",
+      "Ban quản lý Rừng"
+    ],
+    "defaultPlan": [
+      {
+        "name": "Tổng hợp theo dõi, đánh giá xếp loại KPI quý và năm toàn phòng KTNN theo NĐ 335 và QĐ 1253",
+        "type": "AI_KEY",
+        "deadline": "Cuối mỗi quý",
+        "isNQ57": true,
+        "isKey": true
+      },
+      {
+        "name": "Lập báo cáo công tác tự kiểm tra quý, năm của Phòng KTNN gửi phòng Kiểm tra",
+        "type": "AI_KEY",
+        "deadline": "Hằng quý",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Lập báo cáo tình hình thanh toán lãi, phí tiền gửi",
+        "type": "AII_REGULAR",
+        "deadline": "Định kỳ",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Thư ký các cuộc họp phòng; ghi biên bản và hoàn thiện hồ sơ họp",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Thực hiện công tác TCCB phòng (quy hoạch, bổ nhiệm, nâng lương, đánh giá, thi đua khen thưởng, xếp loại ABC...)",
+        "type": "AII_REGULAR",
+        "deadline": "Định kỳ",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Kiểm soát chi và kế toán các đơn vị trực thuộc ngành Nông nghiệp, Đất đai, Môi trường được phân công",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Thực hiện các nhiệm vụ khác do Trưởng phòng phân công",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      }
+    ]
+  },
+  "trung": {
+    "id": "trung",
+    "name": "Trần Bảo Trung",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "title": "Giao dịch viên",
+    "specialty": "Tổng hợp báo cáo cân đối, thu chi, quyết toán năm; Lập BCTCNN cấp tỉnh; In và lưu trữ điện tử sổ sách báo cáo.",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "TRƯỞNG PHÒNG",
+    "approverName": "Hoàng Anh Sơn",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "name": "Tổng hợp các báo cáo: Bảng cân đối tài khoản, báo cáo thu, chi, báo cáo quyết toán hàng năm trên địa bàn",
+        "type": "AI_KEY",
+        "deadline": "Định kỳ",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Tổng hợp các báo cáo hàng tháng của VP và toàn địa bàn, kiểm tra số liệu, tra soát sai lầm, hướng dẫn điều chỉnh",
+        "type": "AI_KEY",
+        "deadline": "Hằng tháng",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Thu thập thông tin phục vụ lập Báo cáo Tài chính nhà nước; tiếp nhận, lập, kiểm tra số liệu BCTCNN cấp tỉnh",
+        "type": "AI_KEY",
+        "deadline": "Quý III/2026",
+        "isNQ57": true,
+        "isKey": true
+      },
+      {
+        "name": "Lập báo cáo, điện báo hàng ngày, hàng tuần, báo cáo đột xuất phục vụ cho lãnh đạo và cung cấp cho các cơ quan liên quan",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Lập báo cáo thực hiện kiến nghị kiểm toán ngân sách",
+        "type": "AII_REGULAR",
+        "deadline": "Định kỳ",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Phối hợp với phòng Hỗ trợ giao dịch và CNTT xử lý các lỗi trên hệ thống",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": true,
+        "isKey": false
+      },
+      {
+        "name": "Thực hiện việc hạch toán chi chuyển nguồn, xử lý kết dư NSNN theo chế độ quy định",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Thực hiện việc in và lưu trữ điện tử các loại sổ sách, báo cáo kế toán và kho quỹ theo quy định",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng tháng",
+        "isNQ57": true,
+        "isKey": false
+      },
+      {
+        "name": "Thực hiện các nhiệm vụ khác do Trưởng phòng phân công",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      }
+    ]
+  },
+  "thy": {
+    "id": "thy",
+    "name": "Nguyễn Thị Hiếu Thy",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "title": "Giao dịch viên",
+    "specialty": "Báo cáo chi theo NĐ 178 & NĐ 67 (CV 5160); Kế toán chi công trái, trái phiếu; Quản lý Sở Y tế, CDC và các bệnh viện chuyên khoa.",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "TRƯỞNG PHÒNG",
+    "approverName": "Hoàng Anh Sơn",
+    "managedUnits": [
+      "Sở Y tế",
+      "Trung tâm Kiểm soát bệnh tật tỉnh Gia Lai",
+      "Bệnh viện Lao và bệnh Phổi",
+      "Bệnh viện Tâm thần Gia Lai",
+      "Bệnh viện Y học cổ truyền và Phục hồi chức năng (1127968)",
+      "Trung tâm Giám định Y khoa",
+      "Trung tâm Pháp y tỉnh Gia Lai",
+      "Chi cục Dân số - Kế hoạch hóa gia đình",
+      "Chi cục An toàn vệ sinh thực phẩm",
+      "Trung tâm Kiểm nghiệm Dược phẩm - Mỹ phẩm",
+      "Quỹ Khám, chữa bệnh cho người nghèo tỉnh Gia Lai",
+      "Ban quản lý Quỹ khám, chữa bệnh cho người nghèo",
+      "Viện Sốt rét ký sinh trùng côn trùng"
+    ],
+    "defaultPlan": [
+      {
+        "name": "Báo cáo số liệu chi thực hiện chính sách chế độ theo Nghị định số 178/2024/NĐ-CP và Nghị định số 67/2025/NĐ-CP theo CV 5160/KBNN-KTNN",
+        "type": "AI_KEY",
+        "deadline": "Định kỳ",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Kế toán chi công trái, trái phiếu, lập báo cáo thanh toán công trái, trái phiếu",
+        "type": "AII_REGULAR",
+        "deadline": "Định kỳ",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Kế toán thu nộp vào tài khoản tiền gửi, nộp thuế, nộp khoản thu khác bằng tiền mặt; ghi chép chứng từ chi",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Kiểm soát hồ sơ chứng từ thanh toán của các đơn vị khối Y tế, Bệnh viện được phân công quản lý",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Thực hiện các nhiệm vụ khác do Trưởng phòng phân công",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      }
+    ]
+  },
+  "huyet": {
+    "id": "huyet",
+    "name": "Hồ Thị Bích Huyệt",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "title": "Giao dịch viên - Thủ quỹ Phòng",
+    "specialty": "TK TG chuyên thu NSNN (BIDV GL); Báo cáo giải trình DVCTT cho P. Kiểm tra; Hành chính, thủ quỹ phòng; Quản lý Sở Dân tộc & Tôn giáo, BV Mắt, Sở Nội vụ...",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "TRƯỞNG PHÒNG",
+    "approverName": "Hoàng Anh Sơn",
+    "managedUnits": [
+      "Sở Dân tộc và tôn giáo (1172309)",
+      "Bệnh viện Mắt Gia Lai",
+      "Bệnh viện Chỉnh hình và Phục hồi chức năng",
+      "Sở Nội vụ Tỉnh Gia Lai (1101094)",
+      "Trung tâm Lưu trữ quốc gia",
+      "Liên minh Hợp tác xã Gia Lai",
+      "Hội Cựu chiến binh Gia Lai",
+      "Liên đoàn Lao động tỉnh",
+      "Tòa án Nhân dân khu vực"
+    ],
+    "defaultPlan": [
+      {
+        "name": "Kế toán theo dõi tài khoản tiền gửi chuyên thu NSNN, hoàn thiện chứng từ thu NSNN nhận từ ngân hàng Đầu tư Gia Lai",
+        "type": "AI_KEY",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Lập báo cáo giải trình tiếp nhận, xử lý và từ chối DVCTT cho phòng Kiểm tra",
+        "type": "AI_KEY",
+        "deadline": "Hằng quý",
+        "isNQ57": true,
+        "isKey": true
+      },
+      {
+        "name": "Thực hiện công tác hành chính của phòng (đề xuất chủ trương sửa chữa, mua sắm văn phòng phẩm, thiết bị)",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Thực hiện nhiệm vụ Thủ quỹ phòng; quản lý thu chi nội bộ và quỹ phòng",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Kiểm soát thanh toán cho các đơn vị Sở Nội vụ, Dân tộc, Bệnh viện Mắt, Tòa án được phân công",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Thực hiện các nhiệm vụ khác do Trưởng phòng phân công",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      }
+    ]
+  },
+  "thu": {
+    "id": "thu",
+    "name": "Văn Thái Hương Thu",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "title": "Giao dịch viên",
+    "specialty": "Báo cáo nộp theo kiến nghị KTNN, TTCP, TTTC; Lệnh chi tiền NS cấp tỉnh; Hồ sơ mở TK; Quản lý Sở Tài chính và các quỹ.",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "TRƯỞNG PHÒNG",
+    "approverName": "Hoàng Anh Sơn",
+    "managedUnits": [
+      "Sở Tài chính và các quỹ do Sở TC làm chủ TK",
+      "Liên đoàn Địa chất TTB",
+      "Bệnh viện Phong da liễu Quy Hòa",
+      "Chi cục Dự trữ khu vực",
+      "Cảng vụ Hàng hải Quy Nhơn"
+    ],
+    "defaultPlan": [
+      {
+        "name": "Tổng hợp báo cáo các khoản nộp theo kiến nghị của Kiểm toán Nhà nước, Thanh tra Chính phủ, Thanh tra Tài chính",
+        "type": "AI_KEY",
+        "deadline": "Định kỳ",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Kế toán lệnh chi tiền NS cấp tỉnh, chi chuyển giao NS cấp tỉnh",
+        "type": "AI_KEY",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Tổng hợp, đối chiếu tình hình thực hiện các hoạt động nghiệp vụ phát sinh tại KBNN khu vực với Chi cục Thuế và Sở Tài chính",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng tháng",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Theo dõi và lưu trữ hồ sơ mở tài khoản của các đơn vị",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Kiểm soát chi các tài khoản do Sở Tài chính và các quỹ làm chủ tài khoản",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Thực hiện các nhiệm vụ khác do Trưởng phòng phân công",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      }
+    ]
+  },
+  "truc": {
+    "id": "truc",
+    "name": "Lê Hà Thanh Trúc",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "title": "Giao dịch viên",
+    "specialty": "Hoàn thuế GTGT; vàng kim khí quý đá quý; Kế toán thanh toán LKB; Ngoại tệ & chuyên thu VCB; Lãi phí NHTM; Quản lý Thanh tra tỉnh, Chi cục Thuế...",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "TRƯỞNG PHÒNG",
+    "approverName": "Hoàng Anh Sơn",
+    "managedUnits": [
+      "Thanh tra tỉnh",
+      "Trung tâm Y tế thành phố Quy Nhơn",
+      "Chi cục Thuế khu vực",
+      "Chi cục Thống kê khu vực",
+      "Trường Chính trị tỉnh Gia Lai",
+      "Thư viện Tỉnh Gia Lai",
+      "Hội Nhà báo Tỉnh Gia Lai",
+      "Hội Chữ thập đỏ Gia Lai"
+    ],
+    "defaultPlan": [
+      {
+        "name": "Hạch toán hoàn thuế GTGT, hoàn trả các khoản thu NSNN; báo cáo tài chính trên TABMIS kiểm tra hoàn thuế",
+        "type": "AI_KEY",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Kế toán thanh toán LKB: Xử lý LKB đến nội ngoại tỉnh, in bảng kê LKB, đối chiếu số liệu, tổng hợp quyết toán LKB",
+        "type": "AI_KEY",
+        "deadline": "Hằng ngày",
+        "isNQ57": true,
+        "isKey": true
+      },
+      {
+        "name": "Kế toán theo dõi vàng, kim khí quý, đá quý; Kế toán ngoại bảng",
+        "type": "AII_REGULAR",
+        "deadline": "Định kỳ",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Kế toán theo dõi tài khoản tiền gửi ngoại tệ và tài khoản chuyên thu NSNN tại Vietcombank Bình Định",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Hoàn thiện chứng từ thu NSNN nhận; đối chiếu, điều chỉnh chứng từ thu, hoàn thuế từ Chi cục Thuế",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Tổng hợp chuyển lãi, phí từ NHTM, Phòng GD toàn địa bàn hàng tháng về KBNN",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng tháng",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Thực hiện các nhiệm vụ khác do Trưởng phòng phân công",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      }
+    ]
+  },
+  "mai": {
+    "id": "mai",
+    "name": "Huỳnh Thị Thùy Mai",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "title": "Giao dịch viên",
+    "specialty": "Chuyên thu TPBank; Hạch toán kế toán ủy quyền điện nước; Quản lý Khối An ninh (Công an tỉnh, ANĐT, CSĐT, CSCĐ) và Khối Đảng.",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "TRƯỞNG PHÒNG",
+    "approverName": "Hoàng Anh Sơn",
+    "managedUnits": [
+      "Khối An ninh: Công an tỉnh Gia Lai, Cơ quan ANĐT, Cơ quan CSĐT, Trung đoàn CSCĐ Nam Trung Bộ, Tiểu đoàn 1",
+      "Khối Đảng: Tỉnh ủy Gia Lai, Đảng ủy UBND tỉnh, Đảng ủy các cơ quan Đảng, Báo Gia Lai, Ban Tổ chức Tỉnh ủy (1072958)…"
+    ],
+    "defaultPlan": [
+      {
+        "name": "Kế toán theo dõi tài khoản tiền gửi chuyên thu NSNN, hoàn thiện chứng từ thu NSNN nhận từ ngân hàng TPBank",
+        "type": "AI_KEY",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Theo dõi hạch toán và kế toán ủy quyền điện nước",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng tháng",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Kiểm soát chi các đơn vị thuộc Khối An ninh (Công an tỉnh, ANĐT, CSĐT, CSCĐ)",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Kiểm soát chi các đơn vị thuộc Khối Đảng (Tỉnh ủy, Đảng ủy UBND, Báo Gia Lai, Ban Tổ chức...)",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Thực hiện các nhiệm vụ khác do Trưởng phòng phân công",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      }
+    ]
+  },
+  "thao_t": {
+    "id": "thao_t",
+    "name": "Trần Thị Thanh Thảo",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "title": "Giao dịch viên",
+    "specialty": "Chuyên thu Agribank, OCB, ACB; BHXH tỉnh trích chuyển NHTM, tính phí lãi BHXH; Quản lý VP UBND tỉnh, VP Đoàn ĐBQH & HĐND, ĐH Quy Nhơn...",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "TRƯỞNG PHÒNG",
+    "approverName": "Hoàng Anh Sơn",
+    "managedUnits": [
+      "Văn phòng Ủy ban nhân dân tỉnh và các đơn vị trực thuộc",
+      "Văn phòng Đoàn đại biểu Quốc hội và Hội đồng nhân dân tỉnh",
+      "Đại học Quy Nhơn + Trung tâm",
+      "Trường Cao đẳng Kỹ thuật Công nghệ Quy Nhơn",
+      "Viện Nghiên cứu ứng dụng khoa học và công nghệ"
+    ],
+    "defaultPlan": [
+      {
+        "name": "Kế toán theo dõi tài khoản tiền gửi chuyên thu NSNN, hoàn thiện chứng từ thu NSNN nhận từ Agribank, OCB, ACB",
+        "type": "AI_KEY",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Bảo hiểm xã hội tỉnh: Trích chuyển sang NHTM và tính phí, lãi phí tài khoản chuyên thu BHXH tại KBNN KV XV",
+        "type": "AI_KEY",
+        "deadline": "Hằng tháng",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Kiểm soát chi ngân sách, tiền gửi cho Văn phòng UBND tỉnh, VP Đoàn ĐBQH & HĐND tỉnh",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Kiểm soát chi các trường Cao đẳng, Đại học, Viện nghiên cứu được phân công",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Thực hiện các nhiệm vụ khác do Trưởng phòng phân công",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      }
+    ]
+  },
+  "my": {
+    "id": "my",
+    "name": "Đặng Thị Thảo My",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "title": "Giao dịch viên",
+    "specialty": "Chuyên thu VPBank, Eximbank; Bảo quản chứng từ KT phòng; Xử phạt VPHC chi TX; Quản lý Sở GD&ĐT, 07 Trường THPT, Khối Quốc phòng.",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "TRƯỞNG PHÒNG",
+    "approverName": "Hoàng Anh Sơn",
+    "managedUnits": [
+      "Sở Giáo dục và Đào tạo Gia Lai",
+      "07 Trường THPT: chuyên Lê Quý Đôn, Nguyễn Thái Học, Hùng Vương (1072285), Quốc học, Trần Cao Vân, PTDT Nội trú, Trưng Vương, TT GDTX, Trường Hy vọng",
+      "Khối Quốc phòng: Tỉnh đội, Bệnh viện QY 13, Sư đoàn 31, Cụm kho CK 52, Tiểu đoàn 3, Lữ đoàn VT 655, Hải đoàn 48, Quân Cảng Quy Nhơn, Đồn Biên phòng cửa khẩu"
+    ],
+    "defaultPlan": [
+      {
+        "name": "Kế toán theo dõi tài khoản tiền gửi chuyên thu NSNN, hoàn thiện chứng từ thu NSNN nhận từ VPBank, Eximbank",
+        "type": "AI_KEY",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Bảo quản, sắp xếp và lưu trữ chứng từ kế toán tại phòng KTNN theo đúng quy chuẩn",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Tổng hợp công tác xử phạt vi phạm hành chính chi thường xuyên toàn Khu vực",
+        "type": "AII_REGULAR",
+        "deadline": "Định kỳ",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Kiểm soát chi các trường THPT và Sở Giáo dục và Đào tạo",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Kiểm soát chi các đơn vị thuộc Khối Quốc phòng (Tỉnh đội, Sư đoàn 31, Bệnh viện QY13...)",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Thực hiện các nhiệm vụ khác do Trưởng phòng phân công",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      }
+    ]
+  },
+  "huong": {
+    "id": "huong",
+    "name": "Trần Thị Mai Hương",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "title": "Giao dịch viên",
+    "specialty": "Chuyên thu MB, SHB; Đối chiếu điều chỉnh chứng từ thu Hải quan cảng Quy Nhơn và sau thông quan; Quản lý Sở Tư pháp, UB MTTQ VN tỉnh...",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "TRƯỞNG PHÒNG",
+    "approverName": "Hoàng Anh Sơn",
+    "managedUnits": [
+      "Sở Tư pháp tỉnh và các đơn vị trực thuộc (Trung tâm Trợ giúp pháp lý Nhà nước)",
+      "Ủy ban Mặt trận Tổ quốc Việt Nam tỉnh và các đơn vị trực thuộc (Hội Nông dân tỉnh, Tỉnh đoàn)",
+      "Liên hiệp các Hội khoa học và kỹ thuật GL",
+      "Phòng Công chứng số 1",
+      "Phòng Công chứng số 3"
+    ],
+    "defaultPlan": [
+      {
+        "name": "Kế toán theo dõi tài khoản tiền gửi chuyên thu NSNN, hoàn thiện chứng từ thu NSNN nhận từ MB, SHB",
+        "type": "AI_KEY",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Kiểm tra, đối chiếu, điều chỉnh chứng từ thu NSNN với Hải quan cửa khẩu cảng Quy Nhơn và Kiểm tra sau thông quan",
+        "type": "AI_KEY",
+        "deadline": "Hằng tuần",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Kiểm soát chi Sở Tư pháp, TT Trợ giúp pháp lý, Phòng Công chứng số 1, 3",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Kiểm soát chi Ủy ban MTTQ Việt Nam tỉnh, Hội Nông dân, Tỉnh đoàn",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Thực hiện các nhiệm vụ khác do Trưởng phòng phân công",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      }
+    ]
+  },
+  "thuy": {
+    "id": "thuy",
+    "name": "Ngô Thị Minh Thúy",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "title": "Giao dịch viên",
+    "specialty": "Thu NSNN, chi trả nợ Chính phủ, chính quyền địa phương, ODA, hoàn thuế GTGT; Quyết toán vốn toàn KV; Thu TCS thuế CS1; Quản lý Sở VHTTDL, Sở KH&CN...",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "TRƯỞNG PHÒNG",
+    "approverName": "Hoàng Anh Sơn",
+    "managedUnits": [
+      "Văn phòng Sở Văn hóa Thể thao và Du lịch, Bảo tàng tỉnh (1128264)",
+      "Trung tâm Xúc tiến Du lịch",
+      "Hội Văn học nghệ thuật",
+      "Trung tâm Huấn luyện và Thi đấu thể thao Tỉnh Gia Lai",
+      "Hội Bảo trợ người khuyết tật Gia Lai",
+      "Hội Khuyến học",
+      "Sở Khoa học Công nghệ và các đơn vị trực thuộc (Trung tâm CNTT và TT, Chi cục Tiêu chuẩn Đo lường Chất lượng)",
+      "Trung tâm Thông tin - Ứng dụng KH&CN Gia Lai",
+      "Trung tâm Phân tích và Đo lường Chất lượng Gia Lai",
+      "Trung tâm Khám phá khoa học và Đổi mới sáng tạo"
+    ],
+    "defaultPlan": [
+      {
+        "name": "Hạch toán kế toán thu NSNN, chi trả nợ của Chính phủ, chính quyền địa phương, ghi thu ghi chi vốn ODA, hoàn thuế GTGT",
+        "type": "AI_KEY",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Thực hiện công tác quyết toán vốn toàn địa bàn khu vực",
+        "type": "AI_KEY",
+        "deadline": "Định kỳ",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Kế toán thu TCS: kiểm tra, đối chiếu, điều chỉnh chứng từ thu, hoàn thu với thuế cơ sở 1",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": true,
+        "isKey": false
+      },
+      {
+        "name": "Kiểm soát chi các đơn vị thuộc Sở Văn hóa Thể thao & Du lịch và các đơn vị văn hóa, thể thao",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Kiểm soát chi Sở Khoa học Công nghệ và các Trung tâm nghiên cứu trực thuộc",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Thực hiện các nhiệm vụ khác do Trưởng phòng phân công",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      }
+    ]
+  },
+  "quynh": {
+    "id": "quynh",
+    "name": "Nguyễn Như Quỳnh",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "title": "Giao dịch viên",
+    "specialty": "TTLNH (tài khoản sai lầm, trung gian TTLNH); Tổng hợp BC CTMTQG; Chi hỗ trợ ngư dân; Thanh toán song phương BIDV, VCB; Quản lý Sở Ngoại vụ, THADS...",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "TRƯỞNG PHÒNG",
+    "approverName": "Hoàng Anh Sơn",
+    "managedUnits": [
+      "Sở Ngoại vụ Tỉnh Gia Lai (1114151)",
+      "Trường Cao đẳng Y tế",
+      "Hội Nhà báo",
+      "Hội Cựu thanh niên xung phong",
+      "Trung tâm Võ cổ truyền",
+      "Ban Đại diện Hội Người cao tuổi",
+      "Hội Nạn nhân chất độc da cam",
+      "Hội Cựu tù chính trị yêu nước",
+      "Trung tâm Văn hóa Gia Lai (1128346)",
+      "Liên hiệp các tổ chức hữu nghị Gia Lai",
+      "Nhà hát nghệ thuật truyền thống",
+      "Hội Luật gia",
+      "Hội Đông y",
+      "Hội Người mù",
+      "Hội Bảo trợ bệnh nhân nghèo",
+      "Hội Làm vườn",
+      "Chi cục Thi hành án dân sự khu vực"
+    ],
+    "defaultPlan": [
+      {
+        "name": "Kế toán thanh toán liên ngân hàng; Quản lý và kiểm tra theo dõi, đôn đốc xử lý các tài khoản sai lầm trong thanh toán, tài khoản trung gian",
+        "type": "AI_KEY",
+        "deadline": "Hằng ngày",
+        "isNQ57": true,
+        "isKey": true
+      },
+      {
+        "name": "Tổng hợp các báo cáo hàng tháng của VP và toàn địa bàn, báo cáo đột xuất đối với Chương trình mục tiêu Quốc gia",
+        "type": "AI_KEY",
+        "deadline": "Hằng tháng",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Kế toán chi hỗ trợ ngư dân theo quyết định của cấp có thẩm quyền",
+        "type": "AII_REGULAR",
+        "deadline": "Định kỳ",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Kế toán thanh toán song phương (BIDV BĐ và VCB BĐ); theo dõi đôn đốc xử lý tài khoản sai lầm và tài khoản trung gian",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Kiểm soát chi Sở Ngoại vụ, Cao đẳng Y tế, THADS và các Hội đoàn thể",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Thực hiện các nhiệm vụ khác do Trưởng phòng phân công",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      }
+    ]
+  },
+  "nam": {
+    "id": "nam",
+    "name": "Nguyễn Thị Tấn Nam",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "title": "Giao dịch viên",
+    "specialty": "Chuyên thu Vietinbank Bình Định; Quản lý Viện KHKT Nông nghiệp duyên hải Nam Trung Bộ, CĐ Cơ điện XD&NL, Sở Công thương, QLTT, TT GDTX, KBNN KV XV.",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "TRƯỞNG PHÒNG",
+    "approverName": "Hoàng Anh Sơn",
+    "managedUnits": [
+      "Viện Khoa học kỹ thuật nông nghiệp duyên hải Nam Trung Bộ (1053510)",
+      "Trường Cao đẳng Cơ điện - Xây dựng và Nông lâm Trung Bộ (1053200)",
+      "Văn phòng Sở Công thương tỉnh, Trung tâm Xúc tiến Thương mại, Chi cục Quản lý thị trường tỉnh Gia Lai (1071370)",
+      "Trung tâm Giáo dục thường xuyên Gia Lai",
+      "Kho bạc Nhà nước khu vực XV"
+    ],
+    "defaultPlan": [
+      {
+        "name": "Kế toán theo dõi tài khoản tiền gửi chuyên thu NSNN, hoàn thiện chứng từ thu NSNN nhận từ ngân hàng Công thương Bình Định",
+        "type": "AI_KEY",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Kiểm soát chi Văn phòng Sở Công thương, Trung tâm Xúc tiến Thương mại, Chi cục QLTT",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Kiểm soát chi Viện KHKT Nông nghiệp duyên hải NTB, Cao đẳng Cơ điện XD&NL Trung Bộ",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Kiểm soát chi và tài khoản của Kho bạc Nhà nước khu vực XV",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Thực hiện các nhiệm vụ khác do Trưởng phòng phân công",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      }
+    ]
+  },
+  "thao_p": {
+    "id": "thao_p",
+    "name": "Thân Thị Phương Thảo",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "title": "Giao dịch viên",
+    "specialty": "Báo cáo chất lượng KSC, CCHC; Giám sát từ xa KSC và KTTT; Báo cáo tiết kiệm chống lãng phí CV 3542; Giám sát DVCTT; Quản lý Sở Xây dựng, BV Đa khoa tỉnh...",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "TRƯỞNG PHÒNG",
+    "approverName": "Hoàng Anh Sơn",
+    "managedUnits": [
+      "Sở Xây dựng tỉnh và các đơn vị trực thuộc (Trung tâm Đăng kiểm phương tiện thủy, bộ Bình Định)",
+      "Bệnh viện Đa khoa tỉnh",
+      "Chi cục Kiểm dịch thực vật vùng 4",
+      "Trung tâm NC và PT chăn nuôi Miền Trung",
+      "Phân Viện Điều tra Quy hoạch rừng Nam Trung Bộ và Tây Nguyên",
+      "Viện Kiểm sát Nhân dân tỉnh",
+      "Tòa án Nhân dân tỉnh",
+      "Tòa án khu vực số 1 - Gia Lai"
+    ],
+    "defaultPlan": [
+      {
+        "name": "Lập báo cáo chất lượng kiểm soát chi, cải cách thủ tục hành chính",
+        "type": "AI_KEY",
+        "deadline": "Hằng quý",
+        "isNQ57": true,
+        "isKey": true
+      },
+      {
+        "name": "Lập báo cáo Kết quả giám sát từ xa trong công tác kiểm soát chi, kế toán thanh toán NSNN qua KBNN",
+        "type": "AI_KEY",
+        "deadline": "Định kỳ",
+        "isNQ57": true,
+        "isKey": true
+      },
+      {
+        "name": "Lập báo cáo tình hình thực hiện tiết kiệm, chống lãng phí theo Công văn số 3542",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng quý",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Lập báo cáo Kết quả giám sát tình hình tiếp nhận, giải quyết thủ tục hành chính trong công tác KSC qua DVCTT",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng tháng",
+        "isNQ57": true,
+        "isKey": false
+      },
+      {
+        "name": "Kiểm soát chi Sở Xây dựng, Bệnh viện Đa khoa tỉnh, VKSND tỉnh, TAND tỉnh",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Thực hiện các nhiệm vụ khác do Trưởng phòng phân công",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      }
+    ]
+  },
+  "vui": {
+    "id": "vui",
+    "name": "Phan Thị Kim Vui",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "title": "Giao dịch viên - Thủ kho",
+    "specialty": "Thủ kho, thành viên BQL Kho tiền; Quản lý tiền mặt tại quỹ, tài sản quý, xuất nhập kho quỹ; Chi tiền mặt tại quầy giao dịch; Bảng kê tồn quỹ cuối ngày S2-02; Văn thư phòng.",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "TRƯỞNG PHÒNG",
+    "approverName": "Hoàng Anh Sơn",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "name": "Quản lý tiền mặt tại quỹ, tài sản quý trong kho tiền; thực hiện xuất nhập kho tiền; báo cáo lĩnh vực kho quỹ",
+        "type": "AI_KEY",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Quản lý tiền mặt tại quầy giao dịch, thực hiện việc chi tiền mặt tại quầy cho các đơn vị giao dịch",
+        "type": "AI_KEY",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": true
+      },
+      {
+        "name": "Lập Bảng kê tồn quỹ tiền mặt cuối ngày; Sổ chi tiết tài khoản tiền mặt nội tệ, ngoại tệ (Mẫu S2-02/KB/TABMIS)",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Làm công tác văn thư Phòng: Vào sổ công văn đi, đến, nhân văn bản theo phân công",
+        "type": "AII_REGULAR",
+        "deadline": "Hằng ngày",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Tổng hợp các loại báo cáo kho quỹ toàn tỉnh (phương tiện kho quỹ, tiền thừa, tiền giả...); theo dõi tồn quỹ trung tâm và PGD",
+        "type": "AII_REGULAR",
+        "deadline": "Định kỳ",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Kiểm tra lại và đánh số chứng từ kế toán",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      },
+      {
+        "name": "Thực hiện các nhiệm vụ khác do Trưởng phòng phân công",
+        "type": "AII_REGULAR",
+        "deadline": "Thường xuyên",
+        "isNQ57": false,
+        "isKey": false
+      }
+    ]
+  },
+  "qn_trung": {
+    "id": "qn_trung",
+    "name": "Phan Quang Trung",
+    "role": "PTP",
+    "group": "Lãnh đạo phòng",
+    "department": "Quảng Ngãi",
+    "title": "Phó Trưởng phòng phụ trách bộ phận KTNN tại Quảng Ngãi",
+    "specialty": "Quản lý chung Bộ phận Quảng Ngãi; Lập BCTC, CTMTQG, thu chi NSNN tỉnh; KSC & duyệt chứng từ luồng GDV: Hùng, Phương, Ánh, Trang, Tâm, Liên, Thuỳ, Thuỷ và TAMIS, ANQP.",
+    "isLeader": true,
+    "isKPIAggregator": false,
+    "approverTitle": "TRƯỞNG PHÒNG",
+    "approverName": "Hoàng Anh Sơn",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "id": "Q3-AI-01",
+        "stt": "1",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ban hành định mức chi tiền mặt quý III",
+        "deadline": "05/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-02",
+        "stt": "2",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành lệnh quyết toán chênh lệch thu chi 2025",
+        "deadline": "10/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-03",
+        "stt": "3",
+        "type": "AI_KEY",
+        "name": "Tham mưu lãnh đạo hướng dẫn quy trình chi hỗ trợ ngư dân sau khi lấy ý kiến CQ Tài chính",
+        "deadline": "20/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-04",
+        "stt": "4",
+        "type": "AI_KEY",
+        "name": "Hướng dẫn tăng cường công tác thu và điều tiết các khoản thu NSNN",
+        "deadline": "23/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-05",
+        "stt": "5",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký gửi BTC BCTCNN năm 2025 của tỉnh Gia Lai",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-06",
+        "stt": "6",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo báo cáo kết quả thực hiện Kết luận, kiến nghị kiểm toán",
+        "deadline": "27/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-07",
+        "stt": "7",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký văn bản gửi Ngân hàng nhà nước V/v xác định giá vàng 99,99% tại thời điểm ngày 22/11/1996 (lần 2)",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-08",
+        "stt": "8",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành hướng dẫn cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-09",
+        "stt": "9",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo hướng dẫn thực hiện điều chỉnh dự toán NSNN đối với các đơn vị trực thuộc",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-01",
+        "stt": "1",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Kế hoạch thực hiện Chiến lược tài chính đến năm 2030",
+        "deadline": "08/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-02",
+        "stt": "2",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Luật Ngân sách Nhà nước",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-03",
+        "stt": "3",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1596/BHXH-KT ngày 22/7/2026",
+        "deadline": "24/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-04",
+        "stt": "4",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia góp ý theo Công văn số 10173/BTC-CĐKT ngày 15/7/2026 của Bộ Tài chính",
+        "deadline": "22/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-05",
+        "stt": "5",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Quy trình quản lý tiền mặt, giấy tờ có giá, tài sản quý trong hệ thống Kho bạc Nhà nước",
+        "deadline": "31/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-06",
+        "stt": "6",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến đối với dự thảo Thông tư quy định về quản lý thu, chi bằng tiền mặt và chi thanh toán cá nhân qua KBNN",
+        "deadline": "29/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-07",
+        "stt": "7",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1279/UBND-KTHT&ĐT của UBND phường Quy Nhơn Tây ngày 04/8/2026",
+        "deadline": "07/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-08",
+        "stt": "8",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Thông tư sửa đổi, bổ sung một số điều của Thông tư số 157/2025/TT-BTC",
+        "deadline": "04/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-09",
+        "stt": "9",
+        "type": "AII_REGULAR",
+        "name": "V/v báo cáo kết quả thực hiện kiến nghị kiểm toán của KBNN Gia Lai",
+        "deadline": "03/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-10",
+        "stt": "10",
+        "type": "AII_REGULAR",
+        "name": "V/v cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-11",
+        "stt": "11",
+        "type": "AII_REGULAR",
+        "name": "V/v giải trình nguyên nhân chênh lệch về tài sản trên Báo cáo tài chính nhà nước với kết quả tổng kiểm kê",
+        "deadline": "24/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-12",
+        "stt": "12",
+        "type": "AII_REGULAR",
+        "name": "V/v tiếp tục mở rộng triển khai thanh toán, chi trả cho cá nhân qua tài khoản và trao đổi thông tin danh sách thanh toán cho đối tượng thụ hưởng qua Cổng trao đổi dữ liệu",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-13",
+        "stt": "13",
+        "type": "AII_REGULAR",
+        "name": "V/v trả lời văn bản số 96/PGD4-KTNN ngày 19/6/2026 của Phòng Giao dịch số 4",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-14",
+        "stt": "14",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến sử dụng mã CTMTQG XD NTM, giảm nghèo bền vững, phát triển KTXH vùng đồng bào DTTS&MN và mã dự phòng",
+        "deadline": "26/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-15",
+        "stt": "15",
+        "type": "AII_REGULAR",
+        "name": "Các nhiệm vụ khác Trưởng phòng phân công",
+        "deadline": "Thường xuyên",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-01",
+        "stt": "1",
+        "type": "B_LOCAL",
+        "name": "V/v phối hợp hướng dẫn sử dụng hệ thống TABMIS cho CQTC cấp xã",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-02",
+        "stt": "2",
+        "type": "B_LOCAL",
+        "name": "V/v cung cấp thông tin phục vụ khảo sát thu thập thông tin cuộc kiểm toán chuyên đề năm 2026 tại tỉnh Gia Lai",
+        "deadline": "20/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-03",
+        "stt": "3",
+        "type": "B_LOCAL",
+        "name": "V/v đề nghị Cơ quan cảnh sát điều tra Công an tỉnh Gia Lai gửi văn bản tiếp tục bảo quản tài sản",
+        "deadline": "04/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      }
+    ]
+  },
+  "qn_phuong_tp": {
+    "id": "qn_phuong_tp",
+    "name": "Tạ Thị Thanh Phương",
+    "role": "PTP",
+    "group": "Lãnh đạo phòng",
+    "department": "Quảng Ngãi",
+    "title": "Phó Trưởng phòng",
+    "specialty": "Lưu trữ, TCCB, thi đua khen thưởng, đánh giá xếp loại CBCC; ISO 9001; Kiểm tra LNH, TTSPĐT, LKB; Quản lý thu NSNN; Cấp mã QHNS đầu 9; KSC & duyệt chứng từ luồng GDV: Nghĩa, Nga, Quyên, Tuyền, Thảo.",
+    "isLeader": true,
+    "isKPIAggregator": false,
+    "approverTitle": "TRƯỞNG PHÒNG",
+    "approverName": "Hoàng Anh Sơn",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "id": "Q3-AI-01",
+        "stt": "1",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ban hành định mức chi tiền mặt quý III",
+        "deadline": "05/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-02",
+        "stt": "2",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành lệnh quyết toán chênh lệch thu chi 2025",
+        "deadline": "10/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-03",
+        "stt": "3",
+        "type": "AI_KEY",
+        "name": "Tham mưu lãnh đạo hướng dẫn quy trình chi hỗ trợ ngư dân sau khi lấy ý kiến CQ Tài chính",
+        "deadline": "20/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-04",
+        "stt": "4",
+        "type": "AI_KEY",
+        "name": "Hướng dẫn tăng cường công tác thu và điều tiết các khoản thu NSNN",
+        "deadline": "23/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-05",
+        "stt": "5",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký gửi BTC BCTCNN năm 2025 của tỉnh Gia Lai",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-06",
+        "stt": "6",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo báo cáo kết quả thực hiện Kết luận, kiến nghị kiểm toán",
+        "deadline": "27/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-07",
+        "stt": "7",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký văn bản gửi Ngân hàng nhà nước V/v xác định giá vàng 99,99% tại thời điểm ngày 22/11/1996 (lần 2)",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-08",
+        "stt": "8",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành hướng dẫn cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-09",
+        "stt": "9",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo hướng dẫn thực hiện điều chỉnh dự toán NSNN đối với các đơn vị trực thuộc",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-01",
+        "stt": "1",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Kế hoạch thực hiện Chiến lược tài chính đến năm 2030",
+        "deadline": "08/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-02",
+        "stt": "2",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Luật Ngân sách Nhà nước",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-03",
+        "stt": "3",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1596/BHXH-KT ngày 22/7/2026",
+        "deadline": "24/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-04",
+        "stt": "4",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia góp ý theo Công văn số 10173/BTC-CĐKT ngày 15/7/2026 của Bộ Tài chính",
+        "deadline": "22/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-05",
+        "stt": "5",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Quy trình quản lý tiền mặt, giấy tờ có giá, tài sản quý trong hệ thống Kho bạc Nhà nước",
+        "deadline": "31/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-06",
+        "stt": "6",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến đối với dự thảo Thông tư quy định về quản lý thu, chi bằng tiền mặt và chi thanh toán cá nhân qua KBNN",
+        "deadline": "29/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-07",
+        "stt": "7",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1279/UBND-KTHT&ĐT của UBND phường Quy Nhơn Tây ngày 04/8/2026",
+        "deadline": "07/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-08",
+        "stt": "8",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Thông tư sửa đổi, bổ sung một số điều của Thông tư số 157/2025/TT-BTC",
+        "deadline": "04/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-09",
+        "stt": "9",
+        "type": "AII_REGULAR",
+        "name": "V/v báo cáo kết quả thực hiện kiến nghị kiểm toán của KBNN Gia Lai",
+        "deadline": "03/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-10",
+        "stt": "10",
+        "type": "AII_REGULAR",
+        "name": "V/v cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-11",
+        "stt": "11",
+        "type": "AII_REGULAR",
+        "name": "V/v giải trình nguyên nhân chênh lệch về tài sản trên Báo cáo tài chính nhà nước với kết quả tổng kiểm kê",
+        "deadline": "24/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-12",
+        "stt": "12",
+        "type": "AII_REGULAR",
+        "name": "V/v tiếp tục mở rộng triển khai thanh toán, chi trả cho cá nhân qua tài khoản và trao đổi thông tin danh sách thanh toán cho đối tượng thụ hưởng qua Cổng trao đổi dữ liệu",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-13",
+        "stt": "13",
+        "type": "AII_REGULAR",
+        "name": "V/v trả lời văn bản số 96/PGD4-KTNN ngày 19/6/2026 của Phòng Giao dịch số 4",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-14",
+        "stt": "14",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến sử dụng mã CTMTQG XD NTM, giảm nghèo bền vững, phát triển KTXH vùng đồng bào DTTS&MN và mã dự phòng",
+        "deadline": "26/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-15",
+        "stt": "15",
+        "type": "AII_REGULAR",
+        "name": "Các nhiệm vụ khác Trưởng phòng phân công",
+        "deadline": "Thường xuyên",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-01",
+        "stt": "1",
+        "type": "B_LOCAL",
+        "name": "V/v phối hợp hướng dẫn sử dụng hệ thống TABMIS cho CQTC cấp xã",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-02",
+        "stt": "2",
+        "type": "B_LOCAL",
+        "name": "V/v cung cấp thông tin phục vụ khảo sát thu thập thông tin cuộc kiểm toán chuyên đề năm 2026 tại tỉnh Gia Lai",
+        "deadline": "20/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-03",
+        "stt": "3",
+        "type": "B_LOCAL",
+        "name": "V/v đề nghị Cơ quan cảnh sát điều tra Công an tỉnh Gia Lai gửi văn bản tiếp tục bảo quản tài sản",
+        "deadline": "04/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      }
+    ]
+  },
+  "qn_hung": {
+    "id": "qn_hung",
+    "name": "Nguyễn Nguyên Hùng",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "department": "Quảng Ngãi",
+    "title": "Giao dịch viên - Kế toán tổng hợp",
+    "specialty": "Kế toán tổng hợp; BC cân đối toàn tỉnh, đối chiếu Cổng TKT; Kế toán chi hỗ trợ, lệnh chi tiền, chi chuyển giao NS tỉnh; Kế toán tạm ứng KBNN, viện trợ; BC thu chi ngày 23 hàng tháng.",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
+    "approverName": "Phan Quang Trung",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "id": "Q3-AI-01",
+        "stt": "1",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ban hành định mức chi tiền mặt quý III",
+        "deadline": "05/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-02",
+        "stt": "2",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành lệnh quyết toán chênh lệch thu chi 2025",
+        "deadline": "10/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-03",
+        "stt": "3",
+        "type": "AI_KEY",
+        "name": "Tham mưu lãnh đạo hướng dẫn quy trình chi hỗ trợ ngư dân sau khi lấy ý kiến CQ Tài chính",
+        "deadline": "20/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-04",
+        "stt": "4",
+        "type": "AI_KEY",
+        "name": "Hướng dẫn tăng cường công tác thu và điều tiết các khoản thu NSNN",
+        "deadline": "23/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-05",
+        "stt": "5",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký gửi BTC BCTCNN năm 2025 của tỉnh Gia Lai",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-06",
+        "stt": "6",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo báo cáo kết quả thực hiện Kết luận, kiến nghị kiểm toán",
+        "deadline": "27/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-07",
+        "stt": "7",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký văn bản gửi Ngân hàng nhà nước V/v xác định giá vàng 99,99% tại thời điểm ngày 22/11/1996 (lần 2)",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-08",
+        "stt": "8",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành hướng dẫn cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-09",
+        "stt": "9",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo hướng dẫn thực hiện điều chỉnh dự toán NSNN đối với các đơn vị trực thuộc",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-01",
+        "stt": "1",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Kế hoạch thực hiện Chiến lược tài chính đến năm 2030",
+        "deadline": "08/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-02",
+        "stt": "2",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Luật Ngân sách Nhà nước",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-03",
+        "stt": "3",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1596/BHXH-KT ngày 22/7/2026",
+        "deadline": "24/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-04",
+        "stt": "4",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia góp ý theo Công văn số 10173/BTC-CĐKT ngày 15/7/2026 của Bộ Tài chính",
+        "deadline": "22/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-05",
+        "stt": "5",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Quy trình quản lý tiền mặt, giấy tờ có giá, tài sản quý trong hệ thống Kho bạc Nhà nước",
+        "deadline": "31/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-06",
+        "stt": "6",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến đối với dự thảo Thông tư quy định về quản lý thu, chi bằng tiền mặt và chi thanh toán cá nhân qua KBNN",
+        "deadline": "29/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-07",
+        "stt": "7",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1279/UBND-KTHT&ĐT của UBND phường Quy Nhơn Tây ngày 04/8/2026",
+        "deadline": "07/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-08",
+        "stt": "8",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Thông tư sửa đổi, bổ sung một số điều của Thông tư số 157/2025/TT-BTC",
+        "deadline": "04/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-09",
+        "stt": "9",
+        "type": "AII_REGULAR",
+        "name": "V/v báo cáo kết quả thực hiện kiến nghị kiểm toán của KBNN Gia Lai",
+        "deadline": "03/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-10",
+        "stt": "10",
+        "type": "AII_REGULAR",
+        "name": "V/v cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-11",
+        "stt": "11",
+        "type": "AII_REGULAR",
+        "name": "V/v giải trình nguyên nhân chênh lệch về tài sản trên Báo cáo tài chính nhà nước với kết quả tổng kiểm kê",
+        "deadline": "24/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-12",
+        "stt": "12",
+        "type": "AII_REGULAR",
+        "name": "V/v tiếp tục mở rộng triển khai thanh toán, chi trả cho cá nhân qua tài khoản và trao đổi thông tin danh sách thanh toán cho đối tượng thụ hưởng qua Cổng trao đổi dữ liệu",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-13",
+        "stt": "13",
+        "type": "AII_REGULAR",
+        "name": "V/v trả lời văn bản số 96/PGD4-KTNN ngày 19/6/2026 của Phòng Giao dịch số 4",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-14",
+        "stt": "14",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến sử dụng mã CTMTQG XD NTM, giảm nghèo bền vững, phát triển KTXH vùng đồng bào DTTS&MN và mã dự phòng",
+        "deadline": "26/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-15",
+        "stt": "15",
+        "type": "AII_REGULAR",
+        "name": "Các nhiệm vụ khác Trưởng phòng phân công",
+        "deadline": "Thường xuyên",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-01",
+        "stt": "1",
+        "type": "B_LOCAL",
+        "name": "V/v phối hợp hướng dẫn sử dụng hệ thống TABMIS cho CQTC cấp xã",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-02",
+        "stt": "2",
+        "type": "B_LOCAL",
+        "name": "V/v cung cấp thông tin phục vụ khảo sát thu thập thông tin cuộc kiểm toán chuyên đề năm 2026 tại tỉnh Gia Lai",
+        "deadline": "20/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-03",
+        "stt": "3",
+        "type": "B_LOCAL",
+        "name": "V/v đề nghị Cơ quan cảnh sát điều tra Công an tỉnh Gia Lai gửi văn bản tiếp tục bảo quản tài sản",
+        "deadline": "04/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      }
+    ]
+  },
+  "qn_phuong_lan": {
+    "id": "qn_phuong_lan",
+    "name": "Nguyễn Thị Lan Phương",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "department": "Quảng Ngãi",
+    "title": "Giao dịch viên",
+    "specialty": "Báo cáo chi thường xuyên vốn sự nghiệp CTMTQG Giảm nghèo bền vững và Tổng hợp báo cáo vốn sự nghiệp 03 CTMTQG; Quản lý KSC đơn vị.",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
+    "approverName": "Phan Quang Trung",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "id": "Q3-AI-01",
+        "stt": "1",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ban hành định mức chi tiền mặt quý III",
+        "deadline": "05/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-02",
+        "stt": "2",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành lệnh quyết toán chênh lệch thu chi 2025",
+        "deadline": "10/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-03",
+        "stt": "3",
+        "type": "AI_KEY",
+        "name": "Tham mưu lãnh đạo hướng dẫn quy trình chi hỗ trợ ngư dân sau khi lấy ý kiến CQ Tài chính",
+        "deadline": "20/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-04",
+        "stt": "4",
+        "type": "AI_KEY",
+        "name": "Hướng dẫn tăng cường công tác thu và điều tiết các khoản thu NSNN",
+        "deadline": "23/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-05",
+        "stt": "5",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký gửi BTC BCTCNN năm 2025 của tỉnh Gia Lai",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-06",
+        "stt": "6",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo báo cáo kết quả thực hiện Kết luận, kiến nghị kiểm toán",
+        "deadline": "27/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-07",
+        "stt": "7",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký văn bản gửi Ngân hàng nhà nước V/v xác định giá vàng 99,99% tại thời điểm ngày 22/11/1996 (lần 2)",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-08",
+        "stt": "8",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành hướng dẫn cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-09",
+        "stt": "9",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo hướng dẫn thực hiện điều chỉnh dự toán NSNN đối với các đơn vị trực thuộc",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-01",
+        "stt": "1",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Kế hoạch thực hiện Chiến lược tài chính đến năm 2030",
+        "deadline": "08/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-02",
+        "stt": "2",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Luật Ngân sách Nhà nước",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-03",
+        "stt": "3",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1596/BHXH-KT ngày 22/7/2026",
+        "deadline": "24/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-04",
+        "stt": "4",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia góp ý theo Công văn số 10173/BTC-CĐKT ngày 15/7/2026 của Bộ Tài chính",
+        "deadline": "22/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-05",
+        "stt": "5",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Quy trình quản lý tiền mặt, giấy tờ có giá, tài sản quý trong hệ thống Kho bạc Nhà nước",
+        "deadline": "31/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-06",
+        "stt": "6",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến đối với dự thảo Thông tư quy định về quản lý thu, chi bằng tiền mặt và chi thanh toán cá nhân qua KBNN",
+        "deadline": "29/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-07",
+        "stt": "7",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1279/UBND-KTHT&ĐT của UBND phường Quy Nhơn Tây ngày 04/8/2026",
+        "deadline": "07/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-08",
+        "stt": "8",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Thông tư sửa đổi, bổ sung một số điều của Thông tư số 157/2025/TT-BTC",
+        "deadline": "04/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-09",
+        "stt": "9",
+        "type": "AII_REGULAR",
+        "name": "V/v báo cáo kết quả thực hiện kiến nghị kiểm toán của KBNN Gia Lai",
+        "deadline": "03/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-10",
+        "stt": "10",
+        "type": "AII_REGULAR",
+        "name": "V/v cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-11",
+        "stt": "11",
+        "type": "AII_REGULAR",
+        "name": "V/v giải trình nguyên nhân chênh lệch về tài sản trên Báo cáo tài chính nhà nước với kết quả tổng kiểm kê",
+        "deadline": "24/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-12",
+        "stt": "12",
+        "type": "AII_REGULAR",
+        "name": "V/v tiếp tục mở rộng triển khai thanh toán, chi trả cho cá nhân qua tài khoản và trao đổi thông tin danh sách thanh toán cho đối tượng thụ hưởng qua Cổng trao đổi dữ liệu",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-13",
+        "stt": "13",
+        "type": "AII_REGULAR",
+        "name": "V/v trả lời văn bản số 96/PGD4-KTNN ngày 19/6/2026 của Phòng Giao dịch số 4",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-14",
+        "stt": "14",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến sử dụng mã CTMTQG XD NTM, giảm nghèo bền vững, phát triển KTXH vùng đồng bào DTTS&MN và mã dự phòng",
+        "deadline": "26/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-15",
+        "stt": "15",
+        "type": "AII_REGULAR",
+        "name": "Các nhiệm vụ khác Trưởng phòng phân công",
+        "deadline": "Thường xuyên",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-01",
+        "stt": "1",
+        "type": "B_LOCAL",
+        "name": "V/v phối hợp hướng dẫn sử dụng hệ thống TABMIS cho CQTC cấp xã",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-02",
+        "stt": "2",
+        "type": "B_LOCAL",
+        "name": "V/v cung cấp thông tin phục vụ khảo sát thu thập thông tin cuộc kiểm toán chuyên đề năm 2026 tại tỉnh Gia Lai",
+        "deadline": "20/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-03",
+        "stt": "3",
+        "type": "B_LOCAL",
+        "name": "V/v đề nghị Cơ quan cảnh sát điều tra Công an tỉnh Gia Lai gửi văn bản tiếp tục bảo quản tài sản",
+        "deadline": "04/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      }
+    ]
+  },
+  "qn_minh": {
+    "id": "qn_minh",
+    "name": "Huỳnh Thị Thảo Minh",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "department": "Quảng Ngãi",
+    "title": "Giao dịch viên",
+    "specialty": "Kế toán và kiểm soát chi theo phân công.",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
+    "approverName": "Phan Quang Trung",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "id": "Q3-AI-01",
+        "stt": "1",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ban hành định mức chi tiền mặt quý III",
+        "deadline": "05/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-02",
+        "stt": "2",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành lệnh quyết toán chênh lệch thu chi 2025",
+        "deadline": "10/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-03",
+        "stt": "3",
+        "type": "AI_KEY",
+        "name": "Tham mưu lãnh đạo hướng dẫn quy trình chi hỗ trợ ngư dân sau khi lấy ý kiến CQ Tài chính",
+        "deadline": "20/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-04",
+        "stt": "4",
+        "type": "AI_KEY",
+        "name": "Hướng dẫn tăng cường công tác thu và điều tiết các khoản thu NSNN",
+        "deadline": "23/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-05",
+        "stt": "5",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký gửi BTC BCTCNN năm 2025 của tỉnh Gia Lai",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-06",
+        "stt": "6",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo báo cáo kết quả thực hiện Kết luận, kiến nghị kiểm toán",
+        "deadline": "27/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-07",
+        "stt": "7",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký văn bản gửi Ngân hàng nhà nước V/v xác định giá vàng 99,99% tại thời điểm ngày 22/11/1996 (lần 2)",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-08",
+        "stt": "8",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành hướng dẫn cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-09",
+        "stt": "9",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo hướng dẫn thực hiện điều chỉnh dự toán NSNN đối với các đơn vị trực thuộc",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-01",
+        "stt": "1",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Kế hoạch thực hiện Chiến lược tài chính đến năm 2030",
+        "deadline": "08/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-02",
+        "stt": "2",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Luật Ngân sách Nhà nước",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-03",
+        "stt": "3",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1596/BHXH-KT ngày 22/7/2026",
+        "deadline": "24/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-04",
+        "stt": "4",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia góp ý theo Công văn số 10173/BTC-CĐKT ngày 15/7/2026 của Bộ Tài chính",
+        "deadline": "22/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-05",
+        "stt": "5",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Quy trình quản lý tiền mặt, giấy tờ có giá, tài sản quý trong hệ thống Kho bạc Nhà nước",
+        "deadline": "31/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-06",
+        "stt": "6",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến đối với dự thảo Thông tư quy định về quản lý thu, chi bằng tiền mặt và chi thanh toán cá nhân qua KBNN",
+        "deadline": "29/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-07",
+        "stt": "7",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1279/UBND-KTHT&ĐT của UBND phường Quy Nhơn Tây ngày 04/8/2026",
+        "deadline": "07/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-08",
+        "stt": "8",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Thông tư sửa đổi, bổ sung một số điều của Thông tư số 157/2025/TT-BTC",
+        "deadline": "04/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-09",
+        "stt": "9",
+        "type": "AII_REGULAR",
+        "name": "V/v báo cáo kết quả thực hiện kiến nghị kiểm toán của KBNN Gia Lai",
+        "deadline": "03/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-10",
+        "stt": "10",
+        "type": "AII_REGULAR",
+        "name": "V/v cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-11",
+        "stt": "11",
+        "type": "AII_REGULAR",
+        "name": "V/v giải trình nguyên nhân chênh lệch về tài sản trên Báo cáo tài chính nhà nước với kết quả tổng kiểm kê",
+        "deadline": "24/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-12",
+        "stt": "12",
+        "type": "AII_REGULAR",
+        "name": "V/v tiếp tục mở rộng triển khai thanh toán, chi trả cho cá nhân qua tài khoản và trao đổi thông tin danh sách thanh toán cho đối tượng thụ hưởng qua Cổng trao đổi dữ liệu",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-13",
+        "stt": "13",
+        "type": "AII_REGULAR",
+        "name": "V/v trả lời văn bản số 96/PGD4-KTNN ngày 19/6/2026 của Phòng Giao dịch số 4",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-14",
+        "stt": "14",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến sử dụng mã CTMTQG XD NTM, giảm nghèo bền vững, phát triển KTXH vùng đồng bào DTTS&MN và mã dự phòng",
+        "deadline": "26/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-15",
+        "stt": "15",
+        "type": "AII_REGULAR",
+        "name": "Các nhiệm vụ khác Trưởng phòng phân công",
+        "deadline": "Thường xuyên",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-01",
+        "stt": "1",
+        "type": "B_LOCAL",
+        "name": "V/v phối hợp hướng dẫn sử dụng hệ thống TABMIS cho CQTC cấp xã",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-02",
+        "stt": "2",
+        "type": "B_LOCAL",
+        "name": "V/v cung cấp thông tin phục vụ khảo sát thu thập thông tin cuộc kiểm toán chuyên đề năm 2026 tại tỉnh Gia Lai",
+        "deadline": "20/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-03",
+        "stt": "3",
+        "type": "B_LOCAL",
+        "name": "V/v đề nghị Cơ quan cảnh sát điều tra Công an tỉnh Gia Lai gửi văn bản tiếp tục bảo quản tài sản",
+        "deadline": "04/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      }
+    ]
+  },
+  "qn_anh": {
+    "id": "qn_anh",
+    "name": "Lê Thị Bảo Ánh",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "department": "Quảng Ngãi",
+    "title": "Giao dịch viên",
+    "specialty": "Kế toán TTSPĐT (B7-57/KB/TTSPĐT); TK sai lầm 3938; Cấp mã QHNS đầu 9; Báo cáo nhanh thu chi NSNN tồn quỹ hàng ngày; Tài chính nội bộ.",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
+    "approverName": "Phan Quang Trung",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "id": "Q3-AI-01",
+        "stt": "1",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ban hành định mức chi tiền mặt quý III",
+        "deadline": "05/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-02",
+        "stt": "2",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành lệnh quyết toán chênh lệch thu chi 2025",
+        "deadline": "10/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-03",
+        "stt": "3",
+        "type": "AI_KEY",
+        "name": "Tham mưu lãnh đạo hướng dẫn quy trình chi hỗ trợ ngư dân sau khi lấy ý kiến CQ Tài chính",
+        "deadline": "20/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-04",
+        "stt": "4",
+        "type": "AI_KEY",
+        "name": "Hướng dẫn tăng cường công tác thu và điều tiết các khoản thu NSNN",
+        "deadline": "23/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-05",
+        "stt": "5",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký gửi BTC BCTCNN năm 2025 của tỉnh Gia Lai",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-06",
+        "stt": "6",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo báo cáo kết quả thực hiện Kết luận, kiến nghị kiểm toán",
+        "deadline": "27/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-07",
+        "stt": "7",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký văn bản gửi Ngân hàng nhà nước V/v xác định giá vàng 99,99% tại thời điểm ngày 22/11/1996 (lần 2)",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-08",
+        "stt": "8",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành hướng dẫn cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-09",
+        "stt": "9",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo hướng dẫn thực hiện điều chỉnh dự toán NSNN đối với các đơn vị trực thuộc",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-01",
+        "stt": "1",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Kế hoạch thực hiện Chiến lược tài chính đến năm 2030",
+        "deadline": "08/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-02",
+        "stt": "2",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Luật Ngân sách Nhà nước",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-03",
+        "stt": "3",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1596/BHXH-KT ngày 22/7/2026",
+        "deadline": "24/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-04",
+        "stt": "4",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia góp ý theo Công văn số 10173/BTC-CĐKT ngày 15/7/2026 của Bộ Tài chính",
+        "deadline": "22/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-05",
+        "stt": "5",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Quy trình quản lý tiền mặt, giấy tờ có giá, tài sản quý trong hệ thống Kho bạc Nhà nước",
+        "deadline": "31/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-06",
+        "stt": "6",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến đối với dự thảo Thông tư quy định về quản lý thu, chi bằng tiền mặt và chi thanh toán cá nhân qua KBNN",
+        "deadline": "29/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-07",
+        "stt": "7",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1279/UBND-KTHT&ĐT của UBND phường Quy Nhơn Tây ngày 04/8/2026",
+        "deadline": "07/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-08",
+        "stt": "8",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Thông tư sửa đổi, bổ sung một số điều của Thông tư số 157/2025/TT-BTC",
+        "deadline": "04/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-09",
+        "stt": "9",
+        "type": "AII_REGULAR",
+        "name": "V/v báo cáo kết quả thực hiện kiến nghị kiểm toán của KBNN Gia Lai",
+        "deadline": "03/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-10",
+        "stt": "10",
+        "type": "AII_REGULAR",
+        "name": "V/v cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-11",
+        "stt": "11",
+        "type": "AII_REGULAR",
+        "name": "V/v giải trình nguyên nhân chênh lệch về tài sản trên Báo cáo tài chính nhà nước với kết quả tổng kiểm kê",
+        "deadline": "24/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-12",
+        "stt": "12",
+        "type": "AII_REGULAR",
+        "name": "V/v tiếp tục mở rộng triển khai thanh toán, chi trả cho cá nhân qua tài khoản và trao đổi thông tin danh sách thanh toán cho đối tượng thụ hưởng qua Cổng trao đổi dữ liệu",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-13",
+        "stt": "13",
+        "type": "AII_REGULAR",
+        "name": "V/v trả lời văn bản số 96/PGD4-KTNN ngày 19/6/2026 của Phòng Giao dịch số 4",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-14",
+        "stt": "14",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến sử dụng mã CTMTQG XD NTM, giảm nghèo bền vững, phát triển KTXH vùng đồng bào DTTS&MN và mã dự phòng",
+        "deadline": "26/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-15",
+        "stt": "15",
+        "type": "AII_REGULAR",
+        "name": "Các nhiệm vụ khác Trưởng phòng phân công",
+        "deadline": "Thường xuyên",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-01",
+        "stt": "1",
+        "type": "B_LOCAL",
+        "name": "V/v phối hợp hướng dẫn sử dụng hệ thống TABMIS cho CQTC cấp xã",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-02",
+        "stt": "2",
+        "type": "B_LOCAL",
+        "name": "V/v cung cấp thông tin phục vụ khảo sát thu thập thông tin cuộc kiểm toán chuyên đề năm 2026 tại tỉnh Gia Lai",
+        "deadline": "20/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-03",
+        "stt": "3",
+        "type": "B_LOCAL",
+        "name": "V/v đề nghị Cơ quan cảnh sát điều tra Công an tỉnh Gia Lai gửi văn bản tiếp tục bảo quản tài sản",
+        "deadline": "04/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      }
+    ]
+  },
+  "qn_trang": {
+    "id": "qn_trang",
+    "name": "Nguyễn Thị Thu Trang",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "department": "Quảng Ngãi",
+    "title": "Giao dịch viên - Thủ kho tiền",
+    "specialty": "Thủ kho tiền, tổng hợp các báo cáo liên quan đến công tác kho quỹ; Kế toán hoàn thuế do Thuế tỉnh gửi; TK chuyên thu BHXH (TK 3743); Báo cáo xử phạt VPHC lĩnh vực Kế toán.",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
+    "approverName": "Phan Quang Trung",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "id": "Q3-AI-01",
+        "stt": "1",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ban hành định mức chi tiền mặt quý III",
+        "deadline": "05/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-02",
+        "stt": "2",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành lệnh quyết toán chênh lệch thu chi 2025",
+        "deadline": "10/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-03",
+        "stt": "3",
+        "type": "AI_KEY",
+        "name": "Tham mưu lãnh đạo hướng dẫn quy trình chi hỗ trợ ngư dân sau khi lấy ý kiến CQ Tài chính",
+        "deadline": "20/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-04",
+        "stt": "4",
+        "type": "AI_KEY",
+        "name": "Hướng dẫn tăng cường công tác thu và điều tiết các khoản thu NSNN",
+        "deadline": "23/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-05",
+        "stt": "5",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký gửi BTC BCTCNN năm 2025 của tỉnh Gia Lai",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-06",
+        "stt": "6",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo báo cáo kết quả thực hiện Kết luận, kiến nghị kiểm toán",
+        "deadline": "27/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-07",
+        "stt": "7",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký văn bản gửi Ngân hàng nhà nước V/v xác định giá vàng 99,99% tại thời điểm ngày 22/11/1996 (lần 2)",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-08",
+        "stt": "8",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành hướng dẫn cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-09",
+        "stt": "9",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo hướng dẫn thực hiện điều chỉnh dự toán NSNN đối với các đơn vị trực thuộc",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-01",
+        "stt": "1",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Kế hoạch thực hiện Chiến lược tài chính đến năm 2030",
+        "deadline": "08/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-02",
+        "stt": "2",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Luật Ngân sách Nhà nước",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-03",
+        "stt": "3",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1596/BHXH-KT ngày 22/7/2026",
+        "deadline": "24/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-04",
+        "stt": "4",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia góp ý theo Công văn số 10173/BTC-CĐKT ngày 15/7/2026 của Bộ Tài chính",
+        "deadline": "22/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-05",
+        "stt": "5",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Quy trình quản lý tiền mặt, giấy tờ có giá, tài sản quý trong hệ thống Kho bạc Nhà nước",
+        "deadline": "31/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-06",
+        "stt": "6",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến đối với dự thảo Thông tư quy định về quản lý thu, chi bằng tiền mặt và chi thanh toán cá nhân qua KBNN",
+        "deadline": "29/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-07",
+        "stt": "7",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1279/UBND-KTHT&ĐT của UBND phường Quy Nhơn Tây ngày 04/8/2026",
+        "deadline": "07/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-08",
+        "stt": "8",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Thông tư sửa đổi, bổ sung một số điều của Thông tư số 157/2025/TT-BTC",
+        "deadline": "04/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-09",
+        "stt": "9",
+        "type": "AII_REGULAR",
+        "name": "V/v báo cáo kết quả thực hiện kiến nghị kiểm toán của KBNN Gia Lai",
+        "deadline": "03/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-10",
+        "stt": "10",
+        "type": "AII_REGULAR",
+        "name": "V/v cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-11",
+        "stt": "11",
+        "type": "AII_REGULAR",
+        "name": "V/v giải trình nguyên nhân chênh lệch về tài sản trên Báo cáo tài chính nhà nước với kết quả tổng kiểm kê",
+        "deadline": "24/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-12",
+        "stt": "12",
+        "type": "AII_REGULAR",
+        "name": "V/v tiếp tục mở rộng triển khai thanh toán, chi trả cho cá nhân qua tài khoản và trao đổi thông tin danh sách thanh toán cho đối tượng thụ hưởng qua Cổng trao đổi dữ liệu",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-13",
+        "stt": "13",
+        "type": "AII_REGULAR",
+        "name": "V/v trả lời văn bản số 96/PGD4-KTNN ngày 19/6/2026 của Phòng Giao dịch số 4",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-14",
+        "stt": "14",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến sử dụng mã CTMTQG XD NTM, giảm nghèo bền vững, phát triển KTXH vùng đồng bào DTTS&MN và mã dự phòng",
+        "deadline": "26/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-15",
+        "stt": "15",
+        "type": "AII_REGULAR",
+        "name": "Các nhiệm vụ khác Trưởng phòng phân công",
+        "deadline": "Thường xuyên",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-01",
+        "stt": "1",
+        "type": "B_LOCAL",
+        "name": "V/v phối hợp hướng dẫn sử dụng hệ thống TABMIS cho CQTC cấp xã",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-02",
+        "stt": "2",
+        "type": "B_LOCAL",
+        "name": "V/v cung cấp thông tin phục vụ khảo sát thu thập thông tin cuộc kiểm toán chuyên đề năm 2026 tại tỉnh Gia Lai",
+        "deadline": "20/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-03",
+        "stt": "3",
+        "type": "B_LOCAL",
+        "name": "V/v đề nghị Cơ quan cảnh sát điều tra Công an tỉnh Gia Lai gửi văn bản tiếp tục bảo quản tài sản",
+        "deadline": "04/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      }
+    ]
+  },
+  "qn_tam": {
+    "id": "qn_tam",
+    "name": "Trần Thị Thanh Tâm",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "department": "Quảng Ngãi",
+    "title": "Giao dịch viên",
+    "specialty": "Kế toán chi thường xuyên; Theo dõi xử lý TK trung gian 3392 (Hùng hướng dẫn); Hướng dẫn nghiệp vụ kho quỹ.",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
+    "approverName": "Phan Quang Trung",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "id": "Q3-AI-01",
+        "stt": "1",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ban hành định mức chi tiền mặt quý III",
+        "deadline": "05/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-02",
+        "stt": "2",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành lệnh quyết toán chênh lệch thu chi 2025",
+        "deadline": "10/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-03",
+        "stt": "3",
+        "type": "AI_KEY",
+        "name": "Tham mưu lãnh đạo hướng dẫn quy trình chi hỗ trợ ngư dân sau khi lấy ý kiến CQ Tài chính",
+        "deadline": "20/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-04",
+        "stt": "4",
+        "type": "AI_KEY",
+        "name": "Hướng dẫn tăng cường công tác thu và điều tiết các khoản thu NSNN",
+        "deadline": "23/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-05",
+        "stt": "5",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký gửi BTC BCTCNN năm 2025 của tỉnh Gia Lai",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-06",
+        "stt": "6",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo báo cáo kết quả thực hiện Kết luận, kiến nghị kiểm toán",
+        "deadline": "27/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-07",
+        "stt": "7",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký văn bản gửi Ngân hàng nhà nước V/v xác định giá vàng 99,99% tại thời điểm ngày 22/11/1996 (lần 2)",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-08",
+        "stt": "8",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành hướng dẫn cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-09",
+        "stt": "9",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo hướng dẫn thực hiện điều chỉnh dự toán NSNN đối với các đơn vị trực thuộc",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-01",
+        "stt": "1",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Kế hoạch thực hiện Chiến lược tài chính đến năm 2030",
+        "deadline": "08/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-02",
+        "stt": "2",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Luật Ngân sách Nhà nước",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-03",
+        "stt": "3",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1596/BHXH-KT ngày 22/7/2026",
+        "deadline": "24/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-04",
+        "stt": "4",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia góp ý theo Công văn số 10173/BTC-CĐKT ngày 15/7/2026 của Bộ Tài chính",
+        "deadline": "22/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-05",
+        "stt": "5",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Quy trình quản lý tiền mặt, giấy tờ có giá, tài sản quý trong hệ thống Kho bạc Nhà nước",
+        "deadline": "31/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-06",
+        "stt": "6",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến đối với dự thảo Thông tư quy định về quản lý thu, chi bằng tiền mặt và chi thanh toán cá nhân qua KBNN",
+        "deadline": "29/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-07",
+        "stt": "7",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1279/UBND-KTHT&ĐT của UBND phường Quy Nhơn Tây ngày 04/8/2026",
+        "deadline": "07/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-08",
+        "stt": "8",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Thông tư sửa đổi, bổ sung một số điều của Thông tư số 157/2025/TT-BTC",
+        "deadline": "04/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-09",
+        "stt": "9",
+        "type": "AII_REGULAR",
+        "name": "V/v báo cáo kết quả thực hiện kiến nghị kiểm toán của KBNN Gia Lai",
+        "deadline": "03/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-10",
+        "stt": "10",
+        "type": "AII_REGULAR",
+        "name": "V/v cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-11",
+        "stt": "11",
+        "type": "AII_REGULAR",
+        "name": "V/v giải trình nguyên nhân chênh lệch về tài sản trên Báo cáo tài chính nhà nước với kết quả tổng kiểm kê",
+        "deadline": "24/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-12",
+        "stt": "12",
+        "type": "AII_REGULAR",
+        "name": "V/v tiếp tục mở rộng triển khai thanh toán, chi trả cho cá nhân qua tài khoản và trao đổi thông tin danh sách thanh toán cho đối tượng thụ hưởng qua Cổng trao đổi dữ liệu",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-13",
+        "stt": "13",
+        "type": "AII_REGULAR",
+        "name": "V/v trả lời văn bản số 96/PGD4-KTNN ngày 19/6/2026 của Phòng Giao dịch số 4",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-14",
+        "stt": "14",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến sử dụng mã CTMTQG XD NTM, giảm nghèo bền vững, phát triển KTXH vùng đồng bào DTTS&MN và mã dự phòng",
+        "deadline": "26/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-15",
+        "stt": "15",
+        "type": "AII_REGULAR",
+        "name": "Các nhiệm vụ khác Trưởng phòng phân công",
+        "deadline": "Thường xuyên",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-01",
+        "stt": "1",
+        "type": "B_LOCAL",
+        "name": "V/v phối hợp hướng dẫn sử dụng hệ thống TABMIS cho CQTC cấp xã",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-02",
+        "stt": "2",
+        "type": "B_LOCAL",
+        "name": "V/v cung cấp thông tin phục vụ khảo sát thu thập thông tin cuộc kiểm toán chuyên đề năm 2026 tại tỉnh Gia Lai",
+        "deadline": "20/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-03",
+        "stt": "3",
+        "type": "B_LOCAL",
+        "name": "V/v đề nghị Cơ quan cảnh sát điều tra Công an tỉnh Gia Lai gửi văn bản tiếp tục bảo quản tài sản",
+        "deadline": "04/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      }
+    ]
+  },
+  "qn_lien": {
+    "id": "qn_lien",
+    "name": "Trương Thùy Liên",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "department": "Quảng Ngãi",
+    "title": "Giao dịch viên",
+    "specialty": "BC chi vốn sự nghiệp CTMTQG Nông thôn mới; Kế toán chi trả nợ gốc, lãi vay, thanh toán công trái, tín phiếu, trái phiếu; Chi thường xuyên.",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
+    "approverName": "Phan Quang Trung",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "id": "Q3-AI-01",
+        "stt": "1",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ban hành định mức chi tiền mặt quý III",
+        "deadline": "05/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-02",
+        "stt": "2",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành lệnh quyết toán chênh lệch thu chi 2025",
+        "deadline": "10/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-03",
+        "stt": "3",
+        "type": "AI_KEY",
+        "name": "Tham mưu lãnh đạo hướng dẫn quy trình chi hỗ trợ ngư dân sau khi lấy ý kiến CQ Tài chính",
+        "deadline": "20/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-04",
+        "stt": "4",
+        "type": "AI_KEY",
+        "name": "Hướng dẫn tăng cường công tác thu và điều tiết các khoản thu NSNN",
+        "deadline": "23/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-05",
+        "stt": "5",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký gửi BTC BCTCNN năm 2025 của tỉnh Gia Lai",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-06",
+        "stt": "6",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo báo cáo kết quả thực hiện Kết luận, kiến nghị kiểm toán",
+        "deadline": "27/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-07",
+        "stt": "7",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký văn bản gửi Ngân hàng nhà nước V/v xác định giá vàng 99,99% tại thời điểm ngày 22/11/1996 (lần 2)",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-08",
+        "stt": "8",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành hướng dẫn cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-09",
+        "stt": "9",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo hướng dẫn thực hiện điều chỉnh dự toán NSNN đối với các đơn vị trực thuộc",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-01",
+        "stt": "1",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Kế hoạch thực hiện Chiến lược tài chính đến năm 2030",
+        "deadline": "08/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-02",
+        "stt": "2",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Luật Ngân sách Nhà nước",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-03",
+        "stt": "3",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1596/BHXH-KT ngày 22/7/2026",
+        "deadline": "24/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-04",
+        "stt": "4",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia góp ý theo Công văn số 10173/BTC-CĐKT ngày 15/7/2026 của Bộ Tài chính",
+        "deadline": "22/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-05",
+        "stt": "5",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Quy trình quản lý tiền mặt, giấy tờ có giá, tài sản quý trong hệ thống Kho bạc Nhà nước",
+        "deadline": "31/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-06",
+        "stt": "6",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến đối với dự thảo Thông tư quy định về quản lý thu, chi bằng tiền mặt và chi thanh toán cá nhân qua KBNN",
+        "deadline": "29/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-07",
+        "stt": "7",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1279/UBND-KTHT&ĐT của UBND phường Quy Nhơn Tây ngày 04/8/2026",
+        "deadline": "07/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-08",
+        "stt": "8",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Thông tư sửa đổi, bổ sung một số điều của Thông tư số 157/2025/TT-BTC",
+        "deadline": "04/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-09",
+        "stt": "9",
+        "type": "AII_REGULAR",
+        "name": "V/v báo cáo kết quả thực hiện kiến nghị kiểm toán của KBNN Gia Lai",
+        "deadline": "03/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-10",
+        "stt": "10",
+        "type": "AII_REGULAR",
+        "name": "V/v cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-11",
+        "stt": "11",
+        "type": "AII_REGULAR",
+        "name": "V/v giải trình nguyên nhân chênh lệch về tài sản trên Báo cáo tài chính nhà nước với kết quả tổng kiểm kê",
+        "deadline": "24/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-12",
+        "stt": "12",
+        "type": "AII_REGULAR",
+        "name": "V/v tiếp tục mở rộng triển khai thanh toán, chi trả cho cá nhân qua tài khoản và trao đổi thông tin danh sách thanh toán cho đối tượng thụ hưởng qua Cổng trao đổi dữ liệu",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-13",
+        "stt": "13",
+        "type": "AII_REGULAR",
+        "name": "V/v trả lời văn bản số 96/PGD4-KTNN ngày 19/6/2026 của Phòng Giao dịch số 4",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-14",
+        "stt": "14",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến sử dụng mã CTMTQG XD NTM, giảm nghèo bền vững, phát triển KTXH vùng đồng bào DTTS&MN và mã dự phòng",
+        "deadline": "26/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-15",
+        "stt": "15",
+        "type": "AII_REGULAR",
+        "name": "Các nhiệm vụ khác Trưởng phòng phân công",
+        "deadline": "Thường xuyên",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-01",
+        "stt": "1",
+        "type": "B_LOCAL",
+        "name": "V/v phối hợp hướng dẫn sử dụng hệ thống TABMIS cho CQTC cấp xã",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-02",
+        "stt": "2",
+        "type": "B_LOCAL",
+        "name": "V/v cung cấp thông tin phục vụ khảo sát thu thập thông tin cuộc kiểm toán chuyên đề năm 2026 tại tỉnh Gia Lai",
+        "deadline": "20/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-03",
+        "stt": "3",
+        "type": "B_LOCAL",
+        "name": "V/v đề nghị Cơ quan cảnh sát điều tra Công an tỉnh Gia Lai gửi văn bản tiếp tục bảo quản tài sản",
+        "deadline": "04/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      }
+    ]
+  },
+  "qn_thuy_bich": {
+    "id": "qn_thuy_bich",
+    "name": "Nguyễn Thị Bích Thuỳ",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "department": "Quảng Ngãi",
+    "title": "Giao dịch viên",
+    "specialty": "Báo cáo B5-03, báo cáo chi NSNN của Phòng KTNN; Chi thường xuyên; Hướng dẫn TK 3933.",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
+    "approverName": "Phan Quang Trung",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "id": "Q3-AI-01",
+        "stt": "1",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ban hành định mức chi tiền mặt quý III",
+        "deadline": "05/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-02",
+        "stt": "2",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành lệnh quyết toán chênh lệch thu chi 2025",
+        "deadline": "10/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-03",
+        "stt": "3",
+        "type": "AI_KEY",
+        "name": "Tham mưu lãnh đạo hướng dẫn quy trình chi hỗ trợ ngư dân sau khi lấy ý kiến CQ Tài chính",
+        "deadline": "20/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-04",
+        "stt": "4",
+        "type": "AI_KEY",
+        "name": "Hướng dẫn tăng cường công tác thu và điều tiết các khoản thu NSNN",
+        "deadline": "23/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-05",
+        "stt": "5",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký gửi BTC BCTCNN năm 2025 của tỉnh Gia Lai",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-06",
+        "stt": "6",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo báo cáo kết quả thực hiện Kết luận, kiến nghị kiểm toán",
+        "deadline": "27/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-07",
+        "stt": "7",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký văn bản gửi Ngân hàng nhà nước V/v xác định giá vàng 99,99% tại thời điểm ngày 22/11/1996 (lần 2)",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-08",
+        "stt": "8",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành hướng dẫn cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-09",
+        "stt": "9",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo hướng dẫn thực hiện điều chỉnh dự toán NSNN đối với các đơn vị trực thuộc",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-01",
+        "stt": "1",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Kế hoạch thực hiện Chiến lược tài chính đến năm 2030",
+        "deadline": "08/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-02",
+        "stt": "2",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Luật Ngân sách Nhà nước",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-03",
+        "stt": "3",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1596/BHXH-KT ngày 22/7/2026",
+        "deadline": "24/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-04",
+        "stt": "4",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia góp ý theo Công văn số 10173/BTC-CĐKT ngày 15/7/2026 của Bộ Tài chính",
+        "deadline": "22/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-05",
+        "stt": "5",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Quy trình quản lý tiền mặt, giấy tờ có giá, tài sản quý trong hệ thống Kho bạc Nhà nước",
+        "deadline": "31/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-06",
+        "stt": "6",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến đối với dự thảo Thông tư quy định về quản lý thu, chi bằng tiền mặt và chi thanh toán cá nhân qua KBNN",
+        "deadline": "29/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-07",
+        "stt": "7",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1279/UBND-KTHT&ĐT của UBND phường Quy Nhơn Tây ngày 04/8/2026",
+        "deadline": "07/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-08",
+        "stt": "8",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Thông tư sửa đổi, bổ sung một số điều của Thông tư số 157/2025/TT-BTC",
+        "deadline": "04/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-09",
+        "stt": "9",
+        "type": "AII_REGULAR",
+        "name": "V/v báo cáo kết quả thực hiện kiến nghị kiểm toán của KBNN Gia Lai",
+        "deadline": "03/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-10",
+        "stt": "10",
+        "type": "AII_REGULAR",
+        "name": "V/v cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-11",
+        "stt": "11",
+        "type": "AII_REGULAR",
+        "name": "V/v giải trình nguyên nhân chênh lệch về tài sản trên Báo cáo tài chính nhà nước với kết quả tổng kiểm kê",
+        "deadline": "24/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-12",
+        "stt": "12",
+        "type": "AII_REGULAR",
+        "name": "V/v tiếp tục mở rộng triển khai thanh toán, chi trả cho cá nhân qua tài khoản và trao đổi thông tin danh sách thanh toán cho đối tượng thụ hưởng qua Cổng trao đổi dữ liệu",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-13",
+        "stt": "13",
+        "type": "AII_REGULAR",
+        "name": "V/v trả lời văn bản số 96/PGD4-KTNN ngày 19/6/2026 của Phòng Giao dịch số 4",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-14",
+        "stt": "14",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến sử dụng mã CTMTQG XD NTM, giảm nghèo bền vững, phát triển KTXH vùng đồng bào DTTS&MN và mã dự phòng",
+        "deadline": "26/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-15",
+        "stt": "15",
+        "type": "AII_REGULAR",
+        "name": "Các nhiệm vụ khác Trưởng phòng phân công",
+        "deadline": "Thường xuyên",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-01",
+        "stt": "1",
+        "type": "B_LOCAL",
+        "name": "V/v phối hợp hướng dẫn sử dụng hệ thống TABMIS cho CQTC cấp xã",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-02",
+        "stt": "2",
+        "type": "B_LOCAL",
+        "name": "V/v cung cấp thông tin phục vụ khảo sát thu thập thông tin cuộc kiểm toán chuyên đề năm 2026 tại tỉnh Gia Lai",
+        "deadline": "20/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-03",
+        "stt": "3",
+        "type": "B_LOCAL",
+        "name": "V/v đề nghị Cơ quan cảnh sát điều tra Công an tỉnh Gia Lai gửi văn bản tiếp tục bảo quản tài sản",
+        "deadline": "04/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      }
+    ]
+  },
+  "qn_thuy_le": {
+    "id": "qn_thuy_le",
+    "name": "Võ Thị Lệ Thuỷ",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "department": "Quảng Ngãi",
+    "title": "Giao dịch viên",
+    "specialty": "Hành chính, văn thư, lưu trữ của Phòng; Kế toán Liên kho bạc; Báo cáo công tác cải cách hành chính, TTHC (lĩnh vực kế toán); In, lưu trữ Bảng thanh toán tự động điện, nước, viễn thông.",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
+    "approverName": "Phan Quang Trung",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "id": "Q3-AI-01",
+        "stt": "1",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ban hành định mức chi tiền mặt quý III",
+        "deadline": "05/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-02",
+        "stt": "2",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành lệnh quyết toán chênh lệch thu chi 2025",
+        "deadline": "10/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-03",
+        "stt": "3",
+        "type": "AI_KEY",
+        "name": "Tham mưu lãnh đạo hướng dẫn quy trình chi hỗ trợ ngư dân sau khi lấy ý kiến CQ Tài chính",
+        "deadline": "20/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-04",
+        "stt": "4",
+        "type": "AI_KEY",
+        "name": "Hướng dẫn tăng cường công tác thu và điều tiết các khoản thu NSNN",
+        "deadline": "23/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-05",
+        "stt": "5",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký gửi BTC BCTCNN năm 2025 của tỉnh Gia Lai",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-06",
+        "stt": "6",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo báo cáo kết quả thực hiện Kết luận, kiến nghị kiểm toán",
+        "deadline": "27/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-07",
+        "stt": "7",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký văn bản gửi Ngân hàng nhà nước V/v xác định giá vàng 99,99% tại thời điểm ngày 22/11/1996 (lần 2)",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-08",
+        "stt": "8",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành hướng dẫn cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-09",
+        "stt": "9",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo hướng dẫn thực hiện điều chỉnh dự toán NSNN đối với các đơn vị trực thuộc",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-01",
+        "stt": "1",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Kế hoạch thực hiện Chiến lược tài chính đến năm 2030",
+        "deadline": "08/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-02",
+        "stt": "2",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Luật Ngân sách Nhà nước",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-03",
+        "stt": "3",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1596/BHXH-KT ngày 22/7/2026",
+        "deadline": "24/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-04",
+        "stt": "4",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia góp ý theo Công văn số 10173/BTC-CĐKT ngày 15/7/2026 của Bộ Tài chính",
+        "deadline": "22/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-05",
+        "stt": "5",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Quy trình quản lý tiền mặt, giấy tờ có giá, tài sản quý trong hệ thống Kho bạc Nhà nước",
+        "deadline": "31/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-06",
+        "stt": "6",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến đối với dự thảo Thông tư quy định về quản lý thu, chi bằng tiền mặt và chi thanh toán cá nhân qua KBNN",
+        "deadline": "29/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-07",
+        "stt": "7",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1279/UBND-KTHT&ĐT của UBND phường Quy Nhơn Tây ngày 04/8/2026",
+        "deadline": "07/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-08",
+        "stt": "8",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Thông tư sửa đổi, bổ sung một số điều của Thông tư số 157/2025/TT-BTC",
+        "deadline": "04/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-09",
+        "stt": "9",
+        "type": "AII_REGULAR",
+        "name": "V/v báo cáo kết quả thực hiện kiến nghị kiểm toán của KBNN Gia Lai",
+        "deadline": "03/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-10",
+        "stt": "10",
+        "type": "AII_REGULAR",
+        "name": "V/v cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-11",
+        "stt": "11",
+        "type": "AII_REGULAR",
+        "name": "V/v giải trình nguyên nhân chênh lệch về tài sản trên Báo cáo tài chính nhà nước với kết quả tổng kiểm kê",
+        "deadline": "24/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-12",
+        "stt": "12",
+        "type": "AII_REGULAR",
+        "name": "V/v tiếp tục mở rộng triển khai thanh toán, chi trả cho cá nhân qua tài khoản và trao đổi thông tin danh sách thanh toán cho đối tượng thụ hưởng qua Cổng trao đổi dữ liệu",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-13",
+        "stt": "13",
+        "type": "AII_REGULAR",
+        "name": "V/v trả lời văn bản số 96/PGD4-KTNN ngày 19/6/2026 của Phòng Giao dịch số 4",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-14",
+        "stt": "14",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến sử dụng mã CTMTQG XD NTM, giảm nghèo bền vững, phát triển KTXH vùng đồng bào DTTS&MN và mã dự phòng",
+        "deadline": "26/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-15",
+        "stt": "15",
+        "type": "AII_REGULAR",
+        "name": "Các nhiệm vụ khác Trưởng phòng phân công",
+        "deadline": "Thường xuyên",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-01",
+        "stt": "1",
+        "type": "B_LOCAL",
+        "name": "V/v phối hợp hướng dẫn sử dụng hệ thống TABMIS cho CQTC cấp xã",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-02",
+        "stt": "2",
+        "type": "B_LOCAL",
+        "name": "V/v cung cấp thông tin phục vụ khảo sát thu thập thông tin cuộc kiểm toán chuyên đề năm 2026 tại tỉnh Gia Lai",
+        "deadline": "20/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-03",
+        "stt": "3",
+        "type": "B_LOCAL",
+        "name": "V/v đề nghị Cơ quan cảnh sát điều tra Công an tỉnh Gia Lai gửi văn bản tiếp tục bảo quản tài sản",
+        "deadline": "04/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      }
+    ]
+  },
+  "qn_nghia": {
+    "id": "qn_nghia",
+    "name": "Nguyễn Hoàng Nghĩa",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "department": "Quảng Ngãi",
+    "title": "Giao dịch viên",
+    "specialty": "Lập, in và đóng sổ chi tiết các tài khoản tiền gửi; Quản lý KSC đơn vị được phân công.",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
+    "approverName": "Tạ Thị Thanh Phương",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "id": "Q3-AI-01",
+        "stt": "1",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ban hành định mức chi tiền mặt quý III",
+        "deadline": "05/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-02",
+        "stt": "2",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành lệnh quyết toán chênh lệch thu chi 2025",
+        "deadline": "10/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-03",
+        "stt": "3",
+        "type": "AI_KEY",
+        "name": "Tham mưu lãnh đạo hướng dẫn quy trình chi hỗ trợ ngư dân sau khi lấy ý kiến CQ Tài chính",
+        "deadline": "20/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-04",
+        "stt": "4",
+        "type": "AI_KEY",
+        "name": "Hướng dẫn tăng cường công tác thu và điều tiết các khoản thu NSNN",
+        "deadline": "23/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-05",
+        "stt": "5",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký gửi BTC BCTCNN năm 2025 của tỉnh Gia Lai",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-06",
+        "stt": "6",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo báo cáo kết quả thực hiện Kết luận, kiến nghị kiểm toán",
+        "deadline": "27/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-07",
+        "stt": "7",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký văn bản gửi Ngân hàng nhà nước V/v xác định giá vàng 99,99% tại thời điểm ngày 22/11/1996 (lần 2)",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-08",
+        "stt": "8",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành hướng dẫn cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-09",
+        "stt": "9",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo hướng dẫn thực hiện điều chỉnh dự toán NSNN đối với các đơn vị trực thuộc",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-01",
+        "stt": "1",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Kế hoạch thực hiện Chiến lược tài chính đến năm 2030",
+        "deadline": "08/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-02",
+        "stt": "2",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Luật Ngân sách Nhà nước",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-03",
+        "stt": "3",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1596/BHXH-KT ngày 22/7/2026",
+        "deadline": "24/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-04",
+        "stt": "4",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia góp ý theo Công văn số 10173/BTC-CĐKT ngày 15/7/2026 của Bộ Tài chính",
+        "deadline": "22/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-05",
+        "stt": "5",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Quy trình quản lý tiền mặt, giấy tờ có giá, tài sản quý trong hệ thống Kho bạc Nhà nước",
+        "deadline": "31/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-06",
+        "stt": "6",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến đối với dự thảo Thông tư quy định về quản lý thu, chi bằng tiền mặt và chi thanh toán cá nhân qua KBNN",
+        "deadline": "29/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-07",
+        "stt": "7",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1279/UBND-KTHT&ĐT của UBND phường Quy Nhơn Tây ngày 04/8/2026",
+        "deadline": "07/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-08",
+        "stt": "8",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Thông tư sửa đổi, bổ sung một số điều của Thông tư số 157/2025/TT-BTC",
+        "deadline": "04/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-09",
+        "stt": "9",
+        "type": "AII_REGULAR",
+        "name": "V/v báo cáo kết quả thực hiện kiến nghị kiểm toán của KBNN Gia Lai",
+        "deadline": "03/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-10",
+        "stt": "10",
+        "type": "AII_REGULAR",
+        "name": "V/v cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-11",
+        "stt": "11",
+        "type": "AII_REGULAR",
+        "name": "V/v giải trình nguyên nhân chênh lệch về tài sản trên Báo cáo tài chính nhà nước với kết quả tổng kiểm kê",
+        "deadline": "24/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-12",
+        "stt": "12",
+        "type": "AII_REGULAR",
+        "name": "V/v tiếp tục mở rộng triển khai thanh toán, chi trả cho cá nhân qua tài khoản và trao đổi thông tin danh sách thanh toán cho đối tượng thụ hưởng qua Cổng trao đổi dữ liệu",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-13",
+        "stt": "13",
+        "type": "AII_REGULAR",
+        "name": "V/v trả lời văn bản số 96/PGD4-KTNN ngày 19/6/2026 của Phòng Giao dịch số 4",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-14",
+        "stt": "14",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến sử dụng mã CTMTQG XD NTM, giảm nghèo bền vững, phát triển KTXH vùng đồng bào DTTS&MN và mã dự phòng",
+        "deadline": "26/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-15",
+        "stt": "15",
+        "type": "AII_REGULAR",
+        "name": "Các nhiệm vụ khác Trưởng phòng phân công",
+        "deadline": "Thường xuyên",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-01",
+        "stt": "1",
+        "type": "B_LOCAL",
+        "name": "V/v phối hợp hướng dẫn sử dụng hệ thống TABMIS cho CQTC cấp xã",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-02",
+        "stt": "2",
+        "type": "B_LOCAL",
+        "name": "V/v cung cấp thông tin phục vụ khảo sát thu thập thông tin cuộc kiểm toán chuyên đề năm 2026 tại tỉnh Gia Lai",
+        "deadline": "20/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-03",
+        "stt": "3",
+        "type": "B_LOCAL",
+        "name": "V/v đề nghị Cơ quan cảnh sát điều tra Công an tỉnh Gia Lai gửi văn bản tiếp tục bảo quản tài sản",
+        "deadline": "04/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      }
+    ]
+  },
+  "qn_quyen": {
+    "id": "qn_quyen",
+    "name": "Lê Thị Quyên",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "department": "Quảng Ngãi",
+    "title": "Giao dịch viên",
+    "specialty": "Thực hiện các nghiệp vụ tổng hợp số liệu, lập BCTC, BC quản trị; B2-02, thu NSNN toàn tỉnh; Tổng hợp báo cáo thu chi; Quyết toán NSNN năm; TK trung gian 3969.",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
+    "approverName": "Tạ Thị Thanh Phương",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "id": "Q3-AI-01",
+        "stt": "1",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ban hành định mức chi tiền mặt quý III",
+        "deadline": "05/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-02",
+        "stt": "2",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành lệnh quyết toán chênh lệch thu chi 2025",
+        "deadline": "10/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-03",
+        "stt": "3",
+        "type": "AI_KEY",
+        "name": "Tham mưu lãnh đạo hướng dẫn quy trình chi hỗ trợ ngư dân sau khi lấy ý kiến CQ Tài chính",
+        "deadline": "20/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-04",
+        "stt": "4",
+        "type": "AI_KEY",
+        "name": "Hướng dẫn tăng cường công tác thu và điều tiết các khoản thu NSNN",
+        "deadline": "23/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-05",
+        "stt": "5",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký gửi BTC BCTCNN năm 2025 của tỉnh Gia Lai",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-06",
+        "stt": "6",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo báo cáo kết quả thực hiện Kết luận, kiến nghị kiểm toán",
+        "deadline": "27/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-07",
+        "stt": "7",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký văn bản gửi Ngân hàng nhà nước V/v xác định giá vàng 99,99% tại thời điểm ngày 22/11/1996 (lần 2)",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-08",
+        "stt": "8",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành hướng dẫn cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-09",
+        "stt": "9",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo hướng dẫn thực hiện điều chỉnh dự toán NSNN đối với các đơn vị trực thuộc",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-01",
+        "stt": "1",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Kế hoạch thực hiện Chiến lược tài chính đến năm 2030",
+        "deadline": "08/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-02",
+        "stt": "2",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Luật Ngân sách Nhà nước",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-03",
+        "stt": "3",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1596/BHXH-KT ngày 22/7/2026",
+        "deadline": "24/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-04",
+        "stt": "4",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia góp ý theo Công văn số 10173/BTC-CĐKT ngày 15/7/2026 của Bộ Tài chính",
+        "deadline": "22/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-05",
+        "stt": "5",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Quy trình quản lý tiền mặt, giấy tờ có giá, tài sản quý trong hệ thống Kho bạc Nhà nước",
+        "deadline": "31/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-06",
+        "stt": "6",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến đối với dự thảo Thông tư quy định về quản lý thu, chi bằng tiền mặt và chi thanh toán cá nhân qua KBNN",
+        "deadline": "29/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-07",
+        "stt": "7",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1279/UBND-KTHT&ĐT của UBND phường Quy Nhơn Tây ngày 04/8/2026",
+        "deadline": "07/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-08",
+        "stt": "8",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Thông tư sửa đổi, bổ sung một số điều của Thông tư số 157/2025/TT-BTC",
+        "deadline": "04/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-09",
+        "stt": "9",
+        "type": "AII_REGULAR",
+        "name": "V/v báo cáo kết quả thực hiện kiến nghị kiểm toán của KBNN Gia Lai",
+        "deadline": "03/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-10",
+        "stt": "10",
+        "type": "AII_REGULAR",
+        "name": "V/v cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-11",
+        "stt": "11",
+        "type": "AII_REGULAR",
+        "name": "V/v giải trình nguyên nhân chênh lệch về tài sản trên Báo cáo tài chính nhà nước với kết quả tổng kiểm kê",
+        "deadline": "24/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-12",
+        "stt": "12",
+        "type": "AII_REGULAR",
+        "name": "V/v tiếp tục mở rộng triển khai thanh toán, chi trả cho cá nhân qua tài khoản và trao đổi thông tin danh sách thanh toán cho đối tượng thụ hưởng qua Cổng trao đổi dữ liệu",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-13",
+        "stt": "13",
+        "type": "AII_REGULAR",
+        "name": "V/v trả lời văn bản số 96/PGD4-KTNN ngày 19/6/2026 của Phòng Giao dịch số 4",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-14",
+        "stt": "14",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến sử dụng mã CTMTQG XD NTM, giảm nghèo bền vững, phát triển KTXH vùng đồng bào DTTS&MN và mã dự phòng",
+        "deadline": "26/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-15",
+        "stt": "15",
+        "type": "AII_REGULAR",
+        "name": "Các nhiệm vụ khác Trưởng phòng phân công",
+        "deadline": "Thường xuyên",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-01",
+        "stt": "1",
+        "type": "B_LOCAL",
+        "name": "V/v phối hợp hướng dẫn sử dụng hệ thống TABMIS cho CQTC cấp xã",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-02",
+        "stt": "2",
+        "type": "B_LOCAL",
+        "name": "V/v cung cấp thông tin phục vụ khảo sát thu thập thông tin cuộc kiểm toán chuyên đề năm 2026 tại tỉnh Gia Lai",
+        "deadline": "20/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-03",
+        "stt": "3",
+        "type": "B_LOCAL",
+        "name": "V/v đề nghị Cơ quan cảnh sát điều tra Công an tỉnh Gia Lai gửi văn bản tiếp tục bảo quản tài sản",
+        "deadline": "04/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      }
+    ]
+  },
+  "qn_tuyen": {
+    "id": "qn_tuyen",
+    "name": "Lê Thị Thanh Tuyền",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "department": "Quảng Ngãi",
+    "title": "Giao dịch viên",
+    "specialty": "Tiếp nhận hạch toán thu NSNN từ NHTM, lập báo cáo thu NSNN; B2-02 thu NSNN phòng; TK trung gian 3391, 3591, 3999; Đôn đốc TK tạm thu, tạm giữ.",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
+    "approverName": "Tạ Thị Thanh Phương",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "id": "Q3-AI-01",
+        "stt": "1",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ban hành định mức chi tiền mặt quý III",
+        "deadline": "05/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-02",
+        "stt": "2",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành lệnh quyết toán chênh lệch thu chi 2025",
+        "deadline": "10/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-03",
+        "stt": "3",
+        "type": "AI_KEY",
+        "name": "Tham mưu lãnh đạo hướng dẫn quy trình chi hỗ trợ ngư dân sau khi lấy ý kiến CQ Tài chính",
+        "deadline": "20/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-04",
+        "stt": "4",
+        "type": "AI_KEY",
+        "name": "Hướng dẫn tăng cường công tác thu và điều tiết các khoản thu NSNN",
+        "deadline": "23/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-05",
+        "stt": "5",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký gửi BTC BCTCNN năm 2025 của tỉnh Gia Lai",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-06",
+        "stt": "6",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo báo cáo kết quả thực hiện Kết luận, kiến nghị kiểm toán",
+        "deadline": "27/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-07",
+        "stt": "7",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký văn bản gửi Ngân hàng nhà nước V/v xác định giá vàng 99,99% tại thời điểm ngày 22/11/1996 (lần 2)",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-08",
+        "stt": "8",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành hướng dẫn cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-09",
+        "stt": "9",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo hướng dẫn thực hiện điều chỉnh dự toán NSNN đối với các đơn vị trực thuộc",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-01",
+        "stt": "1",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Kế hoạch thực hiện Chiến lược tài chính đến năm 2030",
+        "deadline": "08/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-02",
+        "stt": "2",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Luật Ngân sách Nhà nước",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-03",
+        "stt": "3",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1596/BHXH-KT ngày 22/7/2026",
+        "deadline": "24/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-04",
+        "stt": "4",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia góp ý theo Công văn số 10173/BTC-CĐKT ngày 15/7/2026 của Bộ Tài chính",
+        "deadline": "22/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-05",
+        "stt": "5",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Quy trình quản lý tiền mặt, giấy tờ có giá, tài sản quý trong hệ thống Kho bạc Nhà nước",
+        "deadline": "31/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-06",
+        "stt": "6",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến đối với dự thảo Thông tư quy định về quản lý thu, chi bằng tiền mặt và chi thanh toán cá nhân qua KBNN",
+        "deadline": "29/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-07",
+        "stt": "7",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1279/UBND-KTHT&ĐT của UBND phường Quy Nhơn Tây ngày 04/8/2026",
+        "deadline": "07/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-08",
+        "stt": "8",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Thông tư sửa đổi, bổ sung một số điều của Thông tư số 157/2025/TT-BTC",
+        "deadline": "04/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-09",
+        "stt": "9",
+        "type": "AII_REGULAR",
+        "name": "V/v báo cáo kết quả thực hiện kiến nghị kiểm toán của KBNN Gia Lai",
+        "deadline": "03/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-10",
+        "stt": "10",
+        "type": "AII_REGULAR",
+        "name": "V/v cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-11",
+        "stt": "11",
+        "type": "AII_REGULAR",
+        "name": "V/v giải trình nguyên nhân chênh lệch về tài sản trên Báo cáo tài chính nhà nước với kết quả tổng kiểm kê",
+        "deadline": "24/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-12",
+        "stt": "12",
+        "type": "AII_REGULAR",
+        "name": "V/v tiếp tục mở rộng triển khai thanh toán, chi trả cho cá nhân qua tài khoản và trao đổi thông tin danh sách thanh toán cho đối tượng thụ hưởng qua Cổng trao đổi dữ liệu",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-13",
+        "stt": "13",
+        "type": "AII_REGULAR",
+        "name": "V/v trả lời văn bản số 96/PGD4-KTNN ngày 19/6/2026 của Phòng Giao dịch số 4",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-14",
+        "stt": "14",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến sử dụng mã CTMTQG XD NTM, giảm nghèo bền vững, phát triển KTXH vùng đồng bào DTTS&MN và mã dự phòng",
+        "deadline": "26/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-15",
+        "stt": "15",
+        "type": "AII_REGULAR",
+        "name": "Các nhiệm vụ khác Trưởng phòng phân công",
+        "deadline": "Thường xuyên",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-01",
+        "stt": "1",
+        "type": "B_LOCAL",
+        "name": "V/v phối hợp hướng dẫn sử dụng hệ thống TABMIS cho CQTC cấp xã",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-02",
+        "stt": "2",
+        "type": "B_LOCAL",
+        "name": "V/v cung cấp thông tin phục vụ khảo sát thu thập thông tin cuộc kiểm toán chuyên đề năm 2026 tại tỉnh Gia Lai",
+        "deadline": "20/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-03",
+        "stt": "3",
+        "type": "B_LOCAL",
+        "name": "V/v đề nghị Cơ quan cảnh sát điều tra Công an tỉnh Gia Lai gửi văn bản tiếp tục bảo quản tài sản",
+        "deadline": "04/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      }
+    ]
+  },
+  "qn_nga": {
+    "id": "qn_nga",
+    "name": "Phan Nữ Quỳnh Nga",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "department": "Quảng Ngãi",
+    "title": "Giao dịch viên",
+    "specialty": "Kế toán điều chỉnh thu NSNN (NV2 chuyển sang); TK trung gian 3398; Báo cáo giám sát TTHC chi NSNN qua DVCTT & thanh toán trùng (CV 1010, 5105).",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
+    "approverName": "Tạ Thị Thanh Phương",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "id": "Q3-AI-01",
+        "stt": "1",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ban hành định mức chi tiền mặt quý III",
+        "deadline": "05/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-02",
+        "stt": "2",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành lệnh quyết toán chênh lệch thu chi 2025",
+        "deadline": "10/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-03",
+        "stt": "3",
+        "type": "AI_KEY",
+        "name": "Tham mưu lãnh đạo hướng dẫn quy trình chi hỗ trợ ngư dân sau khi lấy ý kiến CQ Tài chính",
+        "deadline": "20/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-04",
+        "stt": "4",
+        "type": "AI_KEY",
+        "name": "Hướng dẫn tăng cường công tác thu và điều tiết các khoản thu NSNN",
+        "deadline": "23/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-05",
+        "stt": "5",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký gửi BTC BCTCNN năm 2025 của tỉnh Gia Lai",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-06",
+        "stt": "6",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo báo cáo kết quả thực hiện Kết luận, kiến nghị kiểm toán",
+        "deadline": "27/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-07",
+        "stt": "7",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký văn bản gửi Ngân hàng nhà nước V/v xác định giá vàng 99,99% tại thời điểm ngày 22/11/1996 (lần 2)",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-08",
+        "stt": "8",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành hướng dẫn cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-09",
+        "stt": "9",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo hướng dẫn thực hiện điều chỉnh dự toán NSNN đối với các đơn vị trực thuộc",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-01",
+        "stt": "1",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Kế hoạch thực hiện Chiến lược tài chính đến năm 2030",
+        "deadline": "08/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-02",
+        "stt": "2",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Luật Ngân sách Nhà nước",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-03",
+        "stt": "3",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1596/BHXH-KT ngày 22/7/2026",
+        "deadline": "24/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-04",
+        "stt": "4",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia góp ý theo Công văn số 10173/BTC-CĐKT ngày 15/7/2026 của Bộ Tài chính",
+        "deadline": "22/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-05",
+        "stt": "5",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Quy trình quản lý tiền mặt, giấy tờ có giá, tài sản quý trong hệ thống Kho bạc Nhà nước",
+        "deadline": "31/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-06",
+        "stt": "6",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến đối với dự thảo Thông tư quy định về quản lý thu, chi bằng tiền mặt và chi thanh toán cá nhân qua KBNN",
+        "deadline": "29/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-07",
+        "stt": "7",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1279/UBND-KTHT&ĐT của UBND phường Quy Nhơn Tây ngày 04/8/2026",
+        "deadline": "07/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-08",
+        "stt": "8",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Thông tư sửa đổi, bổ sung một số điều của Thông tư số 157/2025/TT-BTC",
+        "deadline": "04/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-09",
+        "stt": "9",
+        "type": "AII_REGULAR",
+        "name": "V/v báo cáo kết quả thực hiện kiến nghị kiểm toán của KBNN Gia Lai",
+        "deadline": "03/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-10",
+        "stt": "10",
+        "type": "AII_REGULAR",
+        "name": "V/v cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-11",
+        "stt": "11",
+        "type": "AII_REGULAR",
+        "name": "V/v giải trình nguyên nhân chênh lệch về tài sản trên Báo cáo tài chính nhà nước với kết quả tổng kiểm kê",
+        "deadline": "24/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-12",
+        "stt": "12",
+        "type": "AII_REGULAR",
+        "name": "V/v tiếp tục mở rộng triển khai thanh toán, chi trả cho cá nhân qua tài khoản và trao đổi thông tin danh sách thanh toán cho đối tượng thụ hưởng qua Cổng trao đổi dữ liệu",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-13",
+        "stt": "13",
+        "type": "AII_REGULAR",
+        "name": "V/v trả lời văn bản số 96/PGD4-KTNN ngày 19/6/2026 của Phòng Giao dịch số 4",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-14",
+        "stt": "14",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến sử dụng mã CTMTQG XD NTM, giảm nghèo bền vững, phát triển KTXH vùng đồng bào DTTS&MN và mã dự phòng",
+        "deadline": "26/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-15",
+        "stt": "15",
+        "type": "AII_REGULAR",
+        "name": "Các nhiệm vụ khác Trưởng phòng phân công",
+        "deadline": "Thường xuyên",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-01",
+        "stt": "1",
+        "type": "B_LOCAL",
+        "name": "V/v phối hợp hướng dẫn sử dụng hệ thống TABMIS cho CQTC cấp xã",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-02",
+        "stt": "2",
+        "type": "B_LOCAL",
+        "name": "V/v cung cấp thông tin phục vụ khảo sát thu thập thông tin cuộc kiểm toán chuyên đề năm 2026 tại tỉnh Gia Lai",
+        "deadline": "20/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-03",
+        "stt": "3",
+        "type": "B_LOCAL",
+        "name": "V/v đề nghị Cơ quan cảnh sát điều tra Công an tỉnh Gia Lai gửi văn bản tiếp tục bảo quản tài sản",
+        "deadline": "04/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      }
+    ]
+  },
+  "qn_thao": {
+    "id": "qn_thao",
+    "name": "Nguyễn Thị Thanh Thảo",
+    "role": "GDV",
+    "group": "Giao dịch viên",
+    "department": "Quảng Ngãi",
+    "title": "Giao dịch viên",
+    "specialty": "Kế toán thanh toán LNH; TK trung gian 3933; Chuyển số thu phí, lãi về KBNN KV XV (1339, 3999); BC chi vốn SN CTMTQG DTTS và miền núi.",
+    "isLeader": false,
+    "isKPIAggregator": false,
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
+    "approverName": "Tạ Thị Thanh Phương",
+    "managedUnits": [],
+    "defaultPlan": [
+      {
+        "id": "Q3-AI-01",
+        "stt": "1",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ban hành định mức chi tiền mặt quý III",
+        "deadline": "05/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-02",
+        "stt": "2",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành lệnh quyết toán chênh lệch thu chi 2025",
+        "deadline": "10/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-03",
+        "stt": "3",
+        "type": "AI_KEY",
+        "name": "Tham mưu lãnh đạo hướng dẫn quy trình chi hỗ trợ ngư dân sau khi lấy ý kiến CQ Tài chính",
+        "deadline": "20/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-04",
+        "stt": "4",
+        "type": "AI_KEY",
+        "name": "Hướng dẫn tăng cường công tác thu và điều tiết các khoản thu NSNN",
+        "deadline": "23/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-05",
+        "stt": "5",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký gửi BTC BCTCNN năm 2025 của tỉnh Gia Lai",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-06",
+        "stt": "6",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo báo cáo kết quả thực hiện Kết luận, kiến nghị kiểm toán",
+        "deadline": "27/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-07",
+        "stt": "7",
+        "type": "AI_KEY",
+        "name": "Trình Lãnh đạo ký văn bản gửi Ngân hàng nhà nước V/v xác định giá vàng 99,99% tại thời điểm ngày 22/11/1996 (lần 2)",
+        "deadline": "28/07/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-08",
+        "stt": "8",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo ký ban hành hướng dẫn cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AI-09",
+        "stt": "9",
+        "type": "AI_KEY",
+        "name": "Trình lãnh đạo hướng dẫn thực hiện điều chỉnh dự toán NSNN đối với các đơn vị trực thuộc",
+        "deadline": "28/08/2026",
+        "isKey": true,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-01",
+        "stt": "1",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Kế hoạch thực hiện Chiến lược tài chính đến năm 2030",
+        "deadline": "08/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-02",
+        "stt": "2",
+        "type": "AII_REGULAR",
+        "name": "Tham gia ý kiến dự thảo Luật Ngân sách Nhà nước",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-03",
+        "stt": "3",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1596/BHXH-KT ngày 22/7/2026",
+        "deadline": "24/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-04",
+        "stt": "4",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia góp ý theo Công văn số 10173/BTC-CĐKT ngày 15/7/2026 của Bộ Tài chính",
+        "deadline": "22/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-05",
+        "stt": "5",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Quy trình quản lý tiền mặt, giấy tờ có giá, tài sản quý trong hệ thống Kho bạc Nhà nước",
+        "deadline": "31/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-06",
+        "stt": "6",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến đối với dự thảo Thông tư quy định về quản lý thu, chi bằng tiền mặt và chi thanh toán cá nhân qua KBNN",
+        "deadline": "29/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-07",
+        "stt": "7",
+        "type": "AII_REGULAR",
+        "name": "V/v phúc đáp Công văn số 1279/UBND-KTHT&ĐT của UBND phường Quy Nhơn Tây ngày 04/8/2026",
+        "deadline": "07/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-08",
+        "stt": "8",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến dự thảo Thông tư sửa đổi, bổ sung một số điều của Thông tư số 157/2025/TT-BTC",
+        "deadline": "04/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-09",
+        "stt": "9",
+        "type": "AII_REGULAR",
+        "name": "V/v báo cáo kết quả thực hiện kiến nghị kiểm toán của KBNN Gia Lai",
+        "deadline": "03/09/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-10",
+        "stt": "10",
+        "type": "AII_REGULAR",
+        "name": "V/v cập nhật lại thông tin cơ quan ra quyết định xử phạt VPHC và mã cơ quan QL thu NSNN",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-11",
+        "stt": "11",
+        "type": "AII_REGULAR",
+        "name": "V/v giải trình nguyên nhân chênh lệch về tài sản trên Báo cáo tài chính nhà nước với kết quả tổng kiểm kê",
+        "deadline": "24/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-12",
+        "stt": "12",
+        "type": "AII_REGULAR",
+        "name": "V/v tiếp tục mở rộng triển khai thanh toán, chi trả cho cá nhân qua tài khoản và trao đổi thông tin danh sách thanh toán cho đối tượng thụ hưởng qua Cổng trao đổi dữ liệu",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-13",
+        "stt": "13",
+        "type": "AII_REGULAR",
+        "name": "V/v trả lời văn bản số 96/PGD4-KTNN ngày 19/6/2026 của Phòng Giao dịch số 4",
+        "deadline": "27/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-14",
+        "stt": "14",
+        "type": "AII_REGULAR",
+        "name": "V/v tham gia ý kiến sử dụng mã CTMTQG XD NTM, giảm nghèo bền vững, phát triển KTXH vùng đồng bào DTTS&MN và mã dự phòng",
+        "deadline": "26/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-AII-15",
+        "stt": "15",
+        "type": "AII_REGULAR",
+        "name": "Các nhiệm vụ khác Trưởng phòng phân công",
+        "deadline": "Thường xuyên",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-01",
+        "stt": "1",
+        "type": "B_LOCAL",
+        "name": "V/v phối hợp hướng dẫn sử dụng hệ thống TABMIS cho CQTC cấp xã",
+        "deadline": "07/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-02",
+        "stt": "2",
+        "type": "B_LOCAL",
+        "name": "V/v cung cấp thông tin phục vụ khảo sát thu thập thông tin cuộc kiểm toán chuyên đề năm 2026 tại tỉnh Gia Lai",
+        "deadline": "20/07/2026",
+        "isKey": false,
+        "isNQ57": false
+      },
+      {
+        "id": "Q3-B-03",
+        "stt": "3",
+        "type": "B_LOCAL",
+        "name": "V/v đề nghị Cơ quan cảnh sát điều tra Công an tỉnh Gia Lai gửi văn bản tiếp tục bảo quản tài sản",
+        "deadline": "04/08/2026",
+        "isKey": false,
+        "isNQ57": false
+      }
+    ]
+  }
+}

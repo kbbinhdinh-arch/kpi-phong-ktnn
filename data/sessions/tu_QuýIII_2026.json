@@ -1,0 +1,122 @@
+{
+  "officer": {
+    "name": "Phạm Thị Cẩm Tú",
+    "role": "GDV",
+    "officerId": "tu",
+    "quarter": "QuyIII",
+    "year": 2026,
+    "specialty": "Tổng hợp KPI phòng; Báo cáo tự kiểm tra quý năm; Báo cáo lãi phí tiền gửi; Thư ký họp phòng; Công tác TCCB phòng; Quản lý Sở NN&PTNT và các đơn vị nông nghiệp, đất đai, môi trường.",
+    "leaderTitle": "TRƯỞNG PHÒNG",
+    "leaderName": "Hoàng Anh Sơn",
+    "managedUnits": [
+      "Sở Nông nghiệp và Môi trường",
+      "Chi cục Trồng trọt và Bảo vệ thực vật",
+      "Chi cục Chăn nuôi và Thú y",
+      "Chi cục Kiểm lâm",
+      "Chi cục Thủy sản",
+      "Chi cục Phát triển nông thôn",
+      "Chi cục Quản lý chất lượng nông lâm thủy sản",
+      "Chi cục Thủy lợi",
+      "Chi cục Quản lý đất đai",
+      "Chi cục Bảo vệ môi trường",
+      "Trung tâm Khuyến nông",
+      "Trung tâm Quy hoạch nông nghiệp, nông thôn",
+      "Văn phòng Đăng ký đất đai",
+      "Ban quản lý Cảng cá",
+      "Chi đội kiểm ngư (mật)",
+      "Ban quản lý Rừng"
+    ]
+  },
+  "quarterPlan": [
+    {
+      "id": "P1",
+      "name": "Tổng hợp theo dõi, đánh giá xếp loại KPI quý và năm toàn phòng KTNN theo NĐ 335 và QĐ 1253",
+      "type": "AI_KEY",
+      "deadline": "Cuối mỗi quý",
+      "isNQ57": true,
+      "isKey": true
+    },
+    {
+      "id": "P2",
+      "name": "Lập báo cáo công tác tự kiểm tra quý, năm của Phòng KTNN gửi phòng Kiểm tra",
+      "type": "AI_KEY",
+      "deadline": "Hằng quý",
+      "isNQ57": false,
+      "isKey": true
+    },
+    {
+      "id": "P3",
+      "name": "Lập báo cáo tình hình thanh toán lãi, phí tiền gửi",
+      "type": "AII_REGULAR",
+      "deadline": "Định kỳ",
+      "isNQ57": false,
+      "isKey": false
+    },
+    {
+      "id": "P4",
+      "name": "Thư ký các cuộc họp phòng; ghi biên bản và hoàn thiện hồ sơ họp",
+      "type": "AII_REGULAR",
+      "deadline": "Thường xuyên",
+      "isNQ57": false,
+      "isKey": false
+    },
+    {
+      "id": "P5",
+      "name": "Thực hiện công tác TCCB phòng (quy hoạch, bổ nhiệm, nâng lương, đánh giá, thi đua khen thưởng, xếp loại ABC...)",
+      "type": "AII_REGULAR",
+      "deadline": "Định kỳ",
+      "isNQ57": false,
+      "isKey": false
+    },
+    {
+      "id": "P6",
+      "name": "Kiểm soát chi và kế toán các đơn vị trực thuộc ngành Nông nghiệp, Đất đai, Môi trường được phân công",
+      "type": "AII_REGULAR",
+      "deadline": "Hằng ngày",
+      "isNQ57": false,
+      "isKey": false
+    },
+    {
+      "id": "P7",
+      "name": "Thực hiện các nhiệm vụ khác do Trưởng phòng phân công",
+      "type": "AII_REGULAR",
+      "deadline": "Thường xuyên",
+      "isNQ57": false,
+      "isKey": false
+    }
+  ],
+  "unitCompletionPercent": 100,
+  "generalCriteria": {
+    "c1": 5,
+    "c2": 5,
+    "c3": 2.5,
+    "c4": 2.5,
+    "c5": 2.5,
+    "c6": 2.5,
+    "c7": 2.5,
+    "c8": 2.5,
+    "c9": 2.5,
+    "c10": 2.5
+  },
+  "selfRatingNote": "",
+  "leaderRatingProposal": "",
+  "status": "submitted",
+  "lastSaved": "2026-09-12T11:09:57.837Z",
+  "months": [
+    {
+      "monthNum": 7,
+      "name": "Tháng 7/2026",
+      "completionPercent": 95.5
+    },
+    {
+      "monthNum": 8,
+      "name": "Tháng 8/2026",
+      "completionPercent": 96
+    },
+    {
+      "monthNum": 9,
+      "name": "Tháng 9/2026",
+      "completionPercent": 98
+    }
+  ]
+}
