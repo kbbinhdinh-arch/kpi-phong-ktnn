@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hướng Dẫn Triển Khai Hệ Thống KPI-KTNN Lên Máy Chủ 10.41.97.11</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #b91c1c;
+      --primary-dark: #881337;
+      --primary-light: #fef2f2;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --accent-light: #eff6ff;
+      --success: #16a34a;
+      --success-light: #f0fdf4;
+      --warning: #d97706;
+      --warning-light: #fffbeb;
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --code-bg: #090d16;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 50%, #020617 100%);
+      color: var(--text-main);
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 2.5rem 1rem 5rem;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(16px);
+      border-radius: 24px;
+      padding: 2.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #b91c1c, #e11d48, #2563eb, #06b6d4);
+    }
+
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(185, 28, 28, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      padding: 0.35rem 1rem;
+      border-radius: 9999px;
+      font-size: 0.775rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 1.25rem;
+    }
+
+    .header-badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+      box-shadow: 0 0 10px #ef4444;
+    }
+
+    h1 {
+      font-size: 2.1rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 1.25;
+      margin-bottom: 0.75rem;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .author-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.875rem;
+      color: var(--text-dim);
+    }
+
+    .author-info {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .author-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #b91c1c, #4338ca);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: white;
+      font-size: 0.9rem;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .author-name {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .actions-bar {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 1.15rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      border: none;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateY(-1px);
+    }
+
+    /* Metric Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .metric-card {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 1.25rem;
+      backdrop-filter: blur(8px);
+      transition: all 0.2s ease;
+    }
+
+    .metric-card:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .metric-label {
+      color: var(--text-muted);
+      font-size: 0.775rem;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.35rem;
+    }
+
+    .metric-val {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .metric-sub {
+      color: var(--text-dim);
+      font-size: 0.775rem;
+      margin-top: 0.25rem;
+    }
+
+    /* Steps Section */
+    .step-card {
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      margin-bottom: 1.75rem;
+      overflow: hidden;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .step-card:hover {
+      border-color: rgba(59, 130, 246, 0.4);
+    }
+
+    .step-header {
+      padding: 1.25rem 1.75rem;
+      background: rgba(15, 23, 42, 0.6);
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .step-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white;
+      font-weight: 800;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.4);
+      flex-shrink: 0;
+    }
+
+    .step-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .step-body {
+      padding: 1.75rem;
+    }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .option-box {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 1.25rem;
+      transition: all 0.2s ease;
+    }
+
+    .option-box.recommended {
+      border-color: rgba(34, 197, 94, 0.4);
+      background: rgba(22, 101, 52, 0.08);
+    }
+
+    .option-tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      margin-bottom: 0.6rem;
+    }
+
+    .tag-rec {
+      background: rgba(34, 197, 94, 0.2);
+      color: #86efac;
+    }
+
+    .tag-alt {
+      background: rgba(148, 163, 184, 0.15);
+      color: #cbd5e1;
+    }
+
+    .option-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 0.5rem;
+      color: var(--text-main);
+    }
+
+    .option-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .option-desc ol, .option-desc ul {
+      margin-left: 1.2rem;
+      margin-top: 0.4rem;
+    }
+
+    .option-desc li {
+      margin-bottom: 0.25rem;
+    }
+
+    /* Code Box */
+    .code-box {
+      background: var(--code-bg);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      margin: 1rem 0;
+      position: relative;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      overflow-x: auto;
+    }
+
+    .code-text {
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .copy-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #f1f5f9;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+      margin-left: 1rem;
+    }
+
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+
+    .copy-btn.copied {
+      background: #16a34a;
+      border-color: #16a34a;
+      color: white;
+    }
+
+    /* Terminal Output Box */
+    .terminal-box {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin: 1rem 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+
+    .terminal-header {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 0.75rem;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .dot-red { background: #ef4444; }
+    .dot-yellow { background: #eab308; }
+    .dot-green { background: #22c55e; }
+
+    .term-green { color: #4ade80; font-weight: 600; }
+    .term-blue { color: #60a5fa; }
+    .term-yellow { color: #facc15; }
+
+    /* Alert Box */
+    .alert-box {
+      background: rgba(217, 119, 6, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin: 1.25rem 0;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+
+    .alert-icon {
+      font-size: 1.4rem;
+      flex-shrink: 0;
+    }
+
+    .alert-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #fde047;
+      margin-bottom: 0.25rem;
+    }
+
+    .alert-body {
+      font-size: 0.85rem;
+      color: #fed7aa;
+      line-height: 1.5;
+    }
+
+    /* Checklist */
+    .checklist {
+      list-style: none;
+      margin-top: 1rem;
+    }
+
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.875rem;
+    }
+
+    .checklist-item:last-child {
+      border-bottom: none;
+    }
+
+    .check-icon {
+      color: #22c55e;
+      font-weight: 800;
+      font-size: 1rem;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.8rem;
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Print styles */
+    @media print {
+      body {
+        background: white !important;
+        color: black !important;
+        padding: 0;
+      }
+      .header, .step-card, .metric-card, .option-box, .code-box, .terminal-box {
+        background: white !important;
+        color: black !important;
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+      }
+      h1, .step-title, .metric-val, .option-title {
+        color: black !important;
+        -webkit-text-fill-color: black !important;
+      }
+      .actions-bar, .copy-btn {
+        display: none !important;
+      }
+      .code-box {
+        color: #0f172a !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- Header Section -->
+    <header class="header">
+      <div class="header-badge">
+        <span class="header-badge-dot"></span>
+        Kho Bạc Nhà Nước Khu Vực XV • Phòng Kế Toán Nhà Nước
+      </div>
+      <h1>Hướng Dẫn Triển Khai Hệ Thống KPI-KTNN Lên Máy Chủ 10.41.97.11</h1>
+      <p class="subtitle">
+        Tài liệu chuẩn hóa quy trình cài đặt và vận hành hệ thống Quản lý & Đánh giá chỉ số KPI Phòng Kế toán Nhà nước trên máy chủ nội bộ Intranet (Chế độ CSDL tệp tin Offline 100%).
+      </p>
+
+      <div class="author-bar">
+        <div class="author-info">
+          <div class="author-avatar">TH</div>
+          <div>
+            <div class="author-name">Ông Trần Quốc Hoàng</div>
+            <div>Phó Trưởng phòng Kế toán Nhà nước — Tác giả phần mềm</div>
+          </div>
+        </div>
+        <div class="actions-bar">
+          <button class="btn btn-secondary" onclick="window.print()">
+            🖨️ In / Xuất PDF
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Metrics Grid -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Địa chỉ IP Máy chủ</div>
+        <div class="metric-val" style="color: #60a5fa;">10.41.97.11</div>
+        <div class="metric-sub">Mạng nội bộ LAN KBNN</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Cổng dịch vụ (Port)</div>
+        <div class="metric-val" style="color: #facc15;">8080</div>
+        <div class="metric-sub">Giao thức HTTP Web REST API</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Dung lượng gói cài</div>
+        <div class="metric-val" style="color: #4ade80;">37.7 MB</div>
+        <div class="metric-sub">Đã tích hợp sẵn Node Portable</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Chế độ CSDL</div>
+        <div class="metric-val" style="color: #f472b6;">Offline 100%</div>
+        <div class="metric-sub">53 Hồ sơ • 35 Cán bộ • Không cần mạng</div>
+      </div>
+    </div>
+
+    <!-- STEP 1 -->
+    <section class="step-card">
+      <div class="step-header">
+        <div class="step-num">1</div>
+        <div class="step-title">Chép Tệp Cài Đặt KPI-KTNN_MayChu11.zip Sang Máy Chủ 11</div>
+      </div>
+      <div class="step-body">
+        <p style="color: var(--text-muted); font-size: 0.9rem;">
+          Tệp cài đặt nén duy nhất đã được đóng gói sẵn sàng tại máy tính cá nhân của anh ở đường dẫn:
+        </p>
+        <div class="code-box">
+          <span class="code-text">D:\Anti_IDE\KPI-KTNN_MayChu11.zip</span>
+          <button class="copy-btn" onclick="copyToClipboard('D:\\Anti_IDE\\KPI-KTNN_MayChu11.zip', this)">Sao chép</button>
+        </div>
+
+        <p style="margin-top: 1rem; font-weight: 600; font-size: 0.95rem;">Chọn 1 trong 3 cách sau để chuyển sang máy chủ 10.41.97.11:</p>
+
+        <div class="options-grid">
+          <div class="option-box recommended">
+            <span class="option-tag tag-rec">Cách A — Khuyên Dùng</span>
+            <div class="option-title">Qua Remote Desktop (mstsc)</div>
+            <div class="option-desc">
+              <ol>
+                <li>Bấm <code>Win + R</code>, gõ <code>mstsc</code> rồi ấn Enter.</li>
+                <li>Điền IP: <code>10.41.97.11</code> và đăng nhập.</li>
+                <li>Tại máy của anh: Chọn file <code>KPI-KTNN_MayChu11.zip</code> và bấm <code>Ctrl + C</code>.</li>
+                <li>Tại màn hình máy 11: Bấm <code>Ctrl + V</code> dán vào ổ <code>D:\</code>.</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="option-box">
+            <span class="option-tag tag-alt">Cách B — Chia sẻ mạng</span>
+            <div class="option-title">Qua Windows Network Share</div>
+            <div class="option-desc">
+              <ol>
+                <li>Bấm <code>Win + R</code>, gõ đường dẫn:
+                  <div style="color: #38bdf8; font-family: monospace; font-size: 0.8rem; margin: 4px 0;">\\10.41.97.11\d$</div>
+                </li>
+                <li>Điền tài khoản/mật khẩu quản trị máy chủ.</li>
+                <li>Kéo thả tệp <code>.zip</code> trực tiếp vào ổ D của máy chủ 11.</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="option-box">
+            <span class="option-tag tag-alt">Cách C — Cục bộ</span>
+            <div class="option-title">Qua Thiết bị USB</div>
+            <div class="option-desc">
+              <ol>
+                <li>Cắm USB vào máy đang ngồi và copy tệp <code>KPI-KTNN_MayChu11.zip</code> vào USB.</li>
+                <li>Cắm USB trực tiếp vào máy chủ 11 và copy file ra ổ đĩa <code>D:\</code>.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 2 -->
+    <section class="step-card">
+      <div class="step-header">
+        <div class="step-num">2</div>
+        <div class="step-title">Giải Nén & Mở Cổng Tường Lửa (Firewall 8080) Trên Máy Chủ 11</div>
+      </div>
+      <div class="step-body">
+        <p style="color: var(--text-muted); font-size: 0.9rem;">
+          Thực hiện thao tác trực tiếp trên máy chủ <strong>10.41.97.11</strong>:
+        </p>
+
+        <h4 style="margin: 1.25rem 0 0.5rem; font-size: 0.95rem; color: var(--text-main);">
+          2.1. Giải nén thư mục ứng dụng:
+        </h4>
+        <p style="color: var(--text-muted); font-size: 0.875rem;">
+          Nhấp chuột phải vào file <code>KPI-KTNN_MayChu11.zip</code> &rarr; Chọn <strong>Extract All...</strong> &rarr; Đặt thư mục giải nén là <code>D:\KPI-KTNN</code>.
+        </p>
+
+        <h4 style="margin: 1.5rem 0 0.5rem; font-size: 0.95rem; color: var(--text-main);">
+          2.2. Mở cổng 8080 trên Windows Firewall (Chỉ cần làm 1 lần duy nhất):
+        </h4>
+        <p style="color: var(--text-muted); font-size: 0.875rem;">
+          Mở menu Start trên máy chủ 11, tìm kiếm <strong>PowerShell</strong> &rarr; Nhấp chuột phải chọn <strong>Run as Administrator</strong> &rarr; Dán câu lệnh sau rồi ấn Enter:
+        </p>
+
+        <div class="code-box">
+          <span class="code-text">New-NetFirewallRule -DisplayName "KPI-KTNN-8080" -Direction Inbound -LocalPort 8080 -Protocol TCP -Action Allow</span>
+          <button class="copy-btn" onclick="copyToClipboard('New-NetFirewallRule -DisplayName \"KPI-KTNN-8080\" -Direction Inbound -LocalPort 8080 -Protocol TCP -Action Allow', this)">Sao chép</button>
+        </div>
+
+        <div class="alert-box">
+          <div class="alert-icon">💡</div>
+          <div>
+            <div class="alert-title">Lưu ý quan trọng:</div>
+            <div class="alert-body">
+              Lệnh trên cho phép toàn bộ máy tính của 35 cán bộ trong mạng nội bộ KBNN gửi/nhận số liệu KPI qua cổng 8080 mà không bị Windows Defender chặn.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 3 -->
+    <section class="step-card">
+      <div class="step-header">
+        <div class="step-num">3</div>
+        <div class="step-title">Khởi Động Ứng Dụng & Thiết Lập Tự Bật Cùng Windows</div>
+      </div>
+      <div class="step-body">
+        <h4 style="margin: 0 0 0.5rem; font-size: 0.95rem; color: var(--text-main);">
+          3.1. Khởi động ứng dụng ngay lập tức:
+        </h4>
+        <p style="color: var(--text-muted); font-size: 0.875rem;">
+          Mở thư mục <code>D:\KPI-KTNN</code> trên máy chủ 11, nhấp đúp vào tệp tin thực thi:
+        </p>
+        <div class="code-box">
+          <span class="code-text">start_lan_server.bat</span>
+        </div>
+
+        <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.75rem;">
+          Cửa sổ dòng lệnh sẽ hiển thị giao diện trạng thái máy chủ như sau:
+        </p>
+
+        <div class="terminal-box">
+          <div class="terminal-header">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-yellow"></span>
+            <span class="dot dot-green"></span>
+          </div>
+          <div>============================================================================</div>
+          <div class="term-green">  KHO BAC NHA NUOC KHU VUC XV - PHONG KE TOAN NHA NUOC</div>
+          <div>  HE THONG QUAN LY VA DANH GIA KPI CAN BO CONG CHUC</div>
+          <div class="term-yellow">  MAY CHU NOI BO LAN IP: 10.41.97.11 (CHAY OFFLINE 100%)</div>
+          <div>============================================================================</div>
+          <div class="term-blue">  [-] Che do CSDL:               CSDL TEP TIN CUC BO (OFFLINE 100%)</div>
+          <div>  [-] Thu muc luu tru:           D:\KPI-KTNN\data\</div>
+          <div>  [-] Truy cap tai may chu:      http://localhost:8080</div>
+          <div class="term-green">  [-] Can bo phong truy cap tai: http://10.41.97.11:8080</div>
+          <div>============================================================================</div>
+        </div>
+
+        <h4 style="margin: 1.5rem 0 0.5rem; font-size: 0.95rem; color: var(--text-main);">
+          3.2. Mẹo cấu hình tự động bật khi khởi động máy chủ (Auto-start):
+        </h4>
+        <ul class="checklist">
+          <li class="checklist-item">
+            <span class="check-icon">✓</span>
+            <div>Nhấp chuột phải vào file <code>start_lan_server.bat</code> &rarr; Chọn <strong>Show more options</strong> &rarr; Chọn <strong>Create shortcut</strong>.</div>
+          </li>
+          <li class="checklist-item">
+            <span class="check-icon">✓</span>
+            <div>Bấm tổ hợp phím <code>Win + R</code>, gõ lệnh <code>shell:startup</code> rồi ấn Enter để mở thư mục khởi động của Windows.</div>
+          </li>
+          <li class="checklist-item">
+            <span class="check-icon">✓</span>
+            <div>Kéo file <strong>Shortcut vừa tạo</strong> thả vào thư mục này. Từ nay, mỗi khi máy chủ khởi động lại hoặc có điện lại sau sự cố, hệ thống KPI sẽ <strong>tự động chạy ngầm</strong> mà không cần ai phải mở thủ công!</div>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- STEP 4 -->
+    <section class="step-card">
+      <div class="step-header">
+        <div class="step-num">4</div>
+        <div class="step-title">Hướng Dẫn Cán Bộ Công Chức Truy Cập Sử Dụng</div>
+      </div>
+      <div class="step-body">
+        <p style="color: var(--text-muted); font-size: 0.9rem;">
+          Toàn bộ 35 công chức trong phòng / khu vực mở trình duyệt (Google Chrome, Microsoft Edge) trên máy tính làm việc của mình và truy cập vào đường dẫn:
+        </p>
+
+        <div class="code-box" style="background: rgba(37, 99, 235, 0.15); border-color: rgba(59, 130, 246, 0.4);">
+          <span class="code-text" style="color: #93c5fd; font-weight: 700; font-size: 1.05rem;">http://10.41.97.11:8080</span>
+          <button class="copy-btn" onclick="copyToClipboard('http://10.41.97.11:8080', this)">Sao chép link</button>
+        </div>
+
+        <ul class="checklist" style="margin-top: 1rem;">
+          <li class="checklist-item">
+            <span class="check-icon">★</span>
+            <div><strong>Lưu Bookmark (Dấu trang):</strong> Bấm phím <code>Ctrl + D</code> trên trình duyệt để thêm hệ thống vào thanh dấu trang truy cập nhanh mỗi ngày.</div>
+          </li>
+          <li class="checklist-item">
+            <span class="check-icon">★</span>
+            <div><strong>Đăng nhập hồ sơ:</strong> Chọn tên cán bộ từ danh bạ và nhập mật khẩu cá nhân (hoặc mật khẩu mặc định được Lãnh đạo cấp).</div>
+          </li>
+          <li class="checklist-item">
+            <span class="check-icon">★</span>
+            <div><strong>Tốc độ phản hồi:</strong> Chấm điểm, lưu nháp, nộp duyệt, xuất Excel và in ấn diễn ra tức thì (&lt; 2ms) trên ổ cứng SSD của máy chủ.</div>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div>HỆ THỐNG QUẢN LÝ & ĐÁNH GIÁ CHỈ SỐ KPI PHÒNG KẾ TOÁN NHÀ NƯỚC — KBNN KHU VỰC XV</div>
+      <div style="margin-top: 0.25rem;">Tuân thủ Nghị định 335/2025/NĐ-CP của Chính phủ & Quyết định 1253/QĐ-BTC của Bộ Tài chính</div>
+      <div style="margin-top: 0.25rem; color: #475569;">Bản quyền tác giả: Trần Quốc Hoàng — Phó Trưởng phòng Kế toán Nhà nước</div>
+    </footer>
+
+  </div>
+
+  <script>
+    function copyToClipboard(text, btnElement) {
+      navigator.clipboard.writeText(text).then(() => {
+        const originalText = btnElement.innerText;
+        btnElement.innerText = "✓ Đã chép!";
+        btnElement.classList.add("copied");
+        setTimeout(() => {
+          btnElement.innerText = originalText;
+          btnElement.classList.remove("copied");
+        }, 2000);
+      }).catch(err => {
+        alert("Lỗi khi sao chép: " + err);
+      });
+    }
+  </script>
+</body>
+</html>

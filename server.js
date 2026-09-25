@@ -25,7 +25,15 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 const zlib = require('zlib');
-const { MongoClient, ObjectId } = require('mongodb');
+let MongoClient = null;
+let ObjectId = null;
+try {
+  const mongoPkg = require('mongodb');
+  MongoClient = mongoPkg.MongoClient;
+  ObjectId = mongoPkg.ObjectId;
+} catch (e) {
+  // Khi chay offline hoac thieu node_modules, tu dong bo qua de su dung CSDL tep tin cuc bo
+}
 
 const BASE_DIR = __dirname;
 
@@ -262,6 +270,10 @@ async function connectMongo() {
     console.log(" [CHẾ ĐỘ MÁY CHỦ NỘI BỘ] Đang chạy CSDL TỆP TIN CỤC BỘ (Offline Local Mode).");
     console.log(" [+] Không kết nối Internet/MongoDB Cloud - Toàn bộ dữ liệu lưu tại data/");
     console.log("============================================================================");
+    return;
+  }
+  if (!MongoClient) {
+    console.log("[CHẾ ĐỘ MÁY CHỦ NỘI BỘ] Không có module mongodb. Tự động sử dụng CSDL tệp tin cục bộ (data/).");
     return;
   }
   if (!MONGODB_URI) {
