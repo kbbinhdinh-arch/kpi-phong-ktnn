@@ -2881,7 +2881,7 @@
           "col_w": "",
           "ghichu": "",
           "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHIỆP VỤ",
-          "parent_level2": "B. CÔNG TÁC CHUY��N MÔN, NGHIỆP VỤ",
+          "parent_level2": "B. CÔNG TÁC CHUYÊN MÔN, NGHIỆP VỤ",
           "parent_section": "Công tác xử lý số dư kinh phí cuối năm của các đơn vị dự toán",
           "depth": 10
         },
@@ -24419,15 +24419,15 @@
   "activeMonthIdx": 0,
   "unitCompletionPercent": 100,
   "generalCriteria": {
-    "c1": 5,
-    "c2": 5,
-    "c3": 2.5,
-    "c4": 2.5,
-    "c5": 2.5,
-    "c6": 2.5,
+    "c1": 4,
+    "c2": 4,
+    "c3": 1.5,
+    "c4": 1.5,
+    "c5": 1.5,
+    "c6": 1.5,
     "c7": 0.5,
-    "c8": 2,
-    "c9": 2.5,
+    "c8": 1,
+    "c9": 1.5,
     "c10": 2
   },
   "selfAdvantages": "Là một công chức lãnh đạo luôn gương mẫu chấp hành tốt mọi chủ trương, chính sách của Đảng, pháp luật của Nhà nước; luôn rèn luyện phẩm chất chính trị, đạo đức, lối sống, tác phong và lề lối làm việc; luôn phấn đấu học tập để nâng cao năng lực, trình độ chuyên môn, nghiệp vụ; công việc được giao luôn đảm bảo tiến độ và thực hiện  tốt nhiệm vụ; có tinh thần trách nhiệm và phối hợp trong thực hiện nhiệm vụ, luôn xây dựng tinh thần thái độ phục vụ nhân dân, đoàn kết công chức góp phần xây dựng đơn vị hoàn thành tốt nhiệm vụ.",
@@ -24436,7 +24436,7 @@
   "selfRatingNote": "",
   "leaderRatingProposal": "HT tốt NV",
   "status": "da_nop",
-  "lastSaved": "2026-09-21T09:28:11.165Z",
+  "lastSaved": "2026-09-25T01:46:57.988Z",
   "quartersData": {
     "Quý III": [
       {
@@ -47589,11 +47589,15 @@
       }
     ]
   },
-  "activeTab": "tab-plan",
+  "activeTab": "tab-department-kpi",
   "isSubmitted": true,
-  "submittedAt": "2026-09-14T03:34:37.081Z",
-  "activeQuarterSubTab": "tab-plan",
-  "activeMonthlySubTab": "tab-monthly",
+  "submittedAt": "2026-09-25T01:46:57.988Z",
+  "activeQuarterSubTab": "tab-print-views",
+  "activeMonthlySubTab": "tab-general-crit",
   "proposedRating": "Hoàn thành tốt nhiệm vụ",
-  "monthlyCategoryFilter": "ALL"
+  "monthlyCategoryFilter": "ALL",
+  "isApproved": false,
+  "rejectedAt": "2026-09-25T01:33:46.678Z",
+  "rejectedBy": "hoang",
+  "rejectReason": "Yêu cầu rà soát, giải trình lại số lượng và lỗi chất lượng."
 }

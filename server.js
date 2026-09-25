@@ -1122,8 +1122,20 @@ const server = http.createServer(async (req, res) => {
         }
         if (!targetState) return sendJson(res, 404, { success: false, error: "Không tìm thấy dữ liệu phiên" });
 
-        targetState.status = "da_nop";
-        targetState.isSubmitted = true;
+        const isTP = (officerId === 'son' || (targetState.officer && targetState.officer.role === 'TP'));
+        if (isTP) {
+          // Trưởng phòng là người đứng đầu đơn vị: Tự xác nhận chính thức, không cần người khác duyệt
+          targetState.status = "da_duyet";
+          targetState.isSubmitted = true;
+          targetState.isApproved = true;
+          targetState.approvedAt = submitTime;
+          targetState.approvedBy = "Hoàng Anh Sơn (Trưởng phòng)";
+          targetState.rejectReason = null;
+        } else {
+          targetState.status = "da_nop";
+          targetState.isSubmitted = true;
+          targetState.rejectReason = null;
+        }
         targetState.submittedAt = submitTime;
         targetState.lastSaved = submitTime;
 
@@ -1182,6 +1194,10 @@ const server = http.createServer(async (req, res) => {
         // PHÂN QUYỀN CHẶT CHẼ: Chỉ có Trưởng phòng (Sơn) và Phó Trưởng phòng (Hoàng) mới có quyền duyệt
         if (leaderOfficerId !== 'son' && leaderOfficerId !== 'hoang') {
           return sendJson(res, 403, { success: false, error: "Chỉ có Trưởng phòng (đ/c Hoàng Anh Sơn) và Phó Trưởng phòng (đ/c Trần Quốc Hoàng) mới có thẩm quyền phê duyệt kết quả KPI." });
+        }
+        // Trưởng phòng Hoàng Anh Sơn là cấp cao nhất phòng, hồ sơ tự xác nhận chính thức
+        if (officerId === 'son') {
+          return sendJson(res, 400, { success: false, error: "Đồng chí Hoàng Anh Sơn là Trưởng phòng KTNN - Cán bộ đứng đầu đơn vị, hồ sơ tự xác nhận chính thức, không chịu sự phê duyệt trong nội bộ phòng." });
         }
         if (officerId === leaderOfficerId) {
           return sendJson(res, 400, { success: false, error: "Lãnh đạo không được tự phê duyệt hồ sơ cá nhân của mình." });
@@ -1263,6 +1279,10 @@ const server = http.createServer(async (req, res) => {
         // PHÂN QUYỀN CHẶT CHẼ: Chỉ có Trưởng phòng (Sơn) và Phó Trưởng phòng (Hoàng) mới có quyền trả lại
         if (leaderOfficerId !== 'son' && leaderOfficerId !== 'hoang') {
           return sendJson(res, 403, { success: false, error: "Chỉ có Trưởng phòng (đ/c Hoàng Anh Sơn) và Phó Trưởng phòng (đ/c Trần Quốc Hoàng) mới có thẩm quyền trả lại hồ sơ KPI." });
+        }
+        // Không thể trả lại hồ sơ của Trưởng phòng Hoàng Anh Sơn
+        if (officerId === 'son') {
+          return sendJson(res, 400, { success: false, error: "Đồng chí Hoàng Anh Sơn là Trưởng phòng KTNN - Cán bộ đứng đầu đơn vị, không thể trả lại hồ sơ của Trưởng phòng." });
         }
         if (officerId === leaderOfficerId) {
           return sendJson(res, 400, { success: false, error: "Lãnh đạo không được tự trả lại hồ sơ cá nhân của mình." });
@@ -1672,7 +1692,17 @@ const server = http.createServer(async (req, res) => {
         item.approvedAt = sess.approvedAt || null;
         item.approvedBy = sess.approvedBy || null;
         item.rejectReason = sess.rejectReason || null;
-        item.status = sess.status || (item.isSubmitted ? "da_nop" : "da_luu");
+        const isOfficerTP = (off.id === 'son' || off.role === 'TP');
+        if (isOfficerTP) {
+          // Trưởng phòng luôn là hồ sơ chính thức hoàn thành, không bao giờ là 'tra_lai' hay 'cho_duyet'
+          item.isSubmitted = true;
+          item.isApproved = true;
+          item.status = "da_duyet";
+          item.approvedBy = "Trưởng phòng (Chính thức)";
+          item.rejectReason = null;
+        } else {
+          item.status = sess.status || (item.isSubmitted ? "da_nop" : "da_luu");
+        }
         item.lastSaved = sess.lastSaved || null;
 
         if (sess.months && Array.isArray(sess.months) && sess.months.length > 0) {

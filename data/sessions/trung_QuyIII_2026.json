@@ -164,7 +164,7 @@
           "nhiemvu": "Nhiệm vụ được giao trực tiếp thực hiện",
           "congviec": "Khai báo tỷ lệ điều tiết các khoản thu NSNN và danh mục các thông tin, dữ liệu khác liên quan công tác hạch toán thu NSNN theo phân quyền",
           "sp_daura": "Danh mục mã",
-          "sp_chitiet": "150 Danh mục mã",
+          "sp_chitiet": "Danh mục mã",
           "diem_tc": 50,
           "diem_thang_chua_hs": 0,
           "diem_thang_da_hs": 0,
@@ -2677,7 +2677,7 @@
           "hoanthanh": 0,
           "khong_ht": 0,
           "diem_pct": "",
-          "cl_loi": 0,
+          "cl_loi": 3,
           "cl_diem": 0,
           "cl_pct": "",
           "td_cham": 0,
@@ -2712,7 +2712,7 @@
           "hoanthanh": 0,
           "khong_ht": 0,
           "diem_pct": "",
-          "cl_loi": 0,
+          "cl_loi": 3,
           "cl_diem": 0,
           "cl_pct": "",
           "td_cham": 0,
@@ -8049,9 +8049,9 @@
           "depth": 3
         }
       ],
-      "completionPercent": 100,
+      "completionPercent": 93.3,
       "quantityPct": 100,
-      "qualityPct": 100,
+      "qualityPct": 79.9,
       "progressPct": 100
     },
     {
@@ -8133,7 +8133,7 @@
           "nhiemvu": "Nhiệm vụ được giao trực tiếp thực hiện",
           "congviec": "Khai báo tỷ lệ điều tiết các khoản thu NSNN và danh mục các thông tin, dữ liệu khác liên quan công tác hạch toán thu NSNN theo phân quyền",
           "sp_daura": "Danh mục mã",
-          "sp_chitiet": "150 Danh mục mã",
+          "sp_chitiet": "Danh mục mã",
           "diem_tc": 50,
           "diem_thang_chua_hs": 0,
           "diem_thang_da_hs": 0,
@@ -10647,7 +10647,7 @@
           "hoanthanh": 0,
           "khong_ht": 0,
           "diem_pct": "",
-          "cl_loi": 0,
+          "cl_loi": 3,
           "cl_diem": 0,
           "cl_pct": "",
           "td_cham": 0,
@@ -10662,7 +10662,7 @@
           "parent_section": "Công tác kế toán các nghiệp vụ khác",
           "depth": 10,
           "_isCustomized": true,
-          "note_ghichu": "1. Rà soát, thống kê TK 3720 trên bộ sổ Tabmis và hướng dẫn các PGD xử lý\n2. Triển khai việc tách phòng, ban của UBND các xã đến các Phòng Giao dịch\n3. Triển khai các việc PGD cần thực hiện trước khi sát nhập các trường học trên địa bàn tỉnh Gia Lai\n4. Phối hợp, thống nhất với STC triển khai Mã CTMTQ tạm thời trong gian chờ sở Thông tư 130/2025/TT-BTC trên địa bàn tỉnh Gia lai \n5. Thống kê, rà soát số liệu chuyển nguồn không cân giữa chi năm 2025 và thu năm 2026\n6. Hướng dẫn thống nhất cách hạch toán nộp trả NS cấp xã cho NS cấp tỉnh trên địa bàn tỉnh Gia Lai để thuận lợi cho công tác rà soát, đối chiếu số liệu\n7. Hướng dẫn hạch toán các mã chương đơn vị giao dịch trong thời gian chờ địa phương thống nhất, triển khai Thông tư 123/TT-BTC\n8 Cung cấp hồ sơ, tài liệu phục vụ đoàn phúc tra của Kiểm toán nhà nước khu vực XV\n9. Hướng dẫn việc trả lãi thu phí cho các đơn vị trường sát nhập thống nhất trên địa bàn Gia Lai\n10. Triển khai thực hiện văn bản thanh toán cá nhân qua Cổng trao đổi dữ liệu với Vietinbank trên địa bàn Gia lai, Quảng Ngãi"
+          "note_ghichu": "1. Rà soát, thống kê TK 3720 trên bộ sổ Tabmis và hướng dẫn các PGD xử lý\n2. Triển khai việc tách phòng, ban của UBND các xã đến các Phòng Giao dịch\n3. Triển khai các việc PGD cần thực hiện trước khi sát nhập các trường học trên địa bàn tỉnh Gia Lai\n4. Phối hợp, thống nhất với STC triển khai Mã CTMTQ tạm thời trong gian chờ sở Thông tư 130/2025/TT-BTC trên địa bàn tỉnh Gia lai \n5. Thống kê, rà soát số liệu chuyển nguồn không cân giữa chi n��m 2025 và thu năm 2026\n6. Hướng dẫn thống nhất cách hạch toán nộp trả NS cấp xã cho NS cấp tỉnh trên địa bàn tỉnh Gia Lai để thuận lợi cho công tác rà soát, đối chiếu số liệu\n7. Hướng dẫn hạch toán các mã chương đơn vị giao dịch trong thời gian chờ địa phương thống nhất, triển khai Thông tư 123/TT-BTC\n8 Cung cấp hồ sơ, tài liệu phục vụ đoàn phúc tra của Kiểm toán nhà nước khu vực XV\n9. Hướng dẫn việc trả lãi thu phí cho các đơn vị trường sát nhập thống nhất trên địa bàn Gia Lai\n10. Triển khai thực hiện văn bản thanh toán cá nhân qua Cổng trao đổi dữ liệu với Vietinbank trên địa bàn Gia lai, Quảng Ngãi"
         },
         {
           "rowIndex": 78,
@@ -10683,7 +10683,7 @@
           "hoanthanh": 0,
           "khong_ht": 0,
           "diem_pct": "",
-          "cl_loi": 0,
+          "cl_loi": 3,
           "cl_diem": 0,
           "cl_pct": "",
           "td_cham": 0,
@@ -16037,9 +16037,9 @@
           "depth": 3
         }
       ],
-      "completionPercent": 100,
+      "completionPercent": 91.1,
       "quantityPct": 100,
-      "qualityPct": 100,
+      "qualityPct": 73.4,
       "progressPct": 100
     },
     {
@@ -16121,7 +16121,7 @@
           "nhiemvu": "Nhiệm vụ được giao trực tiếp thực hiện",
           "congviec": "Khai báo tỷ lệ điều tiết các khoản thu NSNN và danh mục các thông tin, dữ liệu khác liên quan công tác hạch toán thu NSNN theo phân quyền",
           "sp_daura": "Danh mục mã",
-          "sp_chitiet": "150 Danh mục mã",
+          "sp_chitiet": "Danh mục mã",
           "diem_tc": 50,
           "diem_thang_chua_hs": 0,
           "diem_thang_da_hs": 0,
@@ -18649,7 +18649,7 @@
           "hoanthanh": 0,
           "khong_ht": 0,
           "diem_pct": "",
-          "cl_loi": 0,
+          "cl_loi": 3,
           "cl_diem": 0,
           "cl_pct": "",
           "td_cham": 0,
@@ -18664,8 +18664,8 @@
           "parent_section": "Công tác kế toán các nghiệp vụ khác",
           "depth": 10,
           "_isCustomized": true,
-          "note_ghichu": "1.Rà soát, điều phối chuyển đổi LKB việc chuyển dữ liệu các BQL rừng Phòng hộ từ 15 PGD về PGD số 5; hướng dẫn chuyển đổi số liệu các cơ quan Đảng từ lệnh chi tiền sang hình thức rút dự toán; hướng dẫn việc hạch toán thực hiện tiết kiệm chi theo Nghị quyết 135; rà soát, hướng dẫn các PGD hạch toán TK 3398 đúng tình chất nghiệp vụ; rà soát hồ sơ, dữ liệu cung cấp phục vụ kiểm toán chuyên đề\n2. Chuẩn bị hồ sơ tài liệu giải trình BCTCNN đối với UBND; HĐND trong kỳ họp giưa năm.\n3. Chuẩn bị dữ liệu thu, chi ngân sách tỉnh năm 2025 để trình lãnh đạo ban hành lệnh quyết toán NS tỉnh năm 2025",
-          "note_sl": "1. Phối hợp STC thống nhất phương án mã ĐVQHNS và hướng dẫn chuyển đổi dữ liệu cho các đơn vị trường học cho các PGD\n2. Phối hợp STC thông nhất phương án mã chương cho các BCH quân sự xã, Công an xã và hướng dẫn các PGD thực hiện\n3. Phối hợp Sở Nông nghiệp và môi trường thống nhất phương án chuyển đổi dữ liệu tiền gửi các BQL rừng trên địa bàn tỉnh về BQL rừng Gia Lai và hướng dẫn PGD thực hiện\n4. Phối hợp STC thống nhất điều chỉnh mã CTMTQG 00000 trên tài khoản 9622 về mã CTMTQG chi tiết theo Thông tư 123 và hướng đẫn các PGD thực hiện\n5.Triển khai, hướng dẫn các PGD thực hiện mở rộng thanh toán cá nhân qua cổng trao đổi dữ liệu với Agribank; BIDV, Vietcombank\n6. Rà soát các khoản chi khác trên báo cáo B3_01 theo yêu cầu KBTW và hướng dẫn các PGD xử lý\n7. Hướng dẫn Công an tỉnh hoàn trả thu NSNN\n8. Nghiên cứu khó khăn vướng mắc về cơ chế, pháp lý, chương trình trong quá trình thực hiện nhiệm vụ phục vụ lãnh đạo đi họp tại KBTW\n9. Rà soát, thống kê tài khoản ngoại bảng trên địa bàn Gia Lai, Quảng Ngãi theo yêu cầu Lãnh đạo"
+          "note_ghichu": "",
+          "note_sl": "1. Phối hợp STC thống nhất phương án mã ĐVQHNS và hướng dẫn chuyển đổi dữ liệu cho các đơn vị trường học cho các PGD\n2. Phối hợp STC thông nhất phương án mã chương cho các BCH quân sự xã, Công an xã và hướng dẫn các PGD thực hiện\n3. Phối hợp Sở Nông nghiệp và môi trường thống nhất phương án chuyển đổi dữ liệu tiền gửi các BQL rừng trên địa bàn tỉnh về BQL rừng Gia Lai và hướng dẫn PGD thực hiện\n4. Phối hợp STC thống nhất điều chỉnh mã CTMTQG 00000 trên tài khoản 9622 về mã CTMTQG chi tiết theo Thông tư 123 và hướng đẫn các PGD thực hiện\n5.Triển khai, hướng dẫn các PGD thực hiện mở rộng thanh toán cá nhân qua cổng trao đổi dữ liệu với Agribank; BIDV, Vietcombank\n6. Rà soát các khoản chi khác trên báo cáo B3_01 theo yêu cầu KBTW và hướng dẫn các PGD xử lý\n7. Hướng dẫn Công an tỉnh hoàn trả thu NSNN\n8. Nghiên cứu khó khăn vướng mắc về cơ chế, pháp lý, chương trình trong quá trình thực hiện nhiệm vụ phục vụ lãnh đạo đi họp tại KBTW\n9. Rà soát, thống kê tài khoản ngoại bảng trên địa bàn Gia Lai, Quảng Ngãi theo yêu cầu Lãnh đạo\n10. Điều phối chuyển đổi số dư tiền gửi các đơn vị sáp nhập về VQG KonKaKinh trên địa bàn Gia Lai\n11. Hướng dẫn hạch toán nộp trả CTMTQG của các xã, phường theo công văn của Sở Dân Tộc và Tôn Giáo"
         },
         {
           "rowIndex": 78,
@@ -18686,7 +18686,7 @@
           "hoanthanh": 0,
           "khong_ht": 0,
           "diem_pct": "",
-          "cl_loi": 0,
+          "cl_loi": 3,
           "cl_diem": 0,
           "cl_pct": "",
           "td_cham": 0,
@@ -18737,7 +18737,8 @@
           "parent_section": "Công tác kế toán các nghiệp vụ khác",
           "depth": 10,
           "_isCustomized": true,
-          "note_ghichu": "Rà soát, đôn đốc xử lý tài khoản 5511 các xã, phường chưa kết chuyển vào thu ngân sách năm sau; rà soát báo cáo chênh lệch quyết thu, chi NSTW bổ sung năm 2024; thu thập hồ sơ, giải trình KBTW số liệu phát sinh chi sau chỉnh lý;"
+          "note_ghichu": "",
+          "note_sl": "Rà soát, đôn đốc xử lý tài khoản 5511 các xã, phường chưa kết chuyển vào thu ngân sách năm sau;Rà soát B3_01 có phát sinh khoản chi ngoài công thức theo yêu cầu KBTW"
         },
         {
           "rowIndex": 80,
@@ -22962,13 +22963,13 @@
           "nhiemvu": "Báo cáo chưa có tiền lệ, biểu mẫu phức tạp, cần nhiều thời gian thực hiện",
           "congviec": "Dự thảo Văn bản",
           "sp_daura": "Dự thảo",
-          "sp_chitiet": "3 Dự thảo",
+          "sp_chitiet": "5 Dự thảo",
           "diem_tc": 50,
           "diem_thang_chua_hs": 0,
           "diem_thang_da_hs": 0,
           "he_so": 1.1,
           "co_thuchien": "Có",
-          "soluong_tt": 3,
+          "soluong_tt": 5,
           "hoanthanh": 0,
           "khong_ht": 0,
           "diem_pct": "",
@@ -22997,13 +22998,13 @@
           "nhiemvu": "Báo cáo chưa có tiền lệ, biểu mẫu phức tạp, cần nhiều thời gian thực hiện",
           "congviec": "Trình Lãnh đạo phê duyệt",
           "sp_daura": "Tờ trình",
-          "sp_chitiet": "3 Tờ trình",
+          "sp_chitiet": "5 Tờ trình",
           "diem_tc": 50,
           "diem_thang_chua_hs": 0,
           "diem_thang_da_hs": 0,
           "he_so": 1.1,
           "co_thuchien": "Có",
-          "soluong_tt": 3,
+          "soluong_tt": 5,
           "hoanthanh": 0,
           "khong_ht": 0,
           "diem_pct": "",
@@ -23057,7 +23058,7 @@
           "parent_section": "Báo cáo chưa có tiền lệ, biểu mẫu phức tạp, cần nhiều thời gian thực hiện",
           "depth": 10,
           "_isCustomized": true,
-          "note_sl": "3 văn bản: 1520/KBXV-KTNN ngày 09/9/0226 góp ý dự thảo Thông tư quy định quản lý thu, chi tiền mặt và chi thanh toán cá nhân qua KBNN; 1432/KBXV-KTNN ngày 03/9/2026 tham gia ý kiến dự thảo Thông tư sửa đổi, bổ sung một số điều của Thông tư 157/20258/TT-BTC; 1571/KBXV-KTNN ngày 15/9/2026 triển khai thực hiện quy trình 6273/QĐ-KBNN."
+          "note_sl": "3 văn bản: 1520/KBXV-KTNN ngày 09/9/0226 góp ý dự thảo Thông tư quy định quản lý thu, chi tiền mặt và chi thanh toán cá nhân qua KBNN; 1432/KBXV-KTNN ngày 03/9/2026 tham gia ý kiến dự thảo Thông tư sửa đổi, bổ sung một số điều của Thông tư 157/20258/TT-BTC; 1571/KBXV-KTNN ngày 15/9/2026 triển khai thực hiện quy trình 6273/QĐ-KBNN;1603/KBNN-KTNN ngày 22/9/2026 báo cáo tình hình thực hiện kiến nghị kiểm toán; 1626/KBNN-KTNN ngày 22/9/2026 đề nghị nâng cấp chương trình TCS"
         },
         {
           "rowIndex": 207,
@@ -24041,9 +24042,9 @@
           "depth": 3
         }
       ],
-      "completionPercent": 100,
+      "completionPercent": 91.1,
       "quantityPct": 100,
-      "qualityPct": 100,
+      "qualityPct": 73.2,
       "progressPct": 100
     }
   ],
@@ -24054,21 +24055,21 @@
     "c1": 5,
     "c2": 5,
     "c3": 2.5,
-    "c4": 2.5,
+    "c4": 2,
     "c5": 2.5,
     "c6": 2,
     "c7": 0,
-    "c8": 2.5,
+    "c8": 2,
     "c9": 2.5,
-    "c10": 2.5
+    "c10": 2
   },
   "selfAdvantages": "Chấp hành nghiêm kỷ luật kỷ cương, hoàn thành tốt các nhiệm vụ chuyên môn và trọng tâm trong quý; Sẵn sàng tham gia thực hiện các nhiệm vụ khác đột xuất phát sinh được giao; chủ động nắm bắt thông tin của các Phòng giao dịch, Các cơ quan liên quan có các nội dung công việc liên quan đến Phòng Kế toán nhà nước báo cáo lãnh đạo Phòng KTNN để có phương án, giải pháp kịp thời.",
-  "selfDisadvantages": "Đôi lúc chưa sắp xếp công việc cần giải quyết gấp theo yêu cầu một cách khoa học về mặt thời gian.",
+  "selfDisadvantages": "Đôi lúc chưa sắp xếp công việc cần giải quyết gấp theo yêu cầu một cách khoa học về mặt thời gian; một số nội dung công việc chưa đạt chất lượng công việc như mong muốn.",
   "quarterFilterActiveOnly": true,
   "selfRatingNote": "",
   "leaderRatingProposal": "",
-  "status": "da_nop",
-  "lastSaved": "2026-09-20T01:16:54.236Z",
+  "status": "tra_lai",
+  "lastSaved": "2026-09-25T01:56:41.758Z",
   "quartersData": {
     "Quý III": [
       {
@@ -33469,7 +33470,7 @@
             "isTask": true,
             "stt": "1.2.2",
             "nhiemvu": "Công tác kế toán thu NSNN",
-            "congviec": "Tiếp nhận lệnh hoàn trả các khoản thu NSNN; hạch toán hoàn trả/bù trừ; gửi ngân hàng nơi KBNN mở tài khoản thanh toán lệnh chuyển tiền hoàn trả vào tài khoản của tổ ch��c/cá nhân được hoàn trả.",
+            "congviec": "Tiếp nhận lệnh hoàn trả các khoản thu NSNN; hạch toán hoàn trả/bù trừ; gửi ngân hàng nơi KBNN mở tài khoản thanh toán lệnh chuyển tiền hoàn trả vào tài khoản của tổ chức/cá nhân được hoàn trả.",
             "sp_daura": "Chứng từ",
             "sp_chitiet": "23 Chứng từ",
             "diem_tc": 1,
@@ -38972,7 +38973,7 @@
             "col_v": "",
             "col_w": "",
             "ghichu": "",
-            "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHIỆP VỤ",
+            "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHI���P VỤ",
             "parent_level2": "E. CÔNG TÁC KHÁC",
             "parent_section": ""
           },
@@ -41834,7 +41835,7 @@
             "ghichu": "",
             "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHIỆP VỤ",
             "parent_level2": "B. CÔNG TÁC CHUYÊN MÔN, NGHIỆP VỤ",
-            "parent_section": "Công tác Thanh toán liên kho bạc, Thanh toán song phương điện t��, Thanh toán liên ngân hàng"
+            "parent_section": "Công tác Thanh toán liên kho bạc, Thanh toán song phương điện tử, Thanh toán liên ngân hàng"
           },
           {
             "rowIndex": 72,
@@ -41842,7 +41843,7 @@
             "isLevel2": false,
             "isTask": true,
             "stt": "1.4.6",
-            "nhiemvu": "Công tác Thanh toán liên kho bạc, Thanh toán song phương điện tử, Thanh toán liên ngân hàng",
+            "nhiemvu": "Công tác Thanh toán liên kho bạc, Thanh toán song phương điện t���, Thanh toán liên ngân hàng",
             "congviec": "Tiếp nhận/ gửi điện tra soát và xử lý các bút toán sai lầm trong thanh toán",
             "sp_daura": "Điện tra soát",
             "sp_chitiet": "3 Điện tra soát",
@@ -47222,12 +47223,16 @@
     ]
   },
   "activeTab": "tab-print-views",
-  "isSubmitted": true,
-  "submittedAt": "2026-09-14T02:02:04.441Z",
+  "isSubmitted": false,
+  "submittedAt": "2026-09-23T01:18:45.247Z",
   "activeQuarterSubTab": "tab-print-views",
-  "activeMonthlySubTab": "tab-general-crit",
+  "activeMonthlySubTab": "tab-monthly",
   "proposedRating": "Hoàn thành tốt nhiệm vụ",
   "monthlyCategoryFilter": "ALL",
+  "printCustomDate": "Gia Lai, ngày 21 tháng 9 năm 2026",
   "monthlySearchTerm": "",
-  "printCustomDate": "Gia Lai, ngày 21 tháng 9 năm 2026"
+  "isApproved": false,
+  "rejectedAt": "2026-09-25T01:33:51.193Z",
+  "rejectedBy": "hoang",
+  "rejectReason": "Yêu cầu rà soát, giải trình lại số lượng và lỗi chất lượng."
 }

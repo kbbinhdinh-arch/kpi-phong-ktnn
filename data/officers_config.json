@@ -1,16 +1,8 @@
 {
   "son": {
     "id": "son",
-    "name": "Hoàng Anh Sơn",
-    "role": "TP",
-    "group": "Lãnh đạo phòng",
-    "title": "Kế toán trưởng - Trưởng phòng KTNN",
-    "specialty": "Chỉ đạo điều hành công tác chung; Chịu trách nhiệm toàn diện hoạt động phòng; Chỉ đạo BCTCNN toàn khu vực và trung tâm; Theo dõi PGD 23-29.",
-    "isLeader": true,
-    "isKPIAggregator": false,
-    "approverTitle": "PHÓ GIÁM ĐỐC",
     "approverName": "Trịnh Khắc Chính",
-    "managedUnits": [],
+    "approverTitle": "PHÓ GIÁM ĐỐC",
     "defaultPlan": [
       {
         "name": "Chỉ đạo thực hiện công tác Báo cáo Tài chính nhà nước toàn khu vực và trung tâm",
@@ -61,20 +53,20 @@
         "isNQ57": false,
         "isKey": false
       }
-    ]
+    ],
+    "group": "Lãnh đạo phòng",
+    "isKPIAggregator": false,
+    "isLeader": true,
+    "managedUnits": [],
+    "name": "Hoàng Anh Sơn",
+    "role": "TP",
+    "specialty": "Chỉ đạo điều hành công tác chung; Chịu trách nhiệm toàn diện hoạt động phòng; Chỉ đạo BCTCNN toàn khu vực và trung tâm; Theo dõi PGD 23-29.",
+    "title": "Kế toán trưởng - Trưởng phòng KTNN"
   },
   "hoang": {
     "id": "hoang",
-    "name": "Trần Quốc Hoàng",
-    "role": "PTP",
-    "group": "Lãnh đạo phòng",
-    "title": "Phó Trưởng phòng Kế toán Nhà nước",
-    "specialty": "Kế toán, thanh toán, Quản lý ngân quỹ, phát hành TPCP; Quản lý TCS, KQKB, BQL kho tiền; Xử lý trung tâm TABMIS; Theo dõi PGD 16-22; Lưu trữ chứng từ.",
-    "isLeader": true,
-    "isKPIAggregator": false,
-    "approverTitle": "TRƯỞNG PHÒNG",
     "approverName": "Hoàng Anh Sơn",
-    "managedUnits": [],
+    "approverTitle": "TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "name": "Quản lý chương trình KQKB, tham gia Ban quản lý kho tiền, kiểm soát đối chiếu tiền mặt cuối ngày, quản lý ấn chỉ và tài sản quý",
@@ -125,20 +117,20 @@
         "isNQ57": false,
         "isKey": false
       }
-    ]
+    ],
+    "group": "Lãnh đạo phòng",
+    "isKPIAggregator": false,
+    "isLeader": true,
+    "managedUnits": [],
+    "name": "Trần Quốc Hoàng",
+    "role": "PTP",
+    "specialty": "Kế toán, thanh toán, Quản lý ngân quỹ, phát hành TPCP; Quản lý TCS, KQKB, BQL kho tiền; Xử lý trung tâm TABMIS; Theo dõi PGD 16-22; Lưu trữ chứng từ.",
+    "title": "Phó Trưởng phòng Kế toán Nhà nước"
   },
   "tuan": {
     "id": "tuan",
-    "name": "Lê Minh Tuân",
-    "role": "PTP",
-    "group": "Lãnh đạo phòng",
-    "title": "Phó Trưởng phòng Kế toán Nhà nước",
-    "specialty": "Chỉ đạo kiểm tra thanh toán LKB, Thanh toán LNH, TTSPĐT; Báo cáo, thống kê thu chi NSNN, quản lý ngân quỹ; Theo dõi PGD 01-04.",
-    "isLeader": true,
-    "isKPIAggregator": false,
-    "approverTitle": "TRƯỞNG PHÒNG",
     "approverName": "Hoàng Anh Sơn",
-    "managedUnits": [],
+    "approverTitle": "TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "name": "Chỉ đạo kiểm tra công tác thanh toán LKB, Thanh toán LNH, TTSPĐT toàn khu vực",
@@ -168,20 +160,20 @@
         "isNQ57": false,
         "isKey": false
       }
-    ]
+    ],
+    "group": "Lãnh đạo phòng",
+    "isKPIAggregator": false,
+    "isLeader": true,
+    "managedUnits": [],
+    "name": "Lê Minh Tuân",
+    "role": "PTP",
+    "specialty": "Chỉ đạo kiểm tra thanh toán LKB, Thanh toán LNH, TTSPĐT; Báo cáo, thống kê thu chi NSNN, quản lý ngân quỹ; Theo dõi PGD 01-04.",
+    "title": "Phó Trưởng phòng Kế toán Nhà nước"
   },
   "anh": {
     "id": "anh",
-    "name": "Lê Văn Ánh",
-    "role": "PTP",
-    "group": "Lãnh đạo phòng",
-    "title": "Phó Trưởng phòng Kế toán Nhà nước",
-    "specialty": "Kiểm soát chi, phê duyệt BA-PKT/BA_NSX_P.KT; Đối chiếu số liệu tài khoản quyết toán vốn KBNN trung tâm 2011 và toàn địa bàn 2010; Phụ trách CTMTQG; Theo dõi PGD 05-15.",
-    "isLeader": true,
-    "isKPIAggregator": false,
-    "approverTitle": "TRƯỞNG PHÒNG",
     "approverName": "Hoàng Anh Sơn",
-    "managedUnits": [],
+    "approverTitle": "TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "name": "Công tác đối chiếu số liệu các tài khoản thuộc phạm vi quyết toán vốn KBNN tại trung tâm 2011 và toàn địa bàn 2010",
@@ -211,37 +203,20 @@
         "isNQ57": false,
         "isKey": false
       }
-    ]
+    ],
+    "group": "Lãnh đạo phòng",
+    "isKPIAggregator": false,
+    "isLeader": true,
+    "managedUnits": [],
+    "name": "Lê Văn Ánh",
+    "role": "PTP",
+    "specialty": "Kiểm soát chi, phê duyệt BA-PKT/BA_NSX_P.KT; Đối chiếu số liệu tài khoản quyết toán vốn KBNN trung tâm 2011 và toàn địa bàn 2010; Phụ trách CTMTQG; Theo dõi PGD 05-15.",
+    "title": "Phó Trưởng phòng Kế toán Nhà nước"
   },
   "tu": {
     "id": "tu",
-    "name": "Phạm Thị Cẩm Tú",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "title": "Giao dịch viên - Phụ trách Tổng hợp KPI Toàn phòng",
-    "specialty": "Tổng hợp KPI phòng; Báo cáo tự kiểm tra quý năm; Báo cáo lãi phí tiền gửi; Thư ký họp phòng; Công tác TCCB phòng; Quản lý Sở NN&PTNT và các đơn vị nông nghiệp, đất đai, môi trường.",
-    "isLeader": false,
-    "isKPIAggregator": true,
-    "approverTitle": "TRƯỞNG PHÒNG",
     "approverName": "Hoàng Anh Sơn",
-    "managedUnits": [
-      "Sở Nông nghiệp và Môi trường",
-      "Chi cục Trồng trọt và Bảo vệ thực vật",
-      "Chi cục Chăn nuôi và Thú y",
-      "Chi cục Kiểm lâm",
-      "Chi cục Thủy sản",
-      "Chi cục Phát triển nông thôn",
-      "Chi cục Quản lý chất lượng nông lâm thủy sản",
-      "Chi cục Thủy lợi",
-      "Chi cục Quản lý đất đai",
-      "Chi cục Bảo vệ môi trường",
-      "Trung tâm Khuyến nông",
-      "Trung tâm Quy hoạch nông nghiệp, nông thôn",
-      "Văn phòng Đăng ký đất đai",
-      "Ban quản lý Cảng cá",
-      "Chi đội kiểm ngư (mật)",
-      "Ban quản lý Rừng"
-    ],
+    "approverTitle": "TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "name": "Tổng hợp theo dõi, đánh giá xếp loại KPI quý và năm toàn phòng KTNN theo NĐ 335 và QĐ 1253",
@@ -292,20 +267,37 @@
         "isNQ57": false,
         "isKey": false
       }
-    ]
+    ],
+    "group": "Giao dịch viên",
+    "isKPIAggregator": true,
+    "isLeader": false,
+    "managedUnits": [
+      "Sở Nông nghiệp và Môi trường",
+      "Chi cục Trồng trọt và Bảo vệ thực vật",
+      "Chi cục Chăn nuôi và Thú y",
+      "Chi cục Kiểm lâm",
+      "Chi cục Thủy sản",
+      "Chi cục Phát triển nông thôn",
+      "Chi cục Quản lý chất lượng nông lâm thủy sản",
+      "Chi cục Thủy lợi",
+      "Chi cục Quản lý đất đai",
+      "Chi cục Bảo vệ môi trường",
+      "Trung tâm Khuyến nông",
+      "Trung tâm Quy hoạch nông nghiệp, nông thôn",
+      "Văn phòng Đăng ký đất đai",
+      "Ban quản lý Cảng cá",
+      "Chi đội kiểm ngư (mật)",
+      "Ban quản lý Rừng"
+    ],
+    "name": "Phạm Thị Cẩm Tú",
+    "role": "GDV",
+    "specialty": "Tổng hợp KPI phòng; Báo cáo tự kiểm tra quý năm; Báo cáo lãi phí tiền gửi; Thư ký họp phòng; Công tác TCCB phòng; Quản lý Sở NN&PTNT và các đơn vị nông nghiệp, đất đai, môi trường.",
+    "title": "Giao dịch viên - Phụ trách Tổng hợp KPI Toàn phòng"
   },
   "trung": {
     "id": "trung",
-    "name": "Trần Bảo Trung",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "title": "Giao dịch viên",
-    "specialty": "Tổng hợp báo cáo cân đối, thu chi, quyết toán năm; Lập BCTCNN cấp tỉnh; In và lưu trữ điện tử sổ sách báo cáo.",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "TRƯỞNG PHÒNG",
     "approverName": "Hoàng Anh Sơn",
-    "managedUnits": [],
+    "approverTitle": "TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "name": "Tổng hợp các báo cáo: Bảng cân đối tài khoản, báo cáo thu, chi, báo cáo quyết toán hàng năm trên địa bàn",
@@ -370,34 +362,20 @@
         "isNQ57": false,
         "isKey": false
       }
-    ]
+    ],
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [],
+    "name": "Trần Bảo Trung",
+    "role": "GDV",
+    "specialty": "Tổng hợp báo cáo cân đối, thu chi, quyết toán năm; Lập BCTCNN cấp tỉnh; In và lưu trữ điện tử sổ sách báo cáo.",
+    "title": "Giao dịch viên"
   },
   "thy": {
     "id": "thy",
-    "name": "Nguyễn Thị Hiếu Thy",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "title": "Giao dịch viên",
-    "specialty": "Báo cáo chi theo NĐ 178 & NĐ 67 (CV 5160); Kế toán chi công trái, trái phiếu; Quản lý Sở Y tế, CDC và các bệnh viện chuyên khoa.",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "TRƯỞNG PHÒNG",
     "approverName": "Hoàng Anh Sơn",
-    "managedUnits": [
-      "Sở Y tế",
-      "Trung tâm Kiểm soát bệnh tật tỉnh Gia Lai",
-      "Bệnh viện Lao và bệnh Phổi",
-      "Bệnh viện Tâm thần Gia Lai",
-      "Bệnh viện Y học cổ truyền và Phục hồi chức năng (1127968)",
-      "Trung tâm Giám định Y khoa",
-      "Trung tâm Pháp y tỉnh Gia Lai",
-      "Chi cục Dân số - Kế hoạch hóa gia đình",
-      "Chi cục An toàn vệ sinh thực phẩm",
-      "Trung tâm Kiểm nghiệm Dược phẩm - Mỹ phẩm",
-      "Quỹ Khám, chữa bệnh cho người nghèo tỉnh Gia Lai",
-      "Ban quản lý Quỹ khám, chữa bệnh cho người nghèo",
-      "Viện Sốt rét ký sinh trùng côn trùng"
-    ],
+    "approverTitle": "TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "name": "Báo cáo số liệu chi thực hiện chính sách chế độ theo Nghị định số 178/2024/NĐ-CP và Nghị định số 67/2025/NĐ-CP theo CV 5160/KBNN-KTNN",
@@ -434,30 +412,34 @@
         "isNQ57": false,
         "isKey": false
       }
-    ]
+    ],
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [
+      "Sở Y tế",
+      "Trung tâm Kiểm soát bệnh tật tỉnh Gia Lai",
+      "Bệnh viện Lao và bệnh Phổi",
+      "Bệnh viện Tâm thần Gia Lai",
+      "Bệnh viện Y học cổ truyền và Phục hồi chức năng (1127968)",
+      "Trung tâm Giám định Y khoa",
+      "Trung tâm Pháp y tỉnh Gia Lai",
+      "Chi cục Dân số - Kế hoạch hóa gia đình",
+      "Chi cục An toàn vệ sinh thực phẩm",
+      "Trung tâm Kiểm nghiệm Dược phẩm - Mỹ phẩm",
+      "Quỹ Khám, chữa bệnh cho người nghèo tỉnh Gia Lai",
+      "Ban quản lý Quỹ khám, chữa bệnh cho người nghèo",
+      "Viện Sốt rét ký sinh trùng côn trùng"
+    ],
+    "name": "Nguyễn Thị Hiếu Thy",
+    "role": "GDV",
+    "specialty": "Báo cáo chi theo NĐ 178 & NĐ 67 (CV 5160); Kế toán chi công trái, trái phiếu; Quản lý Sở Y tế, CDC và các bệnh viện chuyên khoa.",
+    "title": "Giao dịch viên"
   },
   "huyet": {
     "id": "huyet",
-    "name": "Hồ Thị Bích Huyệt",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "title": "Giao dịch viên - Thủ quỹ Phòng",
-    "specialty": "TK TG chuyên thu NSNN (BIDV GL); Báo cáo giải trình DVCTT cho P. Kiểm tra; Hành chính, thủ quỹ phòng; Quản lý Sở Dân tộc & Tôn giáo, BV Mắt, Sở Nội vụ...",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "TRƯỞNG PHÒNG",
     "approverName": "Hoàng Anh Sơn",
-    "managedUnits": [
-      "Sở Dân tộc và tôn giáo (1172309)",
-      "Bệnh viện Mắt Gia Lai",
-      "Bệnh viện Chỉnh hình và Phục hồi chức năng",
-      "Sở Nội vụ Tỉnh Gia Lai (1101094)",
-      "Trung tâm Lưu trữ quốc gia",
-      "Liên minh Hợp tác xã Gia Lai",
-      "Hội Cựu chiến binh Gia Lai",
-      "Liên đoàn Lao động tỉnh",
-      "Tòa án Nhân dân khu vực"
-    ],
+    "approverTitle": "TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "name": "Kế toán theo dõi tài khoản tiền gửi chuyên thu NSNN, hoàn thiện chứng từ thu NSNN nhận từ ngân hàng Đầu tư Gia Lai",
@@ -501,26 +483,30 @@
         "isNQ57": false,
         "isKey": false
       }
-    ]
+    ],
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [
+      "Sở Dân tộc và tôn giáo (1172309)",
+      "Bệnh viện Mắt Gia Lai",
+      "Bệnh viện Chỉnh hình và Phục hồi chức năng",
+      "Sở Nội vụ Tỉnh Gia Lai (1101094)",
+      "Trung tâm Lưu trữ quốc gia",
+      "Liên minh Hợp tác xã Gia Lai",
+      "Hội Cựu chiến binh Gia Lai",
+      "Liên đoàn Lao động tỉnh",
+      "Tòa án Nhân dân khu vực"
+    ],
+    "name": "Hồ Thị Bích Huyệt",
+    "role": "GDV",
+    "specialty": "TK TG chuyên thu NSNN (BIDV GL); Báo cáo giải trình DVCTT cho P. Kiểm tra; Hành chính, thủ quỹ phòng; Quản lý Sở Dân tộc & Tôn giáo, BV Mắt, Sở Nội vụ...",
+    "title": "Giao dịch viên - Thủ quỹ Phòng"
   },
   "thu": {
     "id": "thu",
-    "name": "Văn Thái Hương Thu",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "title": "Giao dịch viên",
-    "specialty": "Báo cáo nộp theo kiến nghị KTNN, TTCP, TTTC; Lệnh chi tiền NS cấp tỉnh; Hồ sơ mở TK; Quản lý Sở Tài chính và các quỹ.",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "TRƯỞNG PHÒNG",
     "approverName": "Hoàng Anh Sơn",
-    "managedUnits": [
-      "Sở Tài chính và các quỹ do Sở TC làm chủ TK",
-      "Liên đoàn Địa chất TTB",
-      "Bệnh viện Phong da liễu Quy Hòa",
-      "Chi cục Dự trữ khu vực",
-      "Cảng vụ Hàng hải Quy Nhơn"
-    ],
+    "approverTitle": "TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "name": "Tổng hợp báo cáo các khoản nộp theo kiến nghị của Kiểm toán Nhà nước, Thanh tra Chính phủ, Thanh tra Tài chính",
@@ -564,29 +550,26 @@
         "isNQ57": false,
         "isKey": false
       }
-    ]
+    ],
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [
+      "Sở Tài chính và các quỹ do Sở TC làm chủ TK",
+      "Liên đoàn Địa chất TTB",
+      "Bệnh viện Phong da liễu Quy Hòa",
+      "Chi cục Dự trữ khu vực",
+      "Cảng vụ Hàng hải Quy Nhơn"
+    ],
+    "name": "Văn Thái Hương Thu",
+    "role": "GDV",
+    "specialty": "Báo cáo nộp theo kiến nghị KTNN, TTCP, TTTC; Lệnh chi tiền NS cấp tỉnh; Hồ sơ mở TK; Quản lý Sở Tài chính và các quỹ.",
+    "title": "Giao dịch viên"
   },
   "truc": {
     "id": "truc",
-    "name": "Lê Hà Thanh Trúc",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "title": "Giao dịch viên",
-    "specialty": "Hoàn thuế GTGT; vàng kim khí quý đá quý; Kế toán thanh toán LKB; Ngoại tệ & chuyên thu VCB; Lãi phí NHTM; Quản lý Thanh tra tỉnh, Chi cục Thuế...",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "TRƯỞNG PHÒNG",
     "approverName": "Hoàng Anh Sơn",
-    "managedUnits": [
-      "Thanh tra tỉnh",
-      "Trung tâm Y tế thành phố Quy Nhơn",
-      "Chi cục Thuế khu vực",
-      "Chi cục Thống kê khu vực",
-      "Trường Chính trị tỉnh Gia Lai",
-      "Thư viện Tỉnh Gia Lai",
-      "Hội Nhà báo Tỉnh Gia Lai",
-      "Hội Chữ thập đỏ Gia Lai"
-    ],
+    "approverTitle": "TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "name": "Hạch toán hoàn thuế GTGT, hoàn trả các khoản thu NSNN; báo cáo tài chính trên TABMIS kiểm tra hoàn thuế",
@@ -637,23 +620,29 @@
         "isNQ57": false,
         "isKey": false
       }
-    ]
+    ],
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [
+      "Thanh tra tỉnh",
+      "Trung tâm Y tế thành phố Quy Nhơn",
+      "Chi cục Thuế khu vực",
+      "Chi cục Thống kê khu vực",
+      "Trường Chính trị tỉnh Gia Lai",
+      "Thư viện Tỉnh Gia Lai",
+      "Hội Nhà báo Tỉnh Gia Lai",
+      "Hội Chữ thập đỏ Gia Lai"
+    ],
+    "name": "Lê Hà Thanh Trúc",
+    "role": "GDV",
+    "specialty": "Hoàn thuế GTGT; vàng kim khí quý đá quý; Kế toán thanh toán LKB; Ngoại tệ & chuyên thu VCB; Lãi phí NHTM; Quản lý Thanh tra tỉnh, Chi cục Thuế...",
+    "title": "Giao dịch viên"
   },
   "mai": {
     "id": "mai",
-    "name": "Huỳnh Thị Thùy Mai",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "title": "Giao dịch viên",
-    "specialty": "Chuyên thu TPBank; Hạch toán kế toán ủy quyền điện nước; Quản lý Khối An ninh (Công an tỉnh, ANĐT, CSĐT, CSCĐ) và Khối Đảng.",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "TRƯỞNG PHÒNG",
     "approverName": "Hoàng Anh Sơn",
-    "managedUnits": [
-      "Khối An ninh: Công an tỉnh Gia Lai, Cơ quan ANĐT, Cơ quan CSĐT, Trung đoàn CSCĐ Nam Trung Bộ, Tiểu đoàn 1",
-      "Khối Đảng: Tỉnh ủy Gia Lai, Đảng ủy UBND tỉnh, Đảng ủy các cơ quan Đảng, Báo Gia Lai, Ban Tổ chức Tỉnh ủy (1072958)…"
-    ],
+    "approverTitle": "TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "name": "Kế toán theo dõi tài khoản tiền gửi chuyên thu NSNN, hoàn thiện chứng từ thu NSNN nhận từ ngân hàng TPBank",
@@ -690,26 +679,23 @@
         "isNQ57": false,
         "isKey": false
       }
-    ]
+    ],
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [
+      "Khối An ninh: Công an tỉnh Gia Lai, Cơ quan ANĐT, Cơ quan CSĐT, Trung đoàn CSCĐ Nam Trung Bộ, Tiểu đoàn 1",
+      "Khối Đảng: Tỉnh ủy Gia Lai, Đảng ủy UBND tỉnh, Đảng ủy các cơ quan Đảng, Báo Gia Lai, Ban Tổ chức Tỉnh ủy (1072958)…"
+    ],
+    "name": "Huỳnh Thị Thùy Mai",
+    "role": "GDV",
+    "specialty": "Chuyên thu TPBank; Hạch toán kế toán ủy quyền điện nước; Quản lý Khối An ninh (Công an tỉnh, ANĐT, CSĐT, CSCĐ) và Khối Đảng.",
+    "title": "Giao dịch viên"
   },
   "thao_t": {
     "id": "thao_t",
-    "name": "Trần Thị Thanh Thảo",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "title": "Giao dịch viên",
-    "specialty": "Chuyên thu Agribank, OCB, ACB; BHXH tỉnh trích chuyển NHTM, tính phí lãi BHXH; Quản lý VP UBND tỉnh, VP Đoàn ĐBQH & HĐND, ĐH Quy Nhơn...",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "TRƯỞNG PHÒNG",
     "approverName": "Hoàng Anh Sơn",
-    "managedUnits": [
-      "Văn phòng Ủy ban nhân dân tỉnh và các đơn vị trực thuộc",
-      "Văn phòng Đoàn đại biểu Quốc hội và Hội đồng nhân dân tỉnh",
-      "Đại học Quy Nhơn + Trung tâm",
-      "Trường Cao đẳng Kỹ thuật Công nghệ Quy Nhơn",
-      "Viện Nghiên cứu ứng dụng khoa học và công nghệ"
-    ],
+    "approverTitle": "TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "name": "Kế toán theo dõi tài khoản tiền gửi chuyên thu NSNN, hoàn thiện chứng từ thu NSNN nhận từ Agribank, OCB, ACB",
@@ -746,24 +732,26 @@
         "isNQ57": false,
         "isKey": false
       }
-    ]
+    ],
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [
+      "Văn phòng Ủy ban nhân dân tỉnh và các đơn vị trực thuộc",
+      "Văn phòng Đoàn đại biểu Quốc hội và Hội đồng nhân dân tỉnh",
+      "Đại học Quy Nhơn + Trung tâm",
+      "Trường Cao đẳng Kỹ thuật Công nghệ Quy Nhơn",
+      "Viện Nghiên cứu ứng dụng khoa học và công nghệ"
+    ],
+    "name": "Trần Thị Thanh Thảo",
+    "role": "GDV",
+    "specialty": "Chuyên thu Agribank, OCB, ACB; BHXH tỉnh trích chuyển NHTM, tính phí lãi BHXH; Quản lý VP UBND tỉnh, VP Đoàn ĐBQH & HĐND, ĐH Quy Nhơn...",
+    "title": "Giao dịch viên"
   },
   "my": {
     "id": "my",
-    "name": "Đặng Thị Thảo My",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "title": "Giao dịch viên",
-    "specialty": "Chuyên thu VPBank, Eximbank; Bảo quản chứng từ KT phòng; Xử phạt VPHC chi TX; Quản lý Sở GD&ĐT, 07 Trường THPT, Khối Quốc phòng.",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "TRƯỞNG PHÒNG",
     "approverName": "Hoàng Anh Sơn",
-    "managedUnits": [
-      "Sở Giáo dục và Đào tạo Gia Lai",
-      "07 Trường THPT: chuyên Lê Quý Đôn, Nguyễn Thái Học, Hùng Vương (1072285), Quốc học, Trần Cao Vân, PTDT Nội trú, Trưng Vương, TT GDTX, Trường Hy vọng",
-      "Khối Quốc phòng: Tỉnh đội, Bệnh viện QY 13, Sư đoàn 31, Cụm kho CK 52, Tiểu đoàn 3, Lữ đoàn VT 655, Hải đoàn 48, Quân Cảng Quy Nhơn, Đồn Biên phòng cửa khẩu"
-    ],
+    "approverTitle": "TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "name": "Kế toán theo dõi tài khoản tiền gửi chuyên thu NSNN, hoàn thiện chứng từ thu NSNN nhận từ VPBank, Eximbank",
@@ -807,26 +795,24 @@
         "isNQ57": false,
         "isKey": false
       }
-    ]
+    ],
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [
+      "Sở Giáo dục và Đào tạo Gia Lai",
+      "07 Trường THPT: chuyên Lê Quý Đôn, Nguyễn Thái Học, Hùng Vương (1072285), Quốc học, Trần Cao Vân, PTDT Nội trú, Trưng Vương, TT GDTX, Trường Hy vọng",
+      "Khối Quốc phòng: Tỉnh đội, Bệnh viện QY 13, Sư đoàn 31, Cụm kho CK 52, Tiểu đoàn 3, Lữ đoàn VT 655, Hải đoàn 48, Quân Cảng Quy Nhơn, Đồn Biên phòng cửa khẩu"
+    ],
+    "name": "Đặng Thị Thảo My",
+    "role": "GDV",
+    "specialty": "Chuyên thu VPBank, Eximbank; Bảo quản chứng từ KT phòng; Xử phạt VPHC chi TX; Quản lý Sở GD&ĐT, 07 Trường THPT, Khối Quốc phòng.",
+    "title": "Giao dịch viên"
   },
   "huong": {
     "id": "huong",
-    "name": "Trần Thị Mai Hương",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "title": "Giao dịch viên",
-    "specialty": "Chuyên thu MB, SHB; Đối chiếu điều chỉnh chứng từ thu Hải quan cảng Quy Nhơn và sau thông quan; Quản lý Sở Tư pháp, UB MTTQ VN tỉnh...",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "TRƯỞNG PHÒNG",
     "approverName": "Hoàng Anh Sơn",
-    "managedUnits": [
-      "Sở Tư pháp tỉnh và các đơn vị trực thuộc (Trung tâm Trợ giúp pháp lý Nhà nước)",
-      "Ủy ban Mặt trận Tổ quốc Việt Nam tỉnh và các đơn vị trực thuộc (Hội Nông dân tỉnh, Tỉnh đoàn)",
-      "Liên hiệp các Hội khoa học và kỹ thuật GL",
-      "Phòng Công chứng số 1",
-      "Phòng Công chứng số 3"
-    ],
+    "approverTitle": "TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "name": "Kế toán theo dõi tài khoản tiền gửi chuyên thu NSNN, hoàn thiện chứng từ thu NSNN nhận từ MB, SHB",
@@ -863,31 +849,26 @@
         "isNQ57": false,
         "isKey": false
       }
-    ]
+    ],
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [
+      "Sở Tư pháp tỉnh và các đơn vị trực thuộc (Trung tâm Trợ giúp pháp lý Nhà nước)",
+      "Ủy ban Mặt trận Tổ quốc Việt Nam tỉnh và các đơn vị trực thuộc (Hội Nông dân tỉnh, Tỉnh đoàn)",
+      "Liên hiệp các Hội khoa học và kỹ thuật GL",
+      "Phòng Công chứng số 1",
+      "Phòng Công chứng số 3"
+    ],
+    "name": "Trần Thị Mai Hương",
+    "role": "GDV",
+    "specialty": "Chuyên thu MB, SHB; Đối chiếu điều chỉnh chứng từ thu Hải quan cảng Quy Nhơn và sau thông quan; Quản lý Sở Tư pháp, UB MTTQ VN tỉnh...",
+    "title": "Giao dịch viên"
   },
   "thuy": {
     "id": "thuy",
-    "name": "Ngô Thị Minh Thúy",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "title": "Giao dịch viên",
-    "specialty": "Thu NSNN, chi trả nợ Chính phủ, chính quyền địa phương, ODA, hoàn thuế GTGT; Quyết toán vốn toàn KV; Thu TCS thuế CS1; Quản lý Sở VHTTDL, Sở KH&CN...",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "TRƯỞNG PHÒNG",
     "approverName": "Hoàng Anh Sơn",
-    "managedUnits": [
-      "Văn phòng Sở Văn hóa Thể thao và Du lịch, Bảo tàng tỉnh (1128264)",
-      "Trung tâm Xúc tiến Du lịch",
-      "Hội Văn học nghệ thuật",
-      "Trung tâm Huấn luyện và Thi đấu thể thao Tỉnh Gia Lai",
-      "Hội Bảo trợ người khuyết tật Gia Lai",
-      "Hội Khuyến học",
-      "Sở Khoa học Công nghệ và các đơn vị trực thuộc (Trung tâm CNTT và TT, Chi cục Tiêu chuẩn Đo lường Chất lượng)",
-      "Trung tâm Thông tin - Ứng dụng KH&CN Gia Lai",
-      "Trung tâm Phân tích và Đo lường Chất lượng Gia Lai",
-      "Trung tâm Khám phá khoa học và Đổi mới sáng tạo"
-    ],
+    "approverTitle": "TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "name": "Hạch toán kế toán thu NSNN, chi trả nợ của Chính phủ, chính quyền địa phương, ghi thu ghi chi vốn ODA, hoàn thuế GTGT",
@@ -931,38 +912,31 @@
         "isNQ57": false,
         "isKey": false
       }
-    ]
+    ],
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [
+      "Văn phòng Sở Văn hóa Thể thao và Du lịch, Bảo tàng tỉnh (1128264)",
+      "Trung tâm Xúc tiến Du lịch",
+      "Hội Văn học nghệ thuật",
+      "Trung tâm Huấn luyện và Thi đấu thể thao Tỉnh Gia Lai",
+      "Hội Bảo trợ người khuyết tật Gia Lai",
+      "Hội Khuyến học",
+      "Sở Khoa học Công nghệ và các đơn vị trực thuộc (Trung tâm CNTT và TT, Chi cục Tiêu chuẩn Đo lường Chất lượng)",
+      "Trung tâm Thông tin - Ứng dụng KH&CN Gia Lai",
+      "Trung tâm Phân tích và Đo lường Chất lượng Gia Lai",
+      "Trung tâm Khám phá khoa học và Đổi mới sáng tạo"
+    ],
+    "name": "Ngô Thị Minh Thúy",
+    "role": "GDV",
+    "specialty": "Thu NSNN, chi trả nợ Chính phủ, chính quyền địa phương, ODA, hoàn thuế GTGT; Quyết toán vốn toàn KV; Thu TCS thuế CS1; Quản lý Sở VHTTDL, Sở KH&CN...",
+    "title": "Giao dịch viên"
   },
   "quynh": {
     "id": "quynh",
-    "name": "Nguyễn Như Quỳnh",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "title": "Giao dịch viên",
-    "specialty": "TTLNH (tài khoản sai lầm, trung gian TTLNH); Tổng hợp BC CTMTQG; Chi hỗ trợ ngư dân; Thanh toán song phương BIDV, VCB; Quản lý Sở Ngoại vụ, THADS...",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "TRƯỞNG PHÒNG",
     "approverName": "Hoàng Anh Sơn",
-    "managedUnits": [
-      "Sở Ngoại vụ Tỉnh Gia Lai (1114151)",
-      "Trường Cao đẳng Y tế",
-      "Hội Nhà báo",
-      "Hội Cựu thanh niên xung phong",
-      "Trung tâm Võ cổ truyền",
-      "Ban Đại diện Hội Người cao tuổi",
-      "Hội Nạn nhân chất độc da cam",
-      "Hội Cựu tù chính trị yêu nước",
-      "Trung tâm Văn hóa Gia Lai (1128346)",
-      "Liên hiệp các tổ chức hữu nghị Gia Lai",
-      "Nhà hát nghệ thuật truyền thống",
-      "Hội Luật gia",
-      "Hội Đông y",
-      "Hội Người mù",
-      "Hội Bảo trợ bệnh nhân nghèo",
-      "Hội Làm vườn",
-      "Chi cục Thi hành án dân sự khu vực"
-    ],
+    "approverTitle": "TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "name": "Kế toán thanh toán liên ngân hàng; Quản lý và kiểm tra theo dõi, đôn đốc xử lý các tài khoản sai lầm trong thanh toán, tài khoản trung gian",
@@ -1006,26 +980,38 @@
         "isNQ57": false,
         "isKey": false
       }
-    ]
+    ],
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [
+      "Sở Ngoại vụ Tỉnh Gia Lai (1114151)",
+      "Trường Cao đẳng Y tế",
+      "Hội Nhà báo",
+      "Hội Cựu thanh niên xung phong",
+      "Trung tâm Võ cổ truyền",
+      "Ban Đại diện Hội Người cao tuổi",
+      "Hội Nạn nhân chất độc da cam",
+      "Hội Cựu tù chính trị yêu nước",
+      "Trung tâm Văn hóa Gia Lai (1128346)",
+      "Liên hiệp các tổ chức hữu nghị Gia Lai",
+      "Nhà hát nghệ thuật truyền thống",
+      "Hội Luật gia",
+      "Hội Đông y",
+      "Hội Người mù",
+      "Hội Bảo trợ bệnh nhân nghèo",
+      "Hội Làm vườn",
+      "Chi cục Thi hành án dân sự khu vực"
+    ],
+    "name": "Nguyễn Như Quỳnh",
+    "role": "GDV",
+    "specialty": "TTLNH (tài khoản sai lầm, trung gian TTLNH); Tổng hợp BC CTMTQG; Chi hỗ trợ ngư dân; Thanh toán song phương BIDV, VCB; Quản lý Sở Ngoại vụ, THADS...",
+    "title": "Giao dịch viên"
   },
   "nam": {
     "id": "nam",
-    "name": "Nguyễn Thị Tấn Nam",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "title": "Giao dịch viên",
-    "specialty": "Chuyên thu Vietinbank Bình Định; Quản lý Viện KHKT Nông nghiệp duyên hải Nam Trung Bộ, CĐ Cơ điện XD&NL, Sở Công thương, QLTT, TT GDTX, KBNN KV XV.",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "TRƯỞNG PHÒNG",
     "approverName": "Hoàng Anh Sơn",
-    "managedUnits": [
-      "Viện Khoa học kỹ thuật nông nghiệp duyên hải Nam Trung Bộ (1053510)",
-      "Trường Cao đẳng Cơ điện - Xây dựng và Nông lâm Trung Bộ (1053200)",
-      "Văn phòng Sở Công thương tỉnh, Trung tâm Xúc tiến Thương mại, Chi cục Quản lý thị trường tỉnh Gia Lai (1071370)",
-      "Trung tâm Giáo dục thường xuyên Gia Lai",
-      "Kho bạc Nhà nước khu vực XV"
-    ],
+    "approverTitle": "TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "name": "Kế toán theo dõi tài khoản tiền gửi chuyên thu NSNN, hoàn thiện chứng từ thu NSNN nhận từ ngân hàng Công thương Bình Định",
@@ -1062,29 +1048,26 @@
         "isNQ57": false,
         "isKey": false
       }
-    ]
+    ],
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [
+      "Viện Khoa học kỹ thuật nông nghiệp duyên hải Nam Trung Bộ (1053510)",
+      "Trường Cao đẳng Cơ điện - Xây dựng và Nông lâm Trung Bộ (1053200)",
+      "Văn phòng Sở Công thương tỉnh, Trung tâm Xúc tiến Thương mại, Chi cục Quản lý thị trường tỉnh Gia Lai (1071370)",
+      "Trung tâm Giáo dục thường xuyên Gia Lai",
+      "Kho bạc Nhà nước khu vực XV"
+    ],
+    "name": "Nguyễn Thị Tấn Nam",
+    "role": "GDV",
+    "specialty": "Chuyên thu Vietinbank Bình Định; Quản lý Viện KHKT Nông nghiệp duyên hải Nam Trung Bộ, CĐ Cơ điện XD&NL, Sở Công thương, QLTT, TT GDTX, KBNN KV XV.",
+    "title": "Giao dịch viên"
   },
   "thao_p": {
     "id": "thao_p",
-    "name": "Thân Thị Phương Thảo",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "title": "Giao dịch viên",
-    "specialty": "Báo cáo chất lượng KSC, CCHC; Giám sát từ xa KSC và KTTT; Báo cáo tiết kiệm chống lãng phí CV 3542; Giám sát DVCTT; Quản lý Sở Xây dựng, BV Đa khoa tỉnh...",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "TRƯỞNG PHÒNG",
     "approverName": "Hoàng Anh Sơn",
-    "managedUnits": [
-      "Sở Xây dựng tỉnh và các đơn vị trực thuộc (Trung tâm Đăng kiểm phương tiện thủy, bộ Bình Định)",
-      "Bệnh viện Đa khoa tỉnh",
-      "Chi cục Kiểm dịch thực vật vùng 4",
-      "Trung tâm NC và PT chăn nuôi Miền Trung",
-      "Phân Viện Điều tra Quy hoạch rừng Nam Trung Bộ và Tây Nguyên",
-      "Viện Kiểm sát Nhân dân tỉnh",
-      "Tòa án Nhân dân tỉnh",
-      "Tòa án khu vực số 1 - Gia Lai"
-    ],
+    "approverTitle": "TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "name": "Lập báo cáo chất lượng kiểm soát chi, cải cách thủ tục hành chính",
@@ -1128,20 +1111,29 @@
         "isNQ57": false,
         "isKey": false
       }
-    ]
+    ],
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [
+      "Sở Xây dựng tỉnh và các đơn vị trực thuộc (Trung tâm Đăng kiểm phương tiện thủy, bộ Bình Định)",
+      "Bệnh viện Đa khoa tỉnh",
+      "Chi cục Kiểm dịch thực vật vùng 4",
+      "Trung tâm NC và PT chăn nuôi Miền Trung",
+      "Phân Viện Điều tra Quy hoạch rừng Nam Trung Bộ và Tây Nguyên",
+      "Viện Kiểm sát Nhân dân tỉnh",
+      "Tòa án Nhân dân tỉnh",
+      "Tòa án khu vực số 1 - Gia Lai"
+    ],
+    "name": "Thân Thị Phương Thảo",
+    "role": "GDV",
+    "specialty": "Báo cáo chất lượng KSC, CCHC; Giám sát từ xa KSC và KTTT; Báo cáo tiết kiệm chống lãng phí CV 3542; Giám sát DVCTT; Quản lý Sở Xây dựng, BV Đa khoa tỉnh...",
+    "title": "Giao dịch viên"
   },
   "vui": {
     "id": "vui",
-    "name": "Phan Thị Kim Vui",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "title": "Giao dịch viên - Thủ kho",
-    "specialty": "Thủ kho, thành viên BQL Kho tiền; Quản lý tiền mặt tại quỹ, tài sản quý, xuất nhập kho quỹ; Chi tiền mặt tại quầy giao dịch; Bảng kê tồn quỹ cuối ngày S2-02; Văn thư phòng.",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "TRƯỞNG PHÒNG",
     "approverName": "Hoàng Anh Sơn",
-    "managedUnits": [],
+    "approverTitle": "TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "name": "Quản lý tiền mặt tại quỹ, tài sản quý trong kho tiền; thực hiện xuất nhập kho tiền; báo cáo lĩnh vực kho quỹ",
@@ -1192,21 +1184,20 @@
         "isNQ57": false,
         "isKey": false
       }
-    ]
+    ],
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [],
+    "name": "Phan Thị Kim Vui",
+    "role": "GDV",
+    "specialty": "Thủ kho, thành viên BQL Kho tiền; Quản lý tiền mặt tại quỹ, tài sản quý, xuất nhập kho quỹ; Chi tiền mặt tại quầy giao dịch; Bảng kê tồn quỹ cuối ngày S2-02; Văn thư phòng.",
+    "title": "Giao dịch viên - Thủ kho"
   },
   "qn_trung": {
     "id": "qn_trung",
-    "name": "Phan Quang Trung",
-    "role": "PTP",
-    "group": "Lãnh đạo phòng",
-    "department": "Quảng Ngãi",
-    "title": "Phó Trưởng phòng phụ trách bộ phận KTNN tại Quảng Ngãi",
-    "specialty": "Quản lý chung Bộ phận Quảng Ngãi; Lập BCTC, CTMTQG, thu chi NSNN tỉnh; KSC & duyệt chứng từ luồng GDV: Hùng, Phương, Ánh, Trang, Tâm, Liên, Thuỳ, Thuỷ và TAMIS, ANQP.",
-    "isLeader": true,
-    "isKPIAggregator": false,
-    "approverTitle": "TRƯỞNG PHÒNG",
     "approverName": "Hoàng Anh Sơn",
-    "managedUnits": [],
+    "approverTitle": "TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "id": "Q3-AI-01",
@@ -1451,21 +1442,21 @@
         "isKey": false,
         "isNQ57": false
       }
-    ]
+    ],
+    "department": "Quảng Ngãi",
+    "group": "Lãnh đạo phòng",
+    "isKPIAggregator": false,
+    "isLeader": true,
+    "managedUnits": [],
+    "name": "Phan Quang Trung",
+    "role": "PTP",
+    "specialty": "Quản lý chung Bộ phận Quảng Ngãi; Lập BCTC, CTMTQG, thu chi NSNN tỉnh; KSC & duyệt chứng từ luồng GDV: Hùng, Phương, Ánh, Trang, Tâm, Liên, Thuỳ, Thuỷ và TAMIS, ANQP.",
+    "title": "Phó Trưởng phòng phụ trách bộ phận KTNN tại Quảng Ngãi"
   },
   "qn_phuong_tp": {
     "id": "qn_phuong_tp",
-    "name": "Tạ Thị Thanh Phương",
-    "role": "PTP",
-    "group": "Lãnh đạo phòng",
-    "department": "Quảng Ngãi",
-    "title": "Phó Trưởng phòng",
-    "specialty": "Lưu trữ, TCCB, thi đua khen thưởng, đánh giá xếp loại CBCC; ISO 9001; Kiểm tra LNH, TTSPĐT, LKB; Quản lý thu NSNN; Cấp mã QHNS đầu 9; KSC & duyệt chứng từ luồng GDV: Nghĩa, Nga, Quyên, Tuyền, Thảo.",
-    "isLeader": true,
-    "isKPIAggregator": false,
-    "approverTitle": "TRƯỞNG PHÒNG",
     "approverName": "Hoàng Anh Sơn",
-    "managedUnits": [],
+    "approverTitle": "TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "id": "Q3-AI-01",
@@ -1710,21 +1701,21 @@
         "isKey": false,
         "isNQ57": false
       }
-    ]
+    ],
+    "department": "Quảng Ngãi",
+    "group": "Lãnh đạo phòng",
+    "isKPIAggregator": false,
+    "isLeader": true,
+    "managedUnits": [],
+    "name": "Tạ Thị Thanh Phương",
+    "role": "PTP",
+    "specialty": "Lưu trữ, TCCB, thi đua khen thưởng, đánh giá xếp loại CBCC; ISO 9001; Kiểm tra LNH, TTSPĐT, LKB; Quản lý thu NSNN; Cấp mã QHNS đầu 9; KSC & duyệt chứng từ luồng GDV: Nghĩa, Nga, Quyên, Tuyền, Thảo.",
+    "title": "Phó Trưởng phòng"
   },
   "qn_hung": {
     "id": "qn_hung",
-    "name": "Nguyễn Nguyên Hùng",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "department": "Quảng Ngãi",
-    "title": "Giao dịch viên - Kế toán tổng hợp",
-    "specialty": "Kế toán tổng hợp; BC cân đối toàn tỉnh, đối chiếu Cổng TKT; Kế toán chi hỗ trợ, lệnh chi tiền, chi chuyển giao NS tỉnh; Kế toán tạm ứng KBNN, viện trợ; BC thu chi ngày 23 hàng tháng.",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "approverName": "Phan Quang Trung",
-    "managedUnits": [],
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "id": "Q3-AI-01",
@@ -1969,21 +1960,21 @@
         "isKey": false,
         "isNQ57": false
       }
-    ]
+    ],
+    "department": "Quảng Ngãi",
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [],
+    "name": "Nguyễn Nguyên Hùng",
+    "role": "GDV",
+    "specialty": "Kế toán tổng hợp; BC cân đối toàn tỉnh, đối chiếu Cổng TKT; Kế toán chi hỗ trợ, lệnh chi tiền, chi chuyển giao NS tỉnh; Kế toán tạm ứng KBNN, viện trợ; BC thu chi ngày 23 hàng tháng.",
+    "title": "Giao dịch viên - Kế toán tổng hợp"
   },
   "qn_phuong_lan": {
     "id": "qn_phuong_lan",
-    "name": "Nguyễn Thị Lan Phương",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "department": "Quảng Ngãi",
-    "title": "Giao dịch viên",
-    "specialty": "Báo cáo chi thường xuyên vốn sự nghiệp CTMTQG Giảm nghèo bền vững và Tổng hợp báo cáo vốn sự nghiệp 03 CTMTQG; Quản lý KSC đơn vị.",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "approverName": "Phan Quang Trung",
-    "managedUnits": [],
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "id": "Q3-AI-01",
@@ -2228,21 +2219,21 @@
         "isKey": false,
         "isNQ57": false
       }
-    ]
+    ],
+    "department": "Quảng Ngãi",
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [],
+    "name": "Nguyễn Thị Lan Phương",
+    "role": "GDV",
+    "specialty": "Báo cáo chi thường xuyên vốn sự nghiệp CTMTQG Giảm nghèo bền vững và Tổng hợp báo cáo vốn sự nghiệp 03 CTMTQG; Quản lý KSC đơn vị.",
+    "title": "Giao dịch viên"
   },
   "qn_minh": {
     "id": "qn_minh",
-    "name": "Huỳnh Thị Thảo Minh",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "department": "Quảng Ngãi",
-    "title": "Giao dịch viên",
-    "specialty": "Kế toán và kiểm soát chi theo phân công.",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "approverName": "Phan Quang Trung",
-    "managedUnits": [],
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "id": "Q3-AI-01",
@@ -2487,21 +2478,21 @@
         "isKey": false,
         "isNQ57": false
       }
-    ]
+    ],
+    "department": "Quảng Ngãi",
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [],
+    "name": "Huỳnh Thị Thảo Minh",
+    "role": "GDV",
+    "specialty": "Kế toán và kiểm soát chi theo phân công.",
+    "title": "Giao dịch viên"
   },
   "qn_anh": {
     "id": "qn_anh",
-    "name": "Lê Thị Bảo Ánh",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "department": "Quảng Ngãi",
-    "title": "Giao dịch viên",
-    "specialty": "Kế toán TTSPĐT (B7-57/KB/TTSPĐT); TK sai lầm 3938; Cấp mã QHNS đầu 9; Báo cáo nhanh thu chi NSNN tồn quỹ hàng ngày; Tài chính nội bộ.",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "approverName": "Phan Quang Trung",
-    "managedUnits": [],
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "id": "Q3-AI-01",
@@ -2746,21 +2737,21 @@
         "isKey": false,
         "isNQ57": false
       }
-    ]
+    ],
+    "department": "Quảng Ngãi",
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [],
+    "name": "Lê Thị Bảo Ánh",
+    "role": "GDV",
+    "specialty": "Kế toán TTSPĐT (B7-57/KB/TTSPĐT); TK sai lầm 3938; Cấp mã QHNS đầu 9; Báo cáo nhanh thu chi NSNN tồn quỹ hàng ngày; Tài chính nội bộ.",
+    "title": "Giao dịch viên"
   },
   "qn_trang": {
     "id": "qn_trang",
-    "name": "Nguyễn Thị Thu Trang",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "department": "Quảng Ngãi",
-    "title": "Giao dịch viên - Thủ kho tiền",
-    "specialty": "Thủ kho tiền, tổng hợp các báo cáo liên quan đến công tác kho quỹ; Kế toán hoàn thuế do Thuế tỉnh gửi; TK chuyên thu BHXH (TK 3743); Báo cáo xử phạt VPHC lĩnh vực Kế toán.",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "approverName": "Phan Quang Trung",
-    "managedUnits": [],
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "id": "Q3-AI-01",
@@ -3005,21 +2996,21 @@
         "isKey": false,
         "isNQ57": false
       }
-    ]
+    ],
+    "department": "Quảng Ngãi",
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [],
+    "name": "Nguyễn Thị Thu Trang",
+    "role": "GDV",
+    "specialty": "Thủ kho tiền, tổng hợp các báo cáo liên quan đến công tác kho quỹ; Kế toán hoàn thuế do Thuế tỉnh gửi; TK chuyên thu BHXH (TK 3743); Báo cáo xử phạt VPHC lĩnh vực Kế toán.",
+    "title": "Giao dịch viên - Thủ kho tiền"
   },
   "qn_tam": {
     "id": "qn_tam",
-    "name": "Trần Thị Thanh Tâm",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "department": "Quảng Ngãi",
-    "title": "Giao dịch viên",
-    "specialty": "Kế toán chi thường xuyên; Theo dõi xử lý TK trung gian 3392 (Hùng hướng dẫn); Hướng dẫn nghiệp vụ kho quỹ.",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "approverName": "Phan Quang Trung",
-    "managedUnits": [],
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "id": "Q3-AI-01",
@@ -3264,21 +3255,21 @@
         "isKey": false,
         "isNQ57": false
       }
-    ]
+    ],
+    "department": "Quảng Ngãi",
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [],
+    "name": "Trần Thị Thanh Tâm",
+    "role": "GDV",
+    "specialty": "Kế toán chi thường xuyên; Theo dõi xử lý TK trung gian 3392 (Hùng hướng dẫn); Hướng dẫn nghiệp vụ kho quỹ.",
+    "title": "Giao dịch viên"
   },
   "qn_lien": {
     "id": "qn_lien",
-    "name": "Trương Thùy Liên",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "department": "Quảng Ngãi",
-    "title": "Giao dịch viên",
-    "specialty": "BC chi vốn sự nghiệp CTMTQG Nông thôn mới; Kế toán chi trả nợ gốc, lãi vay, thanh toán công trái, tín phiếu, trái phiếu; Chi thường xuyên.",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "approverName": "Phan Quang Trung",
-    "managedUnits": [],
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "id": "Q3-AI-01",
@@ -3523,21 +3514,21 @@
         "isKey": false,
         "isNQ57": false
       }
-    ]
+    ],
+    "department": "Quảng Ngãi",
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [],
+    "name": "Trương Thùy Liên",
+    "role": "GDV",
+    "specialty": "BC chi vốn sự nghiệp CTMTQG Nông thôn mới; Kế toán chi trả nợ gốc, lãi vay, thanh toán công trái, tín phiếu, trái phiếu; Chi thường xuyên.",
+    "title": "Giao dịch viên"
   },
   "qn_thuy_bich": {
     "id": "qn_thuy_bich",
-    "name": "Nguyễn Thị Bích Thuỳ",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "department": "Quảng Ngãi",
-    "title": "Giao dịch viên",
-    "specialty": "Báo cáo B5-03, báo cáo chi NSNN của Phòng KTNN; Chi thường xuyên; Hướng dẫn TK 3933.",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "approverName": "Phan Quang Trung",
-    "managedUnits": [],
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "id": "Q3-AI-01",
@@ -3782,21 +3773,21 @@
         "isKey": false,
         "isNQ57": false
       }
-    ]
+    ],
+    "department": "Quảng Ngãi",
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [],
+    "name": "Nguyễn Thị Bích Thuỳ",
+    "role": "GDV",
+    "specialty": "Báo cáo B5-03, báo cáo chi NSNN của Phòng KTNN; Chi thường xuyên; Hướng dẫn TK 3933.",
+    "title": "Giao dịch viên"
   },
   "qn_thuy_le": {
     "id": "qn_thuy_le",
-    "name": "Võ Thị Lệ Thuỷ",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "department": "Quảng Ngãi",
-    "title": "Giao dịch viên",
-    "specialty": "Hành chính, văn thư, lưu trữ của Phòng; Kế toán Liên kho bạc; Báo cáo công tác cải cách hành chính, TTHC (lĩnh vực kế toán); In, lưu trữ Bảng thanh toán tự động điện, nước, viễn thông.",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "approverName": "Phan Quang Trung",
-    "managedUnits": [],
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "id": "Q3-AI-01",
@@ -4041,21 +4032,21 @@
         "isKey": false,
         "isNQ57": false
       }
-    ]
+    ],
+    "department": "Quảng Ngãi",
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [],
+    "name": "Võ Thị Lệ Thuỷ",
+    "role": "GDV",
+    "specialty": "Hành chính, văn thư, lưu trữ của Phòng; Kế toán Liên kho bạc; Báo cáo công tác cải cách hành chính, TTHC (lĩnh vực kế toán); In, lưu trữ Bảng thanh toán tự động điện, nước, viễn thông.",
+    "title": "Giao dịch viên"
   },
   "qn_nghia": {
     "id": "qn_nghia",
-    "name": "Nguyễn Hoàng Nghĩa",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "department": "Quảng Ngãi",
-    "title": "Giao dịch viên",
-    "specialty": "Lập, in và đóng sổ chi tiết các tài khoản tiền gửi; Quản lý KSC đơn vị được phân công.",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "approverName": "Tạ Thị Thanh Phương",
-    "managedUnits": [],
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "id": "Q3-AI-01",
@@ -4300,21 +4291,21 @@
         "isKey": false,
         "isNQ57": false
       }
-    ]
+    ],
+    "department": "Quảng Ngãi",
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [],
+    "name": "Nguyễn Hoàng Nghĩa",
+    "role": "GDV",
+    "specialty": "Lập, in và đóng sổ chi tiết các tài khoản tiền gửi; Quản lý KSC đơn vị được phân công.",
+    "title": "Giao dịch viên"
   },
   "qn_quyen": {
     "id": "qn_quyen",
-    "name": "Lê Thị Quyên",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "department": "Quảng Ngãi",
-    "title": "Giao dịch viên",
-    "specialty": "Thực hiện các nghiệp vụ tổng hợp số liệu, lập BCTC, BC quản trị; B2-02, thu NSNN toàn tỉnh; Tổng hợp báo cáo thu chi; Quyết toán NSNN năm; TK trung gian 3969.",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "approverName": "Tạ Thị Thanh Phương",
-    "managedUnits": [],
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "id": "Q3-AI-01",
@@ -4559,21 +4550,21 @@
         "isKey": false,
         "isNQ57": false
       }
-    ]
+    ],
+    "department": "Quảng Ngãi",
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [],
+    "name": "Lê Thị Quyên",
+    "role": "GDV",
+    "specialty": "Thực hiện các nghiệp vụ tổng hợp số liệu, lập BCTC, BC quản trị; B2-02, thu NSNN toàn tỉnh; Tổng hợp báo cáo thu chi; Quyết toán NSNN năm; TK trung gian 3969.",
+    "title": "Giao dịch viên"
   },
   "qn_tuyen": {
     "id": "qn_tuyen",
-    "name": "Lê Thị Thanh Tuyền",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "department": "Quảng Ngãi",
-    "title": "Giao dịch viên",
-    "specialty": "Tiếp nhận hạch toán thu NSNN từ NHTM, lập báo cáo thu NSNN; B2-02 thu NSNN phòng; TK trung gian 3391, 3591, 3999; Đôn đốc TK tạm thu, tạm giữ.",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "approverName": "Tạ Thị Thanh Phương",
-    "managedUnits": [],
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "id": "Q3-AI-01",
@@ -4818,21 +4809,21 @@
         "isKey": false,
         "isNQ57": false
       }
-    ]
+    ],
+    "department": "Quảng Ngãi",
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [],
+    "name": "Lê Thị Thanh Tuyền",
+    "role": "GDV",
+    "specialty": "Tiếp nhận hạch toán thu NSNN từ NHTM, lập báo cáo thu NSNN; B2-02 thu NSNN phòng; TK trung gian 3391, 3591, 3999; Đôn đốc TK tạm thu, tạm giữ.",
+    "title": "Giao dịch viên"
   },
   "qn_nga": {
     "id": "qn_nga",
-    "name": "Phan Nữ Quỳnh Nga",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "department": "Quảng Ngãi",
-    "title": "Giao dịch viên",
-    "specialty": "Kế toán điều chỉnh thu NSNN (NV2 chuyển sang); TK trung gian 3398; Báo cáo giám sát TTHC chi NSNN qua DVCTT & thanh toán trùng (CV 1010, 5105).",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "approverName": "Tạ Thị Thanh Phương",
-    "managedUnits": [],
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "id": "Q3-AI-01",
@@ -5077,21 +5068,21 @@
         "isKey": false,
         "isNQ57": false
       }
-    ]
+    ],
+    "department": "Quảng Ngãi",
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [],
+    "name": "Phan Nữ Quỳnh Nga",
+    "role": "GDV",
+    "specialty": "Kế toán điều chỉnh thu NSNN (NV2 chuyển sang); TK trung gian 3398; Báo cáo giám sát TTHC chi NSNN qua DVCTT & thanh toán trùng (CV 1010, 5105).",
+    "title": "Giao dịch viên"
   },
   "qn_thao": {
     "id": "qn_thao",
-    "name": "Nguyễn Thị Thanh Thảo",
-    "role": "GDV",
-    "group": "Giao dịch viên",
-    "department": "Quảng Ngãi",
-    "title": "Giao dịch viên",
-    "specialty": "Kế toán thanh toán LNH; TK trung gian 3933; Chuyển số thu phí, lãi về KBNN KV XV (1339, 3999); BC chi vốn SN CTMTQG DTTS và miền núi.",
-    "isLeader": false,
-    "isKPIAggregator": false,
-    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "approverName": "Tạ Thị Thanh Phương",
-    "managedUnits": [],
+    "approverTitle": "PHÓ TRƯỞNG PHÒNG",
     "defaultPlan": [
       {
         "id": "Q3-AI-01",
@@ -5336,6 +5327,15 @@
         "isKey": false,
         "isNQ57": false
       }
-    ]
+    ],
+    "department": "Quảng Ngãi",
+    "group": "Giao dịch viên",
+    "isKPIAggregator": false,
+    "isLeader": false,
+    "managedUnits": [],
+    "name": "Nguyễn Thị Thanh Thảo",
+    "role": "GDV",
+    "specialty": "Kế toán thanh toán LNH; TK trung gian 3933; Chuyển số thu phí, lãi về KBNN KV XV (1339, 3999); BC chi vốn SN CTMTQG DTTS và miền núi.",
+    "title": "Giao dịch viên"
   }
 }

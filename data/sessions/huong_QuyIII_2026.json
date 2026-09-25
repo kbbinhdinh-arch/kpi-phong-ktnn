@@ -23993,8 +23993,8 @@
   "quarterFilterActiveOnly": true,
   "selfRatingNote": "",
   "leaderRatingProposal": "",
-  "status": "da_nop",
-  "lastSaved": "2026-09-21T07:10:10.044Z",
+  "status": "tra_lai",
+  "lastSaved": "2026-09-25T01:34:25.885Z",
   "quartersData": {
     "Quý III": [
       {
@@ -47148,11 +47148,15 @@
     ]
   },
   "activeTab": "tab-monthly",
-  "isSubmitted": true,
+  "isSubmitted": false,
   "submittedAt": "2026-09-21T07:10:02.585Z",
   "activeQuarterSubTab": "tab-plan",
   "activeMonthlySubTab": "tab-monthly",
   "proposedRating": "Hoàn thành tốt nhiệm vụ",
   "monthlyCategoryFilter": "ALL",
-  "monthlySearchTerm": ""
+  "monthlySearchTerm": "",
+  "isApproved": false,
+  "rejectedAt": "2026-09-25T01:34:25.885Z",
+  "rejectedBy": "hoang",
+  "rejectReason": "Yêu cầu rà soát, giải trình lại số lượng và lỗi chất lượng."
 }

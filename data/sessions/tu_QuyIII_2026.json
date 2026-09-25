@@ -8537,7 +8537,7 @@
           "isTask": true,
           "stt": "1.5",
           "nhiemvu": "Xây dựng quy định, quy chế, kế hoạch, công văn hướng dẫn",
-          "congviec": "Dự th��o Quy chế, Chương trình/Kế hoạch, Nghị quyết, Văn bản hướng dẫn",
+          "congviec": "Dự thảo Quy chế, Chương trình/Kế hoạch, Nghị quyết, Văn bản hướng dẫn",
           "sp_daura": "Dự thảo",
           "sp_chitiet": "Dự thảo",
           "diem_tc": 50,
@@ -24422,7 +24422,7 @@
       "progressPct": 100
     }
   ],
-  "filterActiveOnly": true,
+  "filterActiveOnly": false,
   "activeMonthIdx": 0,
   "unitCompletionPercent": 100,
   "generalCriteria": {
@@ -24442,8 +24442,8 @@
   "quarterFilterActiveOnly": true,
   "selfRatingNote": "",
   "leaderRatingProposal": "",
-  "status": "da_nop",
-  "lastSaved": "2026-09-21T02:24:19.065Z",
+  "status": "tra_lai",
+  "lastSaved": "2026-09-25T01:33:48.961Z",
   "quartersData": {
     "Quý III": [
       {
@@ -24995,7 +24995,7 @@
             "isLevel2": false,
             "isTask": true,
             "stt": "1.7",
-            "nhiemvu": "Xây dựng quy định, quy chế, kế hoạch, công văn hướng dẫn",
+            "nhiemvu": "Xây dựng quy định, quy chế, kế hoạch, công văn hư���ng dẫn",
             "congviec": "Tổng hợp ý kiến của các đơn vị tại cuộc họp",
             "sp_daura": "Bảng tổng hợp",
             "sp_chitiet": "Bảng tổng hợp",
@@ -45865,7 +45865,7 @@
             "nhiemvu": "Xây dựng và phê duyệt Kế hoạch kiểm tra",
             "congviec": "Phát hành văn bản",
             "sp_daura": "Văn bản",
-            "sp_chitiet": "Văn bản",
+            "sp_chitiet": "Văn b��n",
             "diem_tc": 10,
             "diem_thang_chua_hs": 0,
             "diem_thang_da_hs": 0,
@@ -48549,10 +48549,15 @@
     ]
   },
   "activeTab": "tab-monthly",
-  "isSubmitted": true,
+  "isSubmitted": false,
   "submittedAt": "2026-09-14T02:02:04.441Z",
   "activeQuarterSubTab": "tab-print-views",
   "activeMonthlySubTab": "tab-monthly",
   "proposedRating": "Hoàn thành tốt nhiệm vụ",
-  "monthlyCategoryFilter": "ALL"
+  "monthlyCategoryFilter": "II.E",
+  "monthlySearchTerm": "",
+  "isApproved": false,
+  "rejectedAt": "2026-09-25T01:33:48.961Z",
+  "rejectedBy": "hoang",
+  "rejectReason": "Yêu cầu rà soát, giải trình lại số lượng và lỗi chất lượng."
 }

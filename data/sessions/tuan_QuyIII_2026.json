@@ -8571,7 +8571,7 @@
           "col_v": "",
           "col_w": "",
           "ghichu": "",
-          "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN M��N NGHIỆP VỤ",
+          "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHI��P VỤ",
           "parent_level2": "A. CÔNG TÁC XÂY DỰNG VĂN BẢN HÀNH CHÍNH",
           "parent_section": "",
           "depth": 10
@@ -14247,7 +14247,7 @@
           "col_w": "",
           "ghichu": "",
           "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHIỆP VỤ",
-          "parent_level2": "C. CÔNG TÁC KIỂM TRA VÀ GIẢI QUYẾT KHIẾU NẠI, T��� CÁO, KIẾN NGHỊ, PHẢN ÁNH",
+          "parent_level2": "C. CÔNG TÁC KIỂM TRA VÀ GIẢI QUYẾT KHIẾU NẠI, TỐ CÁO, KIẾN NGHỊ, PHẢN ÁNH",
           "parent_section": "Phối hợp giải quyết đơn thư, khiếu nại, tố cáo, kiến nghị phản ánh thuộc lĩnh vực được phân công",
           "depth": 10
         },
@@ -24109,21 +24109,21 @@
     "c1": 5,
     "c2": 5,
     "c3": 2.5,
-    "c4": 2.5,
-    "c5": 2.5,
-    "c6": 2.5,
+    "c4": 1,
+    "c5": 2,
+    "c6": 1,
     "c7": 0,
-    "c8": 2.5,
-    "c9": 2.5,
-    "c10": 2.5
+    "c8": 1,
+    "c9": 1,
+    "c10": 1
   },
   "selfAdvantages": "Chấp hành nghiêm kỷ luật kỷ cương, lãnh đạo phòng hoàn thành tốt các nhiệm vụ chuyên môn và trọng tâm trong quý",
   "selfDisadvantages": "Một số báo cáo phối hợp chuyên đề đôi lúc còn gấp về thời gian.",
   "quarterFilterActiveOnly": true,
   "selfRatingNote": "",
   "leaderRatingProposal": "",
-  "status": "da_nop",
-  "lastSaved": "2026-09-21T10:12:04.672Z",
+  "status": "tra_lai",
+  "lastSaved": "2026-09-25T01:57:11.964Z",
   "quartersData": {
     "Quý III": [
       {
@@ -36935,8 +36935,8 @@
             "stt": "1.1.3",
             "nhiemvu": "Xây dựng và phê duyệt Kế hoạch kiểm tra",
             "congviec": "Xin ý kiến các đơn vị có liên quan",
-            "sp_daura": "Văn bản",
-            "sp_chitiet": "Văn bản",
+            "sp_daura": "V����n bản",
+            "sp_chitiet": "V��n bản",
             "diem_tc": 10,
             "diem_thang_chua_hs": 0,
             "diem_thang_da_hs": 0,
@@ -45243,7 +45243,7 @@
             "isTask": true,
             "stt": "1.2.14",
             "nhiemvu": "Tổ chức thực hiện kiểm tra nội bộ theo kế hoạch; kiểm tra đột xuất; tự kiểm tra",
-            "congviec": "Trả lại hồ sơ cho đơn vị được kiểm tra",
+            "congviec": "Tr��� lại hồ sơ cho đơn vị được kiểm tra",
             "sp_daura": "Phiếu giao nhận",
             "sp_chitiet": "Phiếu giao nhận",
             "diem_tc": 10,
@@ -47277,10 +47277,15 @@
     ]
   },
   "activeTab": "tab-print-views",
-  "isSubmitted": true,
+  "isSubmitted": false,
   "submittedAt": "2026-09-21T10:12:04.568Z",
   "activeQuarterSubTab": "tab-print-views",
   "activeMonthlySubTab": "tab-general-crit",
   "proposedRating": "Hoàn thành tốt nhiệm vụ",
-  "monthlyCategoryFilter": "ALL"
+  "monthlyCategoryFilter": "II.B",
+  "printCustomDate": "Gia Lai, ngày 21 tháng 09 năm 2026",
+  "isApproved": false,
+  "rejectedAt": "2026-09-25T01:33:44.151Z",
+  "rejectedBy": "hoang",
+  "rejectReason": "Yêu cầu rà soát, giải trình lại số lượng và lỗi chất lượng."
 }

@@ -18,7 +18,8 @@
       "name": "Quản lý chương trình KQKB, tham gia Ban quản lý kho tiền, kiểm soát tiền mặt cuối ngày, quản lý ấn chỉ và tài sản quý",
       "deadline": "Hằng ngày",
       "isKey": true,
-      "isNQ57": false
+      "isNQ57": false,
+      "resultStatus": "done"
     },
     {
       "id": "GEN-03",
@@ -231,7 +232,8 @@
       "deadline": "31/07/2026",
       "isKey": false,
       "isNQ57": false,
-      "resultProduct": "Công văn số 1254 ngày 31/07/2026"
+      "resultProduct": "Công văn số 1254 ngày 31/07/2026",
+      "resultReason": "TW yêu cầu góp ý trước 26/06/2026, tuy nhiên hệ thống quản lý văn bản bị lỗi không chuyển đến cho phòng KTNN nên đến 31/07/2026 mới xử lý và góp ý "
     },
     {
       "id": "IMP-25",
@@ -578,13 +580,13 @@
           "cl_loi": 0,
           "cl_diem": 0,
           "cl_pct": "",
-          "td_cham": 1,
+          "td_cham": 0,
           "td_diem": 0,
           "td_pct": "",
           "col_u": "",
           "col_v": "",
           "col_w": "",
-          "ghichu": "Do chương trình QLVB lỗi không chuyển đến cho Phòng KTNN biết để góp ý ",
+          "ghichu": "",
           "parent_level1": "I. VỊ TRÍ LÃNH ĐẠO, QUẢN LÝ",
           "parent_level2": "1. Nhiệm vụ được giao trực tiếp thực hiện",
           "parent_section": "",
@@ -2817,7 +2819,7 @@
           "col_v": "",
           "col_w": "",
           "ghichu": "",
-          "parent_level1": "II. VỊ TR�� CÔNG CHỨC CHUYÊN MÔN NGHIỆP VỤ",
+          "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHIỆP VỤ",
           "parent_level2": "B. CÔNG TÁC CHUYÊN MÔN, NGHIỆP VỤ",
           "parent_section": "Công tác Thanh toán liên kho bạc, Thanh toán song phương điện tử, Thanh toán liên ngân hàng",
           "depth": 10
@@ -5722,7 +5724,7 @@
           "col_w": "",
           "ghichu": "",
           "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHIỆP VỤ",
-          "parent_level2": "C. CÔNG TÁC KI��M TRA VÀ GIẢI QUYẾT KHIẾU NẠI, TỐ CÁO, KIẾN NGHỊ, PHẢN ÁNH",
+          "parent_level2": "C. CÔNG TÁC KIỂM TRA VÀ GIẢI QUYẾT KHIẾU NẠI, TỐ CÁO, KIẾN NGHỊ, PHẢN ÁNH",
           "parent_section": "Xây dựng và phê duyệt Kế hoạch kiểm tra",
           "depth": 10
         },
@@ -8334,10 +8336,10 @@
           "depth": 3
         }
       ],
-      "completionPercent": 99.8,
+      "completionPercent": 100,
       "quantityPct": 100,
       "qualityPct": 100,
-      "progressPct": 98.6
+      "progressPct": 100
     },
     {
       "monthNum": 8,
@@ -16728,13 +16730,13 @@
           "cl_loi": 0,
           "cl_diem": 0,
           "cl_pct": "",
-          "td_cham": 1,
+          "td_cham": 0,
           "td_diem": 0,
           "td_pct": "",
           "col_u": "",
           "col_v": "",
           "col_w": "",
-          "ghichu": "Do chương trình QLVB lỗi không chuyển đến cho Phòng KTNN biết để góp ý ",
+          "ghichu": "",
           "parent_level1": "I. VỊ TRÍ LÃNH ĐẠO, QUẢN LÝ",
           "parent_level2": "1. Nhiệm vụ được giao trực tiếp thực hiện",
           "parent_section": "",
@@ -24714,34 +24716,34 @@
           "_isCustomized": false
         }
       ],
-      "completionPercent": 99.9,
+      "completionPercent": 100,
       "quantityPct": 100,
       "qualityPct": 100,
-      "progressPct": 99.4
+      "progressPct": 100
     }
   ],
-  "filterActiveOnly": false,
-  "activeMonthIdx": 0,
+  "filterActiveOnly": true,
+  "activeMonthIdx": 2,
   "unitCompletionPercent": 100,
   "generalCriteria": {
     "c1": 5,
     "c2": 5,
-    "c3": 2.5,
-    "c4": 2,
-    "c5": 2.5,
-    "c6": 2.5,
+    "c3": 1.5,
+    "c4": 0.5,
+    "c5": 1.5,
+    "c6": 1.5,
     "c7": 0,
-    "c8": 2.5,
-    "c9": 2.5,
-    "c10": 2.5
+    "c8": 1,
+    "c9": 1.5,
+    "c10": 1
   },
   "selfAdvantages": "Chấp hành nghiêm kỷ luật kỷ cương, lãnh đạo phòng hoàn thành tốt các nhiệm vụ chuyên môn và trọng tâm trong quý; chủ động triển khai chuyển đổi số theo Nghị quyết 57-NQ/TW.Chủ động bám sát chủ trương, nghị quyết, quy định ngành để triển khai toàn khu vực. ",
-  "selfDisadvantages": " không ",
+  "selfDisadvantages": "Triển khai chuyển đổi dữ liệu cho các cơ sở giáo dục sáp nhập, các phòng ban xã, phường,các BQLrwngf còn bị động và phụ thuộc vào địa phương.     ",
   "quarterFilterActiveOnly": true,
   "selfRatingNote": "",
   "leaderRatingProposal": "HT xuất sắc NV",
-  "status": "da_nop",
-  "lastSaved": "2026-09-21T09:35:28.549Z",
+  "status": "da_duyet",
+  "lastSaved": "2026-09-25T01:47:15.705Z",
   "quartersData": {
     "Quý III": [
       {
@@ -28067,8 +28069,8 @@
             "stt": "2.2.1",
             "nhiemvu": "Đối chiếu, xác nhận số dư tài khoản",
             "congviec": "Tiếp nhận, kiểm tra đối chiếu",
-            "sp_daura": "Bảng đối chiếu",
-            "sp_chitiet": "31 Bảng đối chiếu",
+            "sp_daura": "Bảng đ���i chiếu",
+            "sp_chitiet": "31 Bảng đ���i chiếu",
             "diem_tc": 10,
             "diem_thang_chua_hs": 310,
             "diem_thang_da_hs": 341,
@@ -28352,7 +28354,7 @@
             "ghichu": "",
             "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHIỆP VỤ",
             "parent_level2": "B. CÔNG TÁC CHUYÊN MÔN, NGHIỆP VỤ",
-            "parent_section": "Rà soát các tài khoản không hoạt động quá thời gian quy đ��nh"
+            "parent_section": "Rà soát các tài khoản không hoạt động quá thời gian quy định"
           },
           {
             "rowIndex": 111,
@@ -39447,7 +39449,7 @@
             "col_v": "",
             "col_w": "",
             "ghichu": "",
-            "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHI��P VỤ",
+            "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHIỆP VỤ",
             "parent_level2": "E. CÔNG TÁC KHÁC",
             "parent_section": ""
           },
@@ -47894,14 +47896,20 @@
       }
     ]
   },
-  "activeTab": "tab-kpi-dash",
+  "activeTab": "tab-department-kpi",
   "isSubmitted": true,
-  "submittedAt": "2026-09-21T08:29:56.630Z",
+  "submittedAt": "2026-09-22T08:00:00.000Z",
   "activeQuarterSubTab": "tab-print-views",
   "activeMonthlySubTab": "tab-monthly",
-  "proposedRating": "Hoàn thành xuất sắc nhiệm vụ",
+  "proposedRating": "Hoàn thành tốt nhiệm vụ",
   "monthlyCategoryFilter": "ALL",
+  "printCustomDate": "Gia Lai, ngày 21  tháng 09 năm 2026",
   "clientMachineId": "CLIENT_PC_25",
   "testTimestamp": 1789368350392,
-  "printCustomDate": "Gia Lai, ngày 21  tháng 09 năm 2026"
+  "isApproved": true,
+  "rejectedAt": "2026-09-25T01:33:41.386Z",
+  "rejectedBy": "hoang",
+  "rejectReason": null,
+  "approvedAt": "2026-09-22T08:00:00.000Z",
+  "approvedBy": "Hoàng Anh Sơn (Trưởng phòng)"
 }

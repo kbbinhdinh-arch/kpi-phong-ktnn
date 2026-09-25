@@ -5492,10 +5492,24 @@ function renderMonthTable24() {
   updateMonthIndicator();
 
     // 🔒 KIỂM TRA TRẠNG THÁI KHÓA & HIỂN THỊ BANNER PHÊ DUYỆT
+    const isOfficerTP = appState.officer && (appState.officer.role === 'TP' || appState.officer.officerId === 'son');
     const isLocked = (appState.status === 'da_nop' || appState.status === 'da_duyet');
     const lockBannerContainer = document.getElementById('approvalStatusBannerContainer');
     if (lockBannerContainer) {
-      if (appState.status === 'da_duyet') {
+      if (isOfficerTP) {
+        lockBannerContainer.innerHTML = `
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 5px solid #2563eb; padding: 10px 16px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 20px;">⭐</span>
+              <div>
+                <strong style="color: #1e3a8a; font-size: 13px;">HỒ SƠ ĐÁNH GIÁ KPI CỦA TRƯỞNG PHÒNG KTNN — TỰ ĐÁNH GIÁ CHÍNH THỨC</strong>
+                <div style="font-size: 11.5px; color: #334155; margin-top: 2px;">Trưởng phòng là cán bộ đứng đầu đơn vị, hồ sơ tự xác nhận chính thức theo thẩm quyền. Cấp trên phê duyệt: Lãnh đạo KBNN Khu vực (không qua phê duyệt nội bộ phòng).</div>
+              </div>
+            </div>
+            <span style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-weight: 800; font-size: 11px; padding: 4px 10px; border-radius: 6px; white-space: nowrap;">⭐ HỒ SƠ CHÍNH THỨC</span>
+          </div>
+        `;
+      } else if (appState.status === 'da_duyet') {
         const approveTime = appState.approvedAt ? new Date(appState.approvedAt).toLocaleDateString('vi-VN') : '';
         lockBannerContainer.innerHTML = `
           <div style="background: #f0fff4; border: 1px solid #9ae6b4; border-left: 5px solid #38a169; padding: 8px 16px; border-radius: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
@@ -5534,8 +5548,9 @@ function renderMonthTable24() {
             const isLdr = (loggedUser === 'son' || loggedUser === 'hoang');
             const curOfficerId = (appState.officer && appState.officer.officerId) || '';
             const isViewingOwn = (curOfficerId === loggedUser);
+            const isTargetTP = (curOfficerId === 'son' || (appState.officer && appState.officer.role === 'TP'));
 
-            if (isLdr && !isViewingOwn) {
+            if (isLdr && !isViewingOwn && !isTargetTP) {
               leaderContainer.innerHTML = `
                 <button type="button" class="btn btn-sm" onclick="approveCurrentOfficerKpi()" style="background: #22543d; color: #fff; font-weight: 700; height: 26px; padding: 0 10px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Phê duyệt kết quả đánh giá KPI của cán bộ này">
                   ✅ Phê duyệt KPI
@@ -7666,9 +7681,17 @@ async function loadDepartmentSummary(showNotification = false, forceRefresh = fa
 
         if (raw) {
           const sess = JSON.parse(raw);
-          item.isSubmitted = !!(sess.isSubmitted || sess.status === 'da_nop');
-          item.submittedAt = sess.submittedAt || null;
-          item.status = item.isSubmitted ? "da_nop" : (sess.status || "da_luu");
+          const isOfficerTP = (off.id === 'son' || off.role === 'TP');
+          if (isOfficerTP) {
+            item.isSubmitted = true;
+            item.isApproved = true;
+            item.status = "da_duyet";
+            item.approvedBy = "Trưởng phòng (Chính thức)";
+          } else {
+            item.isSubmitted = !!(sess.isSubmitted || sess.status === 'da_nop');
+            item.submittedAt = sess.submittedAt || null;
+            item.status = item.isSubmitted ? "da_nop" : (sess.status || "da_luu");
+          }
           item.lastSaved = sess.lastSaved;
 
           if (sess.months && Array.isArray(sess.months) && sess.months.length > 0) {
@@ -7919,7 +7942,10 @@ function renderDeptSummaryTable(officersList) {
     else if (isFail) { badgeBg = '#fed7d7'; badgeColor = '#742a2a'; }
 
     let statusBadge = '<span style="background: #edf2f7; color: #718096; padding: 2px 7px; border-radius: 4px; font-size: 11px; white-space: nowrap;">⚪ Chưa nộp</span>';
-    if (o.status === 'da_duyet') {
+    const isOfficerTP = (o.id === 'son' || o.role === 'TP');
+    if (isOfficerTP) {
+      statusBadge = `<span style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; white-space: nowrap;" title="Hồ sơ tự xác nhận chính thức của Trưởng phòng KTNN - Cấp trên phê duyệt: Lãnh đạo KBNN Khu vực">⭐ Trưởng phòng (Chính thức)</span>`;
+    } else if (o.status === 'da_duyet') {
       statusBadge = `<span style="background: #c6f6d5; color: #22543d; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; white-space: nowrap;" title="Đã được Lãnh đạo phê duyệt chính thức">✅ Đã duyệt</span>`;
     } else if (o.status === 'da_nop' || (o.isSubmitted && o.status !== 'tra_lai')) {
       let timeText = '';
@@ -8012,8 +8038,10 @@ function renderDeptSummaryTable(officersList) {
             const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || 'hoang';
             // PHÂN QUYỀN CHẶT CHẼ: Chỉ có ông Sơn (Trưởng phòng) và ông Hoàng (Phó Trưởng phòng) mới có chức năng duyệt hoặc trả
             const canApproveOrReject = (loggedUser === 'son' || loggedUser === 'hoang');
+            const isTargetTP = (o.id === 'son' || o.role === 'TP');
 
-            if (canApproveOrReject && o.id !== loggedUser) {
+            // Trưởng phòng Hoàng Anh Sơn không chịu sự phê duyệt/trả lại của bất kỳ ai trong phòng!
+            if (canApproveOrReject && o.id !== loggedUser && !isTargetTP) {
               if (o.status === 'da_nop' || (o.isSubmitted && o.status !== 'da_duyet')) {
                 return `
                   <div style="display: flex; gap: 4px; justify-content: center; align-items: center;">
@@ -8093,6 +8121,10 @@ async function quickApproveFromTable(offId) {
     alert('Chỉ có Trưởng phòng (đ/c Hoàng Anh Sơn) và Phó Trưởng phòng (đ/c Trần Quốc Hoàng) mới có thẩm quyền phê duyệt kết quả KPI.');
     return;
   }
+  if (offId === 'son') {
+    alert('Không thể thực hiện! Đồng chí Hoàng Anh Sơn là Trưởng phòng KTNN - Cán bộ đứng đầu đơn vị, hồ sơ tự xác nhận chính thức theo thẩm quyền, không chịu sự phê duyệt trong nội bộ phòng.');
+    return;
+  }
   if (offId === loggedUser) {
     alert('Lãnh đạo không được tự phê duyệt hồ sơ cá nhân của mình.');
     return;
@@ -8146,6 +8178,10 @@ async function quickRejectFromTable(offId) {
   const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || 'hoang';
   if (loggedUser !== 'son' && loggedUser !== 'hoang') {
     alert('Chỉ có Trưởng phòng (đ/c Hoàng Anh Sơn) và Phó Trưởng phòng (đ/c Trần Quốc Hoàng) mới có thẩm quyền trả lại hồ sơ KPI.');
+    return;
+  }
+  if (offId === 'son') {
+    alert('Không thể thực hiện! Đồng chí Hoàng Anh Sơn là Trưởng phòng KTNN - Cán bộ đứng đầu đơn vị, không thể trả lại hồ sơ của Trưởng phòng.');
     return;
   }
   if (offId === loggedUser) {
@@ -9783,13 +9819,24 @@ async function submitKpiForQuarter() {
   const offName = appState.officer.name || 'Cán bộ';
   const q = appState.officer.quarter || 'Quý III';
   const y = appState.officer.year || 2026;
+  const isTP = (offId === 'son' || appState.officer.role === 'TP');
 
-  const confirmMsg = `XÁC NHẬN NỘP BÁO CÁO KPI QUÝ:\n\nĐồng chí có chắc chắn muốn nộp kết quả đánh giá KPI ${q}/${y} của [${offName}] lên Lãnh đạo phòng?\n\nSau khi nộp, bảng tính sẽ được KHÓA CHẾ ĐỘ CHỈ XEM (Read-only) để bảo toàn tính toàn vẹn số liệu cho Lãnh đạo thẩm định.`;
-  if (!confirm(confirmMsg)) return;
+  if (isTP) {
+    if (!confirm(`XÁC NHẬN CHỐT KẾT QUẢ KPI QUÝ:\n\nĐồng chí Hoàng Anh Sơn - Trưởng phòng KTNN có chắc chắn muốn chốt số liệu đánh giá KPI ${q}/${y}?\n\nHồ sơ của Trưởng phòng là hồ sơ chính thức, tự xác nhận theo thẩm quyền và gửi lên Lãnh đạo KBNN Khu vực.`)) return;
+    appState.isSubmitted = true;
+    appState.isApproved = true;
+    appState.status = "da_duyet";
+    appState.approvedBy = "Hoàng Anh Sơn (Trưởng phòng)";
+    appState.approvedAt = new Date().toISOString();
+    appState.submittedAt = new Date().toISOString();
+  } else {
+    const confirmMsg = `XÁC NHẬN NỘP BÁO CÁO KPI QUÝ:\n\nĐồng chí có chắc chắn muốn nộp kết quả đánh giá KPI ${q}/${y} của [${offName}] lên Lãnh đạo phòng?\n\nSau khi nộp, bảng tính sẽ được KHÓA CHẾ ĐỘ CHỈ XEM (Read-only) để bảo toàn tính toàn vẹn số liệu cho Lãnh đạo thẩm định.`;
+    if (!confirm(confirmMsg)) return;
 
-  appState.isSubmitted = true;
-  appState.status = "da_nop";
-  appState.submittedAt = new Date().toISOString();
+    appState.isSubmitted = true;
+    appState.status = "da_nop";
+    appState.submittedAt = new Date().toISOString();
+  }
 
   // Đảm bảo tính toán lại điểm các tháng trước khi nộp
   if (appState.months && Array.isArray(appState.months)) {
@@ -9850,6 +9897,11 @@ async function approveCurrentOfficerKpi() {
   const y = appState.officer.year || 2026;
   const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || 'hoang';
 
+  if (offId === 'son' || (appState.officer && appState.officer.role === 'TP')) {
+    alert('Không thể thực hiện! Đồng chí Hoàng Anh Sơn là Trưởng phòng KTNN - Cán bộ đứng đầu đơn vị, hồ sơ tự xác nhận chính thức theo thẩm quyền, không chịu sự phê duyệt trong nội bộ phòng.');
+    return;
+  }
+
   if (!confirm(`PHÊ DUYỆT KẾT QUẢ KPI QUÝ:\n\nĐồng chí có chắc chắn muốn phê duyệt chính thức kết quả đánh giá của [${offName}] trong ${q}/${y}?\n\nHồ sơ sau khi duyệt sẽ được khóa cứng vĩnh viễn theo quy định.`)) {
     return;
   }
@@ -9894,6 +9946,11 @@ async function promptRejectCurrentOfficerKpi() {
   const q = appState.officer.quarter || 'Quý III';
   const y = appState.officer.year || 2026;
   const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || 'hoang';
+
+  if (offId === 'son' || (appState.officer && appState.officer.role === 'TP')) {
+    alert('Không thể thực hiện! Đồng chí Hoàng Anh Sơn là Trưởng phòng KTNN - Cán bộ đứng đầu đơn vị, không thể trả lại hồ sơ của Trưởng phòng.');
+    return;
+  }
 
   const reason = prompt(`Nhập lý do hoặc yêu cầu chỉnh sửa gửi tới đồng chí [${offName}]:`, 'Yêu cầu rà soát, giải trình lại số lượng và lỗi chất lượng.');
   if (reason === null) return;
@@ -10171,8 +10228,22 @@ function updateUserInterfaceByRole() {
   const btnSubmitKpi = document.getElementById('btnSubmitKpiQuarter');
   const submittedBadge = document.getElementById('submittedStatusBadge');
   const curStatus = appState.status || (appState.isSubmitted ? 'da_nop' : 'da_luu');
+  const isOfficerTP = appState.officer && (appState.officer.role === 'TP' || appState.officer.officerId === 'son');
 
-  if (curStatus === 'tra_lai') {
+  if (isOfficerTP) {
+    // TRƯỞNG PHÒNG HOÀNG ANH SƠN: Không gửi cho người khác duyệt, hồ sơ tự xác nhận chính thức
+    if (btnSubmitKpi) {
+      btnSubmitKpi.style.display = 'none';
+    }
+    if (submittedBadge) {
+      submittedBadge.style.display = 'inline-flex';
+      submittedBadge.style.background = '#eff6ff';
+      submittedBadge.style.color = '#1d4ed8';
+      submittedBadge.style.border = '1px solid #bfdbfe';
+      submittedBadge.innerText = '⭐ Trưởng phòng (Hồ sơ chính thức)';
+      submittedBadge.title = 'Trưởng phòng KTNN tự xác nhận chính thức theo thẩm quyền, không gửi duyệt nội bộ trong phòng.';
+    }
+  } else if (curStatus === 'tra_lai') {
     // 1. BỊ TRẢ LẠI ĐỂ SỬA -> HIỂN THỊ NÚT NỘP LẠI (MÀU CAM NỔI BẬT)
     if (btnSubmitKpi) {
       btnSubmitKpi.style.display = 'inline-flex';
