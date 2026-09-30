@@ -289,6 +289,11 @@ async function connectMongo() {
     await initCloudSeedData();
     await syncOfficerRolesMigration();
   } catch (err) {
+    if (dbClient) {
+      try { dbClient.close(); } catch (e) {}
+      dbClient = null;
+      kpiDb = null;
+    }
     console.warn(`[CHẾ ĐỘ MÁY CHỦ NỘI BỘ] Không thể kết nối MongoDB Cloud (${err.message}).`);
     console.log("[+] Tự động kích hoạt CSDL TỆP TIN CỤC BỘ (Offline Local Mode) trong thư mục data/!");
     console.log("[+] 53 hồ sơ KPI và 35 cán bộ đã sẵn sàng phục vụ 100% không cần Internet.");
@@ -441,8 +446,8 @@ function scheduleDailyAutoBackup() {
         backupObj.auth_passwords = getLocalAuth();
       }
 
-      const rawJson = Buffer.from(JSON.stringify(backupObj, null, 2), 'utf8');
-      const gzipped = zlib.gzipSync(rawJson, { level: 9 });
+      const rawJson = Buffer.from(JSON.stringify(backupObj), 'utf8');
+      const gzipped = zlib.gzipSync(rawJson, { level: 6 });
       const now = new Date();
       const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}h`;
       const backupPath = path.join(BACKUP_DIR, `KPI_AutoBackup_${dateStr}.json.gz`);
@@ -469,7 +474,9 @@ function scheduleDailyAutoBackup() {
   setInterval(performBackup, 12 * 60 * 60 * 1000);
 }
 
-scheduleDailyAutoBackup();
+if (require.main === module) {
+  scheduleDailyAutoBackup();
+}
 
 // Lấy IP mạng LAN
 
@@ -752,8 +759,7 @@ function createDefaultSession(officerId, quarter, year, offConfig) {
   };
 }
 
-// Tạo HTTP Server
-const server = http.createServer(async (req, res) => {
+async function handleKpiRequest(req, res) {
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
@@ -765,8 +771,17 @@ const server = http.createServer(async (req, res) => {
   }
 
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  const pathname = parsedUrl.pathname;
+  let pathname = parsedUrl.pathname;
   const searchParams = parsedUrl.searchParams;
+
+  // Chuẩn hóa tiền tố khi được phục vụ dưới cổng hợp nhất 8090
+  if (pathname === '/kpi' || pathname === '/kpi/' || pathname === '/kpi-ktnn' || pathname === '/kpi-ktnn/') {
+    pathname = '/';
+  } else if (pathname.startsWith('/kpi/')) {
+    pathname = pathname.substring('/kpi'.length);
+  } else if (pathname.startsWith('/kpi-ktnn/')) {
+    pathname = pathname.substring('/kpi-ktnn'.length);
+  }
 
   // API 0: License
   if (pathname === '/api/license' && req.method === 'GET') {
@@ -1871,11 +1886,23 @@ const server = http.createServer(async (req, res) => {
 
   res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end("404 Not Found");
-});
+}
 
-server.listen(PORT, HOST, () => {
-  console.log("============================================================================");
-  console.log(" KBNN KHU VUC XV - KHO MONGODB CLOUD ĐÃ SẴN SÀNG");
-  console.log(` [+] Truy cập trực tuyến: http://localhost:${PORT}`);
-  console.log("============================================================================");
-});
+const server = http.createServer(handleKpiRequest);
+
+if (require.main === module) {
+  server.listen(PORT, HOST, () => {
+    console.log("============================================================================");
+    if (process.env.STORAGE_MODE === 'local') {
+      const displayIp = process.env.SERVER_IP || '10.41.96.41';
+      console.log(" KBNN KHU VUC XV - HE THONG KPI PHONG KTNN (CHAY OFFLINE 100%)");
+      console.log(` [+] Truy cap may chu noi bo: http://${displayIp}:${PORT}`);
+    } else {
+      console.log(" KBNN KHU VUC XV - KHO MONGODB CLOUD ĐÃ SẴN SÀNG");
+      console.log(` [+] Truy cập trực tuyến: http://localhost:${PORT}`);
+    }
+    console.log("============================================================================");
+  });
+}
+
+module.exports = { handleKpiRequest, server, ensureLocalDataDirs, DATA_DIR, SESSIONS_DIR, HTML_FILE };
