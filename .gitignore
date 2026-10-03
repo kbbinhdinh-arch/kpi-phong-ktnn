@@ -10,6 +10,9 @@ node-runtime/
 # Backups and temporary files
 *.bak
 backups/
+data/snapshots/
+data/sessions/*.tmp
+data/*.tmp
 *.log
 *.gz
 seed_data.json.gz

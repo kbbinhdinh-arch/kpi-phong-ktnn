@@ -646,8 +646,11 @@ async function saveAuthPasswords(data) {
   return true;
 }
 
-function hashPassword(password) {
-  return crypto.createHash('sha256').update(String(password).trim()).digest('hex');
+function hashPassword(password, salt) {
+  if (!salt) {
+    return crypto.createHash('sha256').update(String(password).trim()).digest('hex');
+  }
+  return crypto.createHash('sha256').update(String(salt) + ':' + String(password).trim()).digest('hex');
 }
 
 function calculateMonthPctFromRows(monthObj, role) {
@@ -759,6 +762,123 @@ function createDefaultSession(officerId, quarter, year, offConfig) {
   };
 }
 
+// ==========================================
+// CÁC HÀM TIỆN ÍCH KẾ THỪA SỐ LIỆU QUÝ TRƯỚC
+// ==========================================
+function getPreviousQuarterInfo(quarterStr, year) {
+  const qNorm = normalizeQuarter(quarterStr);
+  const y = Number(year) || 2026;
+  if (qNorm === 'QuyI') {
+    return {
+      quarter: 'Quý IV',
+      quarterNorm: 'QuyIV',
+      year: y - 1,
+      lastMonthNum: 12,
+      lastMonthName: `Tháng 12/${y - 1}`,
+      lastMonthShort: 'T12'
+    };
+  } else if (qNorm === 'QuyII') {
+    return {
+      quarter: 'Quý I',
+      quarterNorm: 'QuyI',
+      year: y,
+      lastMonthNum: 3,
+      lastMonthName: `Tháng 3/${y}`,
+      lastMonthShort: 'T3'
+    };
+  } else if (qNorm === 'QuyIII') {
+    return {
+      quarter: 'Quý II',
+      quarterNorm: 'QuyII',
+      year: y,
+      lastMonthNum: 6,
+      lastMonthName: `Tháng 6/${y}`,
+      lastMonthShort: 'T6'
+    };
+  } else {
+    return {
+      quarter: 'Quý III',
+      quarterNorm: 'QuyIII',
+      year: y,
+      lastMonthNum: 9,
+      lastMonthName: `Tháng 9/${y}`,
+      lastMonthShort: 'T9'
+    };
+  }
+}
+
+function getQuarterMonthsInfoServer(quarterStr, year) {
+  const y = Number(year) || 2026;
+  const qNorm = normalizeQuarter(quarterStr);
+  let startMonth = 7;
+  if (qNorm === 'QuyI') startMonth = 1;
+  else if (qNorm === 'QuyII') startMonth = 4;
+  else if (qNorm === 'QuyIII') startMonth = 7;
+  else if (qNorm === 'QuyIV') startMonth = 10;
+
+  const m1Num = startMonth;
+  const m2Num = startMonth + 1;
+  const m3Num = startMonth + 2;
+
+  return [
+    { monthNum: m1Num, name: `Tháng ${m1Num}/${y}`, shortName: `T${m1Num}` },
+    { monthNum: m2Num, name: `Tháng ${m2Num}/${y}`, shortName: `T${m2Num}` },
+    { monthNum: m3Num, name: `Tháng ${m3Num}/${y}`, shortName: `T${m3Num}` }
+  ];
+}
+
+async function getPreviousQuarterLastMonthData(officerId, quarter, year) {
+  const prevInfo = getPreviousQuarterInfo(quarter, year);
+  const prevFilename = getSessionFilename(officerId, prevInfo.quarter, prevInfo.year);
+  const prevFilenameAlt = `${officerId}_${prevInfo.quarter}_${prevInfo.year}.json`;
+
+  let prevSess = null;
+  if (kpiDb) {
+    try {
+      const doc = await kpiDb.collection('sessions').findOne({
+        $or: [
+          { filename: prevFilename },
+          { filename: prevFilenameAlt },
+          { "data.officer.officerId": officerId, "data.officer.quarter": prevInfo.quarter, "data.officer.year": Number(prevInfo.year) },
+          { "data.officer.officerId": officerId, "data.officer.quarter": prevInfo.quarterNorm, "data.officer.year": Number(prevInfo.year) }
+        ]
+      });
+      if (doc && doc.data) prevSess = doc.data;
+    } catch(e) {}
+  }
+  if (!prevSess) {
+    prevSess = getLocalSession(prevFilename);
+    if (!prevSess) prevSess = getLocalSession(prevFilenameAlt);
+    if (!prevSess) {
+      const all = getAllLocalSessions();
+      for (const [fn, sData] of Object.entries(all)) {
+        if (sData && sData.officer && sData.officer.officerId === officerId) {
+          const sQ = normalizeQuarter(sData.officer.quarter);
+          const sY = Number(sData.officer.year);
+          if (sQ === prevInfo.quarterNorm && sY === prevInfo.year) {
+            prevSess = sData;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  if (prevSess && prevSess.months && Array.isArray(prevSess.months) && prevSess.months.length > 0) {
+    const lastMonth = prevSess.months[2] || prevSess.months[prevSess.months.length - 1];
+    if (lastMonth && lastMonth.rows && lastMonth.rows.length > 0) {
+      return {
+        found: true,
+        prevInfo,
+        lastMonth,
+        prevFilename
+      };
+    }
+  }
+
+  return { found: false, prevInfo };
+}
+
 async function handleKpiRequest(req, res) {
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
@@ -828,8 +948,10 @@ async function handleKpiRequest(req, res) {
           return sendJson(res, 400, { success: false, error: "Mật khẩu phải có ít nhất 4 ký tự" });
         }
         const authData = await getAuthPasswords();
+        const salt = crypto.randomBytes(16).toString('hex');
         authData[officerId] = {
-          hash: hashPassword(password),
+          hash: hashPassword(password, salt),
+          salt,
           createdAt: authData[officerId] ? authData[officerId].createdAt : new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -855,7 +977,10 @@ async function handleKpiRequest(req, res) {
         if (!userAuth || !userAuth.hash) {
           return sendJson(res, 200, { success: false, error: "Tài khoản chưa thiết lập mật khẩu", notSet: true });
         }
-        if (hashPassword(password) === userAuth.hash) {
+        const calculatedHash = userAuth.salt 
+          ? hashPassword(password, userAuth.salt) 
+          : hashPassword(password);
+        if (calculatedHash === userAuth.hash) {
           return sendJson(res, 200, { success: true, message: "Xác thực thành công" });
         } else {
           return sendJson(res, 200, { success: false, error: "Mật khẩu không chính xác" });
@@ -881,12 +1006,17 @@ async function handleKpiRequest(req, res) {
         const authData = await getAuthPasswords();
         const userAuth = authData[officerId];
         if (userAuth && userAuth.hash) {
-          if (hashPassword(oldPassword || '') !== userAuth.hash && payload.adminOfficerId !== 'hoang') {
+          const currentValid = userAuth.salt
+            ? (hashPassword(oldPassword || '', userAuth.salt) === userAuth.hash)
+            : (hashPassword(oldPassword || '') === userAuth.hash);
+          if (!currentValid && payload.adminOfficerId !== 'hoang') {
             return sendJson(res, 400, { success: false, error: "Mật khẩu hiện tại không chính xác" });
           }
         }
+        const salt = crypto.randomBytes(16).toString('hex');
         authData[officerId] = {
-          hash: hashPassword(newPassword),
+          hash: hashPassword(newPassword, salt),
+          salt,
           createdAt: userAuth ? userAuth.createdAt : new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -912,8 +1042,10 @@ async function handleKpiRequest(req, res) {
           return sendJson(res, 403, { success: false, error: "Quyền quản trị bị từ chối!" });
         }
         const authData = await getAuthPasswords();
+        const salt = crypto.randomBytes(16).toString('hex');
         authData[targetOfficerId] = {
-          hash: hashPassword(newPassword),
+          hash: hashPassword(newPassword, salt),
+          salt,
           createdAt: authData[targetOfficerId] ? authData[targetOfficerId].createdAt : new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -959,6 +1091,47 @@ async function handleKpiRequest(req, res) {
     });
   }
 
+  // API Get Previous Quarter Last Month (Phục vụ kế thừa KPI)
+  if (pathname === '/api/session/previous-month' && req.method === 'GET') {
+    const officerId = searchParams.get('officerId');
+    const quarter = searchParams.get('quarter') || 'Quý IV';
+    const year = searchParams.get('year') || 2026;
+
+    if (!officerId) {
+      return sendJson(res, 400, { success: false, error: "Thiếu thông số officerId" });
+    }
+
+    try {
+      const result = await getPreviousQuarterLastMonthData(officerId, quarter, year);
+      if (result.found && result.lastMonth) {
+        return sendJson(res, 200, {
+          success: true,
+          found: true,
+          prevQuarter: result.prevInfo.quarter,
+          prevYear: result.prevInfo.year,
+          lastMonthNum: result.prevInfo.lastMonthNum,
+          lastMonthName: result.prevInfo.lastMonthName,
+          lastMonthShort: result.prevInfo.lastMonthShort,
+          lastMonthData: result.lastMonth,
+          sourceFilename: result.prevFilename
+        });
+      } else {
+        return sendJson(res, 200, {
+          success: true,
+          found: false,
+          prevQuarter: result.prevInfo.quarter,
+          prevYear: result.prevInfo.year,
+          lastMonthNum: result.prevInfo.lastMonthNum,
+          lastMonthName: result.prevInfo.lastMonthName,
+          lastMonthShort: result.prevInfo.lastMonthShort,
+          message: `Không tìm thấy số liệu tháng cuối quý trước (${result.prevInfo.lastMonthName} - ${result.prevInfo.quarter}/${result.prevInfo.year})`
+        });
+      }
+    } catch(err) {
+      return sendJson(res, 500, { success: false, error: "Lỗi xử lý kế thừa tháng: " + err.message });
+    }
+  }
+
   // API Get Session
   if (pathname === '/api/session' && req.method === 'GET') {
     const officerId = searchParams.get('officerId');
@@ -987,6 +1160,49 @@ async function handleKpiRequest(req, res) {
 
     const cfg = await getOfficersConfig();
     const defaultData = createDefaultSession(officerId, quarter, year, cfg[officerId]);
+
+    // Tự động kế thừa số liệu KPI từ tháng cuối quý trước sang tháng đầu quý sau
+    try {
+      const prevData = await getPreviousQuarterLastMonthData(officerId, quarter, year);
+      if (prevData && prevData.found && prevData.lastMonth && prevData.lastMonth.rows && prevData.lastMonth.rows.length > 0) {
+        const qMonths = getQuarterMonthsInfoServer(quarter, year);
+        const sourceRows = prevData.lastMonth.rows;
+        const role = (cfg[officerId] && cfg[officerId].role) || 'KTV';
+
+        defaultData.months = [
+          {
+            monthNum: qMonths[0].monthNum,
+            name: qMonths[0].name,
+            rows: JSON.parse(JSON.stringify(sourceRows)),
+            _isInheritedFromPrevQuarter: true
+          },
+          {
+            monthNum: qMonths[1].monthNum,
+            name: qMonths[1].name,
+            rows: JSON.parse(JSON.stringify(sourceRows))
+          },
+          {
+            monthNum: qMonths[2].monthNum,
+            name: qMonths[2].name,
+            rows: JSON.parse(JSON.stringify(sourceRows))
+          }
+        ];
+
+        defaultData.months.forEach(m => {
+          m.completionPercent = calculateMonthPctFromRows(m, role);
+        });
+
+        defaultData.inheritedFrom = {
+          prevQuarter: prevData.prevInfo.quarter,
+          prevYear: prevData.prevInfo.year,
+          sourceMonthName: prevData.lastMonth.name || prevData.prevInfo.lastMonthName,
+          inheritedAt: new Date().toISOString()
+        };
+      }
+    } catch (e) {
+      console.warn("Lỗi auto-inherit server session:", e);
+    }
+
     return sendJson(res, 200, { success: true, isNew: true, filename, data: defaultData });
   }
 
