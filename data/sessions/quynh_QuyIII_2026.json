@@ -11443,7 +11443,7 @@
           "col_v": "",
           "col_w": "",
           "ghichu": "",
-          "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHIỆP VỤ",
+          "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN M��N NGHIỆP VỤ",
           "parent_level2": "B. CÔNG TÁC CHUYÊN MÔN, NGHIỆP VỤ",
           "parent_section": "Công tác đăng ký và sử dụng tài khoản; phong tỏa, tất toán tài khoản",
           "depth": 10,
@@ -24438,8 +24438,8 @@
   "quarterFilterActiveOnly": true,
   "selfRatingNote": "",
   "leaderRatingProposal": "",
-  "status": "tra_lai",
-  "lastSaved": "2026-09-25T02:57:27.149Z",
+  "status": "da_duyet",
+  "lastSaved": "2026-09-30T01:58:49.711Z",
   "quartersData": {
     "Quý III": [
       {
@@ -25656,7 +25656,7 @@
             "col_v": "",
             "col_w": "",
             "ghichu": "",
-            "parent_level1": "II. VỊ TRÍ CÔNG CH���C CHUYÊN MÔN NGHIỆP VỤ",
+            "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHIỆP VỤ",
             "parent_level2": "A. CÔNG TÁC XÂY DỰNG VĂN BẢN HÀNH CHÍNH",
             "parent_section": "Tham gia ý kiến; trả lời vướng mắc; đề xuất, kiến nghị với các đơn vị"
           },
@@ -42434,7 +42434,7 @@
             "col_w": "",
             "ghichu": "",
             "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHIỆP VỤ",
-            "parent_level2": "B. CÔNG TÁC CHUYÊN MÔN, NGHI��P VỤ",
+            "parent_level2": "B. CÔNG TÁC CHUYÊN MÔN, NGHIỆP VỤ",
             "parent_section": "Công tác kế toán các nghiệp vụ khác"
           },
           {
@@ -47592,18 +47592,20 @@
       }
     ]
   },
-  "activeTab": "tab-print-views",
-  "isSubmitted": false,
-  "submittedAt": "2026-09-14T02:02:04.441Z",
+  "activeTab": "tab-general-crit",
+  "isSubmitted": true,
+  "submittedAt": "2026-09-30T01:31:14.780Z",
   "activeQuarterSubTab": "tab-print-views",
   "activeMonthlySubTab": "tab-general-crit",
   "proposedRating": "Hoàn thành tốt nhiệm vụ",
   "monthlyCategoryFilter": "ALL",
   "printCustomDate": "Gia Lai, ngày 21 tháng 09 năm 2026",
-  "isApproved": false,
+  "isApproved": true,
   "rejectedAt": "2026-09-25T01:35:08.857Z",
   "rejectedBy": "hoang",
-  "rejectReason": "Yêu cầu rà soát, giải trình lại số lượng và lỗi chất lượng.",
+  "rejectReason": null,
   "_restoredFrom": "2026-09-25T01:49:07.982Z",
-  "monthlySearchTerm": ""
+  "monthlySearchTerm": "",
+  "approvedAt": "2026-09-30T01:58:49.711Z",
+  "approvedBy": "hoang"
 }

@@ -24435,8 +24435,8 @@
   "quarterFilterActiveOnly": true,
   "selfRatingNote": "",
   "leaderRatingProposal": "HT tốt NV",
-  "status": "da_nop",
-  "lastSaved": "2026-09-25T01:46:57.988Z",
+  "status": "da_duyet",
+  "lastSaved": "2026-09-30T01:59:29.303Z",
   "quartersData": {
     "Quý III": [
       {
@@ -47596,8 +47596,10 @@
   "activeMonthlySubTab": "tab-general-crit",
   "proposedRating": "Hoàn thành tốt nhiệm vụ",
   "monthlyCategoryFilter": "ALL",
-  "isApproved": false,
+  "isApproved": true,
   "rejectedAt": "2026-09-25T01:33:46.678Z",
   "rejectedBy": "hoang",
-  "rejectReason": "Yêu cầu rà soát, giải trình lại số lượng và lỗi chất lượng."
+  "rejectReason": "Yêu cầu rà soát, giải trình lại số lượng và lỗi chất lượng.",
+  "approvedAt": "2026-09-30T01:59:29.303Z",
+  "approvedBy": "hoang"
 }

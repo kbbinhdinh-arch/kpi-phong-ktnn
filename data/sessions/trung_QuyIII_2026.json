@@ -2677,7 +2677,7 @@
           "hoanthanh": 0,
           "khong_ht": 0,
           "diem_pct": "",
-          "cl_loi": 3,
+          "cl_loi": 0,
           "cl_diem": 0,
           "cl_pct": "",
           "td_cham": 0,
@@ -2712,7 +2712,7 @@
           "hoanthanh": 0,
           "khong_ht": 0,
           "diem_pct": "",
-          "cl_loi": 3,
+          "cl_loi": 0,
           "cl_diem": 0,
           "cl_pct": "",
           "td_cham": 0,
@@ -8049,9 +8049,9 @@
           "depth": 3
         }
       ],
-      "completionPercent": 93.3,
+      "completionPercent": 100,
       "quantityPct": 100,
-      "qualityPct": 79.9,
+      "qualityPct": 100,
       "progressPct": 100
     },
     {
@@ -10647,7 +10647,7 @@
           "hoanthanh": 0,
           "khong_ht": 0,
           "diem_pct": "",
-          "cl_loi": 3,
+          "cl_loi": 0,
           "cl_diem": 0,
           "cl_pct": "",
           "td_cham": 0,
@@ -10683,7 +10683,7 @@
           "hoanthanh": 0,
           "khong_ht": 0,
           "diem_pct": "",
-          "cl_loi": 3,
+          "cl_loi": 0,
           "cl_diem": 0,
           "cl_pct": "",
           "td_cham": 0,
@@ -16037,9 +16037,9 @@
           "depth": 3
         }
       ],
-      "completionPercent": 91.1,
+      "completionPercent": 100,
       "quantityPct": 100,
-      "qualityPct": 73.4,
+      "qualityPct": 100,
       "progressPct": 100
     },
     {
@@ -18649,7 +18649,7 @@
           "hoanthanh": 0,
           "khong_ht": 0,
           "diem_pct": "",
-          "cl_loi": 3,
+          "cl_loi": 0,
           "cl_diem": 0,
           "cl_pct": "",
           "td_cham": 0,
@@ -18686,7 +18686,7 @@
           "hoanthanh": 0,
           "khong_ht": 0,
           "diem_pct": "",
-          "cl_loi": 3,
+          "cl_loi": 0,
           "cl_diem": 0,
           "cl_pct": "",
           "td_cham": 0,
@@ -24042,9 +24042,9 @@
           "depth": 3
         }
       ],
-      "completionPercent": 91.1,
+      "completionPercent": 100,
       "quantityPct": 100,
-      "qualityPct": 73.2,
+      "qualityPct": 100,
       "progressPct": 100
     }
   ],
@@ -24054,22 +24054,22 @@
   "generalCriteria": {
     "c1": 5,
     "c2": 5,
-    "c3": 2.5,
-    "c4": 2,
-    "c5": 2.5,
-    "c6": 2,
+    "c3": 2,
+    "c4": 1,
+    "c5": 2,
+    "c6": 1,
     "c7": 0,
-    "c8": 2,
-    "c9": 2.5,
-    "c10": 2
+    "c8": 1,
+    "c9": 1,
+    "c10": 1
   },
   "selfAdvantages": "Chấp hành nghiêm kỷ luật kỷ cương, hoàn thành tốt các nhiệm vụ chuyên môn và trọng tâm trong quý; Sẵn sàng tham gia thực hiện các nhiệm vụ khác đột xuất phát sinh được giao; chủ động nắm bắt thông tin của các Phòng giao dịch, Các cơ quan liên quan có các nội dung công việc liên quan đến Phòng Kế toán nhà nước báo cáo lãnh đạo Phòng KTNN để có phương án, giải pháp kịp thời.",
-  "selfDisadvantages": "Đôi lúc chưa sắp xếp công việc cần giải quyết gấp theo yêu cầu một cách khoa học về mặt thời gian; một số nội dung công việc chưa đạt chất lượng công việc như mong muốn.",
+  "selfDisadvantages": "Đôi lúc chưa sắp xếp công việc cần giải quyết gấp theo yêu cầu một cách khoa học về mặt thời gian",
   "quarterFilterActiveOnly": true,
   "selfRatingNote": "",
   "leaderRatingProposal": "",
-  "status": "tra_lai",
-  "lastSaved": "2026-09-25T01:56:41.758Z",
+  "status": "da_duyet",
+  "lastSaved": "2026-09-30T01:59:23.447Z",
   "quartersData": {
     "Quý III": [
       {
@@ -25066,7 +25066,7 @@
             "isLevel2": false,
             "isTask": true,
             "stt": "2.3",
-            "nhiemvu": "Ban hành văn bản phổ biến, quán triệt, hướng dẫn triển khai thực hiện  nhiệm vụ được giao",
+            "nhiemvu": "Ban hành văn b���n phổ biến, quán triệt, hướng dẫn triển khai thực hiện  nhiệm vụ được giao",
             "congviec": "Trình Lãnh đạo phê duyệt",
             "sp_daura": "Tờ trình",
             "sp_chitiet": "Tờ trình",
@@ -38973,7 +38973,7 @@
             "col_v": "",
             "col_w": "",
             "ghichu": "",
-            "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHI���P VỤ",
+            "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHIỆP VỤ",
             "parent_level2": "E. CÔNG TÁC KHÁC",
             "parent_section": ""
           },
@@ -41843,7 +41843,7 @@
             "isLevel2": false,
             "isTask": true,
             "stt": "1.4.6",
-            "nhiemvu": "Công tác Thanh toán liên kho bạc, Thanh toán song phương điện t���, Thanh toán liên ngân hàng",
+            "nhiemvu": "Công tác Thanh toán liên kho bạc, Thanh toán song phương điện tử, Thanh toán liên ngân hàng",
             "congviec": "Tiếp nhận/ gửi điện tra soát và xử lý các bút toán sai lầm trong thanh toán",
             "sp_daura": "Điện tra soát",
             "sp_chitiet": "3 Điện tra soát",
@@ -47223,16 +47223,19 @@
     ]
   },
   "activeTab": "tab-print-views",
-  "isSubmitted": false,
-  "submittedAt": "2026-09-23T01:18:45.247Z",
+  "isSubmitted": true,
+  "submittedAt": "2026-09-30T01:33:35.116Z",
   "activeQuarterSubTab": "tab-print-views",
-  "activeMonthlySubTab": "tab-monthly",
+  "activeMonthlySubTab": "tab-general-crit",
   "proposedRating": "Hoàn thành tốt nhiệm vụ",
   "monthlyCategoryFilter": "ALL",
   "printCustomDate": "Gia Lai, ngày 21 tháng 9 năm 2026",
-  "monthlySearchTerm": "",
-  "isApproved": false,
+  "isApproved": true,
   "rejectedAt": "2026-09-25T01:33:51.193Z",
   "rejectedBy": "hoang",
-  "rejectReason": "Yêu cầu rà soát, giải trình lại số lượng và lỗi chất lượng."
+  "rejectReason": null,
+  "_restoredFrom": "2026-09-25T01:49:07.982Z",
+  "monthlySearchTerm": "",
+  "approvedAt": "2026-09-30T01:59:23.447Z",
+  "approvedBy": "hoang"
 }

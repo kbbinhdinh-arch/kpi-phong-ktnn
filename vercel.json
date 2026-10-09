@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "env": {
+    "AUTHOR_SERVER": "true"
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.js" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

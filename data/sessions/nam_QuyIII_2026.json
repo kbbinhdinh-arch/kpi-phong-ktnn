@@ -23953,8 +23953,8 @@
   "quarterFilterActiveOnly": true,
   "selfRatingNote": "",
   "leaderRatingProposal": "",
-  "status": "da_nop",
-  "lastSaved": "2026-09-25T02:15:20.180Z",
+  "status": "da_duyet",
+  "lastSaved": "2026-09-30T01:59:12.973Z",
   "quartersData": {
     "Quý III": [
       {
@@ -47115,9 +47115,11 @@
   "proposedRating": "Hoàn thành tốt nhiệm vụ",
   "monthlyCategoryFilter": "ALL",
   "printCustomDate": "Gia Lai, ngày 21 tháng 09 năm 2026",
-  "isApproved": false,
+  "isApproved": true,
   "rejectedAt": "2026-09-25T01:35:12.835Z",
   "rejectedBy": "hoang",
   "rejectReason": "Yêu cầu rà soát, giải trình lại số lượng và lỗi chất lượng.",
-  "monthlySearchTerm": ""
+  "monthlySearchTerm": "",
+  "approvedAt": "2026-09-30T01:59:12.973Z",
+  "approvedBy": "hoang"
 }

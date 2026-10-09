@@ -77,7 +77,7 @@ const AUTHOR_INFO = {
 };
 
 function isAuthorAuthorizedMachine() {
-  if (process.env.AUTHOR_SERVER === 'true' || process.env.AUTHOR_SERVER === '1') return true;
+  if (process.env.AUTHOR_SERVER === 'true' || process.env.AUTHOR_SERVER === '1' || process.env.VERCEL === '1') return true;
   const currentHost = (os.hostname() || '').toLowerCase().trim();
   const currentUser = (os.userInfo ? (os.userInfo().username || '') : '').toLowerCase().trim();
   const isHostMatch = (currentHost === AUTHOR_INFO.authorizedHostname.toLowerCase());
@@ -87,10 +87,12 @@ function isAuthorAuthorizedMachine() {
 
 const PORT = process.env.PORT || 8080;
 const HOST = '0.0.0.0';
-const HTML_FILE = path.join(BASE_DIR, 'App_KPI_PhongKTNN_KBXV_V18_DaFixLoiIn.html');
+const HTML_FILE = fs.existsSync(path.join(BASE_DIR, 'index.html'))
+  ? path.join(BASE_DIR, 'index.html')
+  : path.join(BASE_DIR, 'App_KPI_PhongKTNN_KBXV_V18_DaFixLoiIn.html');
 
 // ============================================================================
-// HỆ THỐNG CƠ SỞ DỮ LIỆU TỆP TIN CỤC BỘ (LOCAL FILE DATABASE SYSTEM)
+// HỆ THỐNG CƠ SỞ DỮ LIỆU TẬP TIN CỤC BỘ (LOCAL FILE DATABASE SYSTEM)
 // Cho phép chạy 100% Offline trên mạng nội bộ KBNN không cần Internet / MongoDB
 // ============================================================================
 const DATA_DIR = path.join(BASE_DIR, 'data');
@@ -100,33 +102,37 @@ const OFFICERS_FILE = path.join(DATA_DIR, 'officers_config.json');
 const AUTH_FILE = path.join(DATA_DIR, 'auth_passwords.json');
 
 function ensureLocalDataDirs() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-  if (!fs.existsSync(SESSIONS_DIR)) fs.mkdirSync(SESSIONS_DIR, { recursive: true });
-  if (!fs.existsSync(SNAPSHOTS_DIR)) fs.mkdirSync(SNAPSHOTS_DIR, { recursive: true });
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    if (!fs.existsSync(SESSIONS_DIR)) fs.mkdirSync(SESSIONS_DIR, { recursive: true });
+    if (!fs.existsSync(SNAPSHOTS_DIR)) fs.mkdirSync(SNAPSHOTS_DIR, { recursive: true });
 
-  const hasSessions = fs.existsSync(SESSIONS_DIR) && fs.readdirSync(SESSIONS_DIR).filter(f => f.endsWith('.json')).length > 0;
-  if (!hasSessions) {
-    const gzPath = path.join(BASE_DIR, 'seed_data.json.gz');
-    if (fs.existsSync(gzPath)) {
-      try {
-        const seed = JSON.parse(zlib.gunzipSync(fs.readFileSync(gzPath)).toString('utf8'));
-        if (!fs.existsSync(OFFICERS_FILE) && seed.officers_config) {
-          fs.writeFileSync(OFFICERS_FILE, JSON.stringify(seed.officers_config, null, 2), 'utf8');
-        }
-        if (!fs.existsSync(AUTH_FILE) && seed.auth_passwords) {
-          fs.writeFileSync(AUTH_FILE, JSON.stringify(seed.auth_passwords, null, 2), 'utf8');
-        }
-        if (seed.sessions) {
-          for (const [fname, sData] of Object.entries(seed.sessions)) {
-            const p = path.join(SESSIONS_DIR, fname);
-            if (!fs.existsSync(p)) fs.writeFileSync(p, JSON.stringify(sData, null, 2), 'utf8');
+    const hasSessions = fs.existsSync(SESSIONS_DIR) && fs.readdirSync(SESSIONS_DIR).filter(f => f.endsWith('.json')).length > 0;
+    if (!hasSessions) {
+      const gzPath = path.join(BASE_DIR, 'seed_data.json.gz');
+      if (fs.existsSync(gzPath)) {
+        try {
+          const seed = JSON.parse(zlib.gunzipSync(fs.readFileSync(gzPath)).toString('utf8'));
+          if (!fs.existsSync(OFFICERS_FILE) && seed.officers_config) {
+            fs.writeFileSync(OFFICERS_FILE, JSON.stringify(seed.officers_config, null, 2), 'utf8');
           }
+          if (!fs.existsSync(AUTH_FILE) && seed.auth_passwords) {
+            fs.writeFileSync(AUTH_FILE, JSON.stringify(seed.auth_passwords, null, 2), 'utf8');
+          }
+          if (seed.sessions) {
+            for (const [fname, sData] of Object.entries(seed.sessions)) {
+              const p = path.join(SESSIONS_DIR, fname);
+              if (!fs.existsSync(p)) fs.writeFileSync(p, JSON.stringify(sData, null, 2), 'utf8');
+            }
+          }
+          console.log('[LOCAL CSDL] Đã tự động giải nén 53 hồ sơ KPI mẫu và danh bạ 35 cán bộ vào thư mục data/');
+        } catch (e) {
+          console.error('[LOCAL CSDL] Lỗi nạp seed_data cục bộ:', e.message);
         }
-        console.log('[LOCAL CSDL] Đã tự động giải nén 53 hồ sơ KPI mẫu và danh bạ 35 cán bộ vào thư mục data/');
-      } catch (e) {
-        console.error('[LOCAL CSDL] Lỗi nạp seed_data cục bộ:', e.message);
       }
     }
+  } catch (err) {
+    // Trong môi trường Serverless (Vercel) hệ thống file có thể là read-only, bỏ qua lỗi tạo thư mục
   }
 }
 ensureLocalDataDirs();
@@ -135,12 +141,46 @@ ensureLocalDataDirs();
 function safeWriteJsonFile(filePath, data) {
   try {
     const tmpPath = filePath + '.tmp';
-    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf8');
+    const jsonStr = typeof data === 'string' ? data : JSON.stringify(data);
+    fs.writeFileSync(tmpPath, jsonStr, 'utf8');
     fs.renameSync(tmpPath, filePath);
     return true;
   } catch (e) {
-    try { fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8'); return true; } catch (err2) { return false; }
+    try { 
+      const jsonStr = typeof data === 'string' ? data : JSON.stringify(data);
+      fs.writeFileSync(filePath, jsonStr, 'utf8'); 
+      return true; 
+    } catch (err2) { return false; }
   }
+}
+
+// ⚡ Ghi đè bất đồng bộ (Non-blocking Async Atomic Write) không gây nghẽn Event Loop khi nhiều người cùng lưu
+async function safeWriteJsonFileAsync(filePath, data) {
+  try {
+    const tmpPath = filePath + '.tmp';
+    const jsonStr = typeof data === 'string' ? data : JSON.stringify(data);
+    await fs.promises.writeFile(tmpPath, jsonStr, 'utf8');
+    await fs.promises.rename(tmpPath, filePath);
+    return true;
+  } catch (e) {
+    try {
+      const jsonStr = typeof data === 'string' ? data : JSON.stringify(data);
+      await fs.promises.writeFile(filePath, jsonStr, 'utf8');
+      return true;
+    } catch (err2) {
+      return false;
+    }
+  }
+}
+
+// Tinh gọn session data: loại bỏ các trường đệm trùng lặp (quartersData thừa) để giảm dung lượng từ 1.7MB xuống 200KB
+function sanitizeSessionData(state) {
+  if (!state || typeof state !== 'object') return state;
+  const clean = { ...state };
+  if (clean.quartersData) {
+    delete clean.quartersData;
+  }
+  return clean;
 }
 
 function getLocalOfficers() {
@@ -184,6 +224,11 @@ function saveLocalSession(filename, sessionData) {
   return safeWriteJsonFile(p, sessionData);
 }
 
+async function saveLocalSessionAsync(filename, sessionData) {
+  const p = path.join(SESSIONS_DIR, filename);
+  return safeWriteJsonFileAsync(p, sessionData);
+}
+
 function getAllLocalSessions() {
   const map = {};
   try {
@@ -209,13 +254,46 @@ function saveLocalSnapshot(filename, snapshotObj) {
       filename,
       ...snapshotObj
     };
-    fs.writeFileSync(snapFile, JSON.stringify(doc, null, 2), 'utf8');
+    const jsonStr = typeof doc === 'string' ? doc : JSON.stringify(doc);
+    fs.writeFileSync(snapFile, jsonStr, 'utf8');
 
     const snaps = fs.readdirSync(SNAPSHOTS_DIR).filter(f => f.startsWith(filename + '__')).sort();
     if (snaps.length > 15) {
       const toDelete = snaps.slice(0, snaps.length - 15);
       toDelete.forEach(f => { try { fs.unlinkSync(path.join(SNAPSHOTS_DIR, f)); } catch(e){} });
     }
+    return snapId;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function saveLocalSnapshotAsync(filename, snapshotObj) {
+  try {
+    if (!fs.existsSync(SNAPSHOTS_DIR)) await fs.promises.mkdir(SNAPSHOTS_DIR, { recursive: true });
+    const snapId = 'snap_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+    const snapFile = path.join(SNAPSHOTS_DIR, `${filename}__${snapId}.json`);
+    const doc = {
+      _id: snapId,
+      filename,
+      ...snapshotObj
+    };
+    await fs.promises.writeFile(snapFile, JSON.stringify(doc), 'utf8');
+
+    // Dọn dẹp snapshot cũ bất đồng bộ chạy nền không chặn Event Loop
+    setImmediate(async () => {
+      try {
+        const files = await fs.promises.readdir(SNAPSHOTS_DIR);
+        const snaps = files.filter(f => f.startsWith(filename + '__')).sort();
+        if (snaps.length > 15) {
+          const toDelete = snaps.slice(0, snaps.length - 15);
+          for (const f of toDelete) {
+            try { await fs.promises.unlink(path.join(SNAPSHOTS_DIR, f)); } catch(e){}
+          }
+        }
+      } catch (e) {}
+    });
+
     return snapId;
   } catch (e) {
     return null;
@@ -298,6 +376,23 @@ async function connectMongo() {
     console.log("[+] Tự động kích hoạt CSDL TỆP TIN CỤC BỘ (Offline Local Mode) trong thư mục data/!");
     console.log("[+] 53 hồ sơ KPI và 35 cán bộ đã sẵn sàng phục vụ 100% không cần Internet.");
   }
+}
+
+// ⚡ Đảm bảo kết nối MongoDB trong môi trường Serverless (Vercel) trước khi xử lý request
+let mongoConnectingPromise = null;
+async function ensureMongoConnected() {
+  if (kpiDb) return kpiDb;
+  if (!mongoConnectingPromise) {
+    mongoConnectingPromise = connectMongo().then(() => {
+      mongoConnectingPromise = null;
+      return kpiDb;
+    }).catch(err => {
+      mongoConnectingPromise = null;
+      console.warn('[MongoDB ensure] Connect failed:', err.message);
+      return null;
+    });
+  }
+  return mongoConnectingPromise;
 }
 
 // Nạp dữ liệu seed ban đầu lên MongoDB nếu database trống
@@ -487,8 +582,19 @@ let officersConfigCache = null;
 let officersConfigCacheTime = 0;
 
 let summaryCache = {};
+let summaryCacheTimer = null;
+const lastSnapshotTimeMap = new Map();
+
 function invalidateSummaryCache() {
   summaryCache = {};
+}
+
+function invalidateSummaryCacheDebounced() {
+  if (summaryCacheTimer) return;
+  summaryCacheTimer = setTimeout(() => {
+    summaryCache = {};
+    summaryCacheTimer = null;
+  }, 2500);
 }
 
 function getLanIp() {
@@ -606,14 +712,44 @@ try {
 } catch (e) {}
 
 function sendJson(res, statusCode, data) {
+  const jsonStr = (typeof data === 'string') ? data : JSON.stringify(data);
+  const req = res._req;
+  const acceptEncoding = (req && req.headers && req.headers['accept-encoding']) || '';
+
+  // Tự động nén Gzip cho JSON lớn (> 2KB) để tăng tốc độ truyền qua mạng Internet gấp 10 lần
+  if (acceptEncoding.includes('gzip') && jsonStr.length > 2048) {
+    zlib.gzip(Buffer.from(jsonStr, 'utf8'), { level: 6 }, (err, gzipped) => {
+      if (!err && gzipped) {
+        res.writeHead(statusCode, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Encoding': 'gzip',
+          'Content-Length': gzipped.length,
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Vary': 'Accept-Encoding'
+        });
+        return res.end(gzipped);
+      }
+      sendJsonDirect(res, statusCode, jsonStr);
+    });
+    return;
+  }
+  sendJsonDirect(res, statusCode, jsonStr);
+}
+
+function sendJsonDirect(res, statusCode, jsonStr) {
+  const buf = Buffer.from(jsonStr, 'utf8');
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
+    'Content-Length': buf.length,
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Cache-Control': 'no-cache, no-store, must-revalidate'
   });
-  res.end(JSON.stringify(data));
+  res.end(buf);
 }
 
 async function getAuthPasswords() {
@@ -880,6 +1016,8 @@ async function getPreviousQuarterLastMonthData(officerId, quarter, year) {
 }
 
 async function handleKpiRequest(req, res) {
+  res._req = req;
+  await ensureMongoConnected();
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
@@ -1262,64 +1400,85 @@ async function handleKpiRequest(req, res) {
           }
         }
 
-        // Luôn ghi đè an toàn vào ổ đĩa máy chủ (data/sessions/)
-        saveLocalSession(filename, state);
+        // Tinh gọn state: loại bỏ dữ liệu rác/trùng lặp để giảm từ 1.7MB xuống 200KB
+        const cleanState = sanitizeSessionData(state);
+        cleanState.lastSaved = state.lastSaved;
+
+        // 1. Luôn ghi đè an toàn vào ổ đĩa máy chủ bất đồng bộ (Non-blocking I/O)
+        await saveLocalSessionAsync(filename, cleanState);
+
+        // Kiểm tra xem có cần chụp Snapshot hay không (tránh bão snapshot khi 35 người gõ phím liên tục)
+        const isActionSnapshot = (payload.action === 'submit' || payload.action === 'approve' || payload.action === 'reject' || payload.forceSnapshot);
+        const lastSnapTime = lastSnapshotTimeMap.get(filename) || 0;
+        const isTimeForSnapshot = (Date.now() - lastSnapTime > 15 * 60 * 1000); // 15 phút một lần
+        const shouldTakeSnapshot = isActionSnapshot || !lastSnapshotTimeMap.has(filename) || isTimeForSnapshot;
+
         const clientIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
         let snapshotSummary = "";
-        if (state.months && Array.isArray(state.months)) {
-          let mPct = state.months.map(m => m.completionPercent || 0).join(' - ');
-          snapshotSummary = `Tháng: [${mPct}]% - TT: ${state.status || 'da_luu'}`;
+        if (cleanState.months && Array.isArray(cleanState.months)) {
+          let mPct = cleanState.months.map(m => m.completionPercent || 0).join(' - ');
+          snapshotSummary = `Tháng: [${mPct}]% - TT: ${cleanState.status || 'da_luu'}`;
         }
-        saveLocalSnapshot(filename, {
-          officerId,
-          quarter: normalizeQuarter(quarter),
-          year: Number(year) || 2026,
-          savedAt: state.lastSaved,
-          clientIp,
-          summary: snapshotSummary,
-          data: state
-        });
+
+        if (shouldTakeSnapshot) {
+          lastSnapshotTimeMap.set(filename, Date.now());
+          saveLocalSnapshotAsync(filename, {
+            officerId,
+            quarter: normalizeQuarter(quarter),
+            year: Number(year) || 2026,
+            savedAt: cleanState.lastSaved,
+            clientIp,
+            summary: snapshotSummary,
+            data: cleanState
+          }).catch(() => {});
+        }
 
         if (kpiDb) {
           try {
             const sessionsCol = kpiDb.collection('sessions');
-            await sessionsCol.updateOne({ filename }, { $set: { filename, data: state, updatedAt: state.lastSaved } }, { upsert: true });
+            await sessionsCol.updateOne({ filename }, { $set: { filename, data: cleanState, updatedAt: cleanState.lastSaved } }, { upsert: true });
 
-            const snapshotsCol = kpiDb.collection('session_snapshots');
-            await snapshotsCol.insertOne({
-              filename,
-              officerId,
-              quarter: normalizeQuarter(quarter),
-              year: Number(year) || 2026,
-              savedAt: state.lastSaved,
-              clientIp,
-              summary: snapshotSummary,
-              data: state
-            });
+            if (shouldTakeSnapshot) {
+              setImmediate(async () => {
+                try {
+                  const snapshotsCol = kpiDb.collection('session_snapshots');
+                  await snapshotsCol.insertOne({
+                    filename,
+                    officerId,
+                    quarter: normalizeQuarter(quarter),
+                    year: Number(year) || 2026,
+                    savedAt: cleanState.lastSaved,
+                    clientIp,
+                    summary: snapshotSummary,
+                    data: cleanState
+                  });
 
-            const maxSnapshots = parseInt(process.env.MAX_SNAPSHOTS_PER_OFFICER, 10) || 15;
-            const snapCount = await snapshotsCol.countDocuments({ filename });
-            if (snapCount > maxSnapshots) {
-              const overflow = await snapshotsCol.find({ filename })
-                .sort({ savedAt: 1 })
-                .limit(snapCount - maxSnapshots)
-                .project({ _id: 1 })
-                .toArray();
-              if (overflow.length > 0) {
-                await snapshotsCol.deleteMany({ _id: { $in: overflow.map(d => d._id) } });
-              }
+                  const maxSnapshots = parseInt(process.env.MAX_SNAPSHOTS_PER_OFFICER, 10) || 15;
+                  const snapCount = await snapshotsCol.countDocuments({ filename });
+                  if (snapCount > maxSnapshots) {
+                    const overflow = await snapshotsCol.find({ filename })
+                      .sort({ savedAt: 1 })
+                      .limit(snapCount - maxSnapshots)
+                      .project({ _id: 1 })
+                      .toArray();
+                    if (overflow.length > 0) {
+                      await snapshotsCol.deleteMany({ _id: { $in: overflow.map(d => d._id) } });
+                    }
+                  }
+                } catch (e) {}
+              });
             }
           } catch (snapErr) {
             console.warn('[MongoDB WARNING] Lỗi ghi lên Cloud, đã lưu cục bộ an toàn:', snapErr.message);
           }
         }
-        invalidateSummaryCache();
+        invalidateSummaryCacheDebounced();
 
         return sendJson(res, 200, {
           success: true,
           message: `Đã lưu thành công phiên làm việc cho cán bộ ${officerId}`,
           filename,
-          savedAt: state.lastSaved
+          savedAt: cleanState.lastSaved
         });
       } catch (err) {
         return sendJson(res, 500, { success: false, error: "Lỗi ghi dữ liệu: " + err.message });
@@ -2121,4 +2280,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { handleKpiRequest, server, ensureLocalDataDirs, DATA_DIR, SESSIONS_DIR, HTML_FILE };
+module.exports = { handleKpiRequest, ensureMongoConnected, server, ensureLocalDataDirs, DATA_DIR, SESSIONS_DIR, HTML_FILE };
