@@ -2255,7 +2255,7 @@ async function handleKpiRequest(req, res) {
 const server = http.createServer(handleKpiRequest);
 
 if (require.main === module) {
-  server.listen(PORT, HOST, () => {
+  server.listen(PORT, () => {
     console.log("============================================================================");
     if (process.env.STORAGE_MODE === 'local') {
       const displayIp = process.env.SERVER_IP || '10.41.96.41';
@@ -2269,4 +2269,11 @@ if (require.main === module) {
   });
 }
 
-module.exports = { handleKpiRequest, ensureMongoConnected, server, ensureLocalDataDirs, DATA_DIR, SESSIONS_DIR, HTML_FILE };
+module.exports = handleKpiRequest;
+module.exports.handleKpiRequest = handleKpiRequest;
+module.exports.ensureMongoConnected = ensureMongoConnected;
+module.exports.server = server;
+module.exports.ensureLocalDataDirs = ensureLocalDataDirs;
+module.exports.DATA_DIR = DATA_DIR;
+module.exports.SESSIONS_DIR = SESSIONS_DIR;
+module.exports.HTML_FILE = HTML_FILE;
