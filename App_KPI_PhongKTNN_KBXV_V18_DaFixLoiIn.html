@@ -2782,10 +2782,11 @@
 
         <!-- KHỐI PHẢI: KẾT NỐI LAN & NÚT HÀNH ĐỘNG -->
         <div class="profile-ribbon-right" style="display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; flex-shrink: 0; margin-left: auto; white-space: nowrap;">
-          <!-- Server LAN Badge -->
-          <div id="serverStatusBadge" onclick="checkServerStatus(true)" style="display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; height: 32px; padding: 0 10px; border-radius: 6px; background: #e6fffa; color: #234e52; border: 1px solid #b2f5ea; cursor: pointer;" title="Nhấp để kiểm tra hoặc kết nối lại Máy chủ LAN (10.41.96.41:8080)">
+          <!-- Server Cloud/LAN Badge -->
+          <div id="serverStatusBadge" onclick="promptChangeServerHost()" style="display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; height: 32px; padding: 0 10px; border-radius: 6px; background: #e6fffa; color: #234e52; border: 1px solid #b2f5ea; cursor: pointer; transition: all 0.2s;" title="Nhấn để kiểm tra hoặc đổi địa chỉ máy chủ API (Cloud / LAN)">
             <span id="serverDot" style="width: 8px; height: 8px; border-radius: 50%; background: #38b2ac; display: inline-block;"></span>
-            <span id="serverStatusText">Web LAN: 10.41.96.41:8080</span>
+            <span id="serverStatusText">Cloud: Đang kết nối...</span>
+            <span style="font-size: 11px; opacity: 0.7;">⚙️</span>
           </div>
 
           <!-- Nút Lưu kết quả toàn bộ (Trực quan & Nổi bật) -->
@@ -4563,7 +4564,7 @@ window.APP_AUTHOR_INFO = {
 
 async function checkLicenseAndMachineLock() {
   try {
-    const host = window.location.origin || 'http://localhost:8080';
+    const host = CURRENT_SERVER_HOST || 'http://localhost:8080';
     const res = await fetch(`${host}/api/license`, { cache: 'no-store' });
     if (res.ok) {
       const lic = await res.json();
@@ -6977,9 +6978,38 @@ ${contentHtml}
 // ==========================================================================
 // MULTI-USER & LAN SERVER SESSION ENGINE
 // ==========================================================================
-let CURRENT_SERVER_HOST = (window.location && window.location.origin && window.location.origin.includes('http')) 
-  ? window.location.origin 
-  : 'http://localhost:8080';
+const DEFAULT_CLOUD_HOST = 'https://kpi-phong-ktnn.vercel.app';
+let savedHost = '';
+try { savedHost = localStorage.getItem('KBXV_KPI_CUSTOM_SERVER') || ''; } catch(e){}
+
+let CURRENT_SERVER_HOST = savedHost || (
+  (window.location && window.location.origin && window.location.origin.includes('http') && !window.location.hostname.includes('vibehost'))
+    ? window.location.origin 
+    : DEFAULT_CLOUD_HOST
+);
+
+if (CURRENT_SERVER_HOST.endsWith('/')) {
+  CURRENT_SERVER_HOST = CURRENT_SERVER_HOST.slice(0, -1);
+}
+
+function promptChangeServerHost() {
+  const current = CURRENT_SERVER_HOST;
+  const newHost = prompt(
+    "CẤU HÌNH MÁY CHỦ API (CSDL CLOUD / LAN):\n" +
+    "- Mặc định Cloud: https://kpi-ktnn-kbxv.onrender.com\n" +
+    "- Hoặc máy chủ nội bộ: http://localhost:8080 (hoặc http://IP_LAN:8080)\n\n" +
+    "Nhập địa chỉ máy chủ API bạn muốn kết nối:",
+    current
+  );
+  if (newHost !== null && newHost.trim()) {
+    CURRENT_SERVER_HOST = newHost.trim().replace(/\/+$/, '');
+    try {
+      localStorage.setItem('KBXV_KPI_CUSTOM_SERVER', CURRENT_SERVER_HOST);
+    } catch(e){}
+    showToast(`🔄 Đang chuyển kết nối sang máy chủ: ${CURRENT_SERVER_HOST}...`);
+    checkServerStatus(true);
+  }
+}
 
 let isServerConnected = false;
 let currentDeptSummaryData = [];
@@ -7022,18 +7052,27 @@ async function checkServerStatus(isManual = false) {
   const text = document.getElementById('serverStatusText');
 
   try {
-    const res = await fetch(CURRENT_SERVER_HOST + '/api/status', { method: 'GET', cache: 'no-cache' });
+    const isCloud = CURRENT_SERVER_HOST.includes('onrender.com') || CURRENT_SERVER_HOST.includes('https://');
+    const checkEndpoint = CURRENT_SERVER_HOST + '/api/license';
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6500);
+
+    const res = await fetch(checkEndpoint, { method: 'GET', cache: 'no-cache', signal: controller.signal });
+    clearTimeout(timeoutId);
+
     if (res.ok) {
-      const info = await res.json();
       isServerConnected = true;
       if (badge) {
         badge.style.background = '#e6fffa';
         badge.style.color = '#234e52';
         badge.style.borderColor = '#b2f5ea';
+        badge.title = `Máy chủ đang hoạt động: ${CURRENT_SERVER_HOST} (Nhấn để đổi máy chủ)`;
       }
       if (dot) dot.style.background = '#38b2ac';
-      if (text) text.innerText = `Web LAN: ${info.hostIp}:${info.port}`;
-      if (isManual) showToast(`Đã kết nối Máy chủ LAN (${info.hostIp}:${info.port}) thành công!`);
+      if (text) {
+        text.innerText = isCloud ? 'Cloud: Đã kết nối' : `LAN: ${CURRENT_SERVER_HOST.replace(/^https?:\/\//, '')}`;
+      }
+      if (isManual) showToast(`✅ Đã kết nối máy chủ (${CURRENT_SERVER_HOST}) thành công!`);
       return true;
     }
   } catch (err) {
@@ -7042,10 +7081,11 @@ async function checkServerStatus(isManual = false) {
       badge.style.background = '#fffaf0';
       badge.style.color = '#744210';
       badge.style.borderColor = '#fbd38d';
+      badge.title = `Chưa kết nối được máy chủ: ${CURRENT_SERVER_HOST} (Nhấn để kiểm tra hoặc đổi máy chủ)`;
     }
     if (dot) dot.style.background = '#dd6b20';
-    if (text) text.innerText = 'Ngoại tuyến (Lưu máy)';
-    if (isManual) showToast('Không thể kết nối Máy chủ LAN. Ứng dụng hoạt động ở chế độ Ngoại tuyến.');
+    if (text) text.innerText = 'Đệm máy (Ngoại tuyến)';
+    if (isManual) showToast('⚠️ Đang ở chế độ Ngoại tuyến/Bộ đệm máy. Dữ liệu vẫn được bảo vệ an toàn trên trình duyệt!');
     return false;
   }
 }
@@ -7096,16 +7136,37 @@ function updateLastSavedTime(isoString, isLocalOnly = false) {
   }
 }
 
-// Tai phien lam viec
+// Tai phien lam viec (CACHE-FIRST ĐỂ HIỂN THỊ TỨC THÌ TRONG 0MS)
 async function loadSessionForOfficer(officerId, quarter, year) {
   const offId = officerId || (appState.officer && appState.officer.officerId) || 'hoang';
   const q = quarter || (appState.officer && appState.officer.quarter) || 'Quý III';
   const y = year || (appState.officer && appState.officer.year) || 2026;
   const storageKey = getSessionStorageKey(offId, q, y);
 
-  // 1. Thu tai tu Server API
+  // 1. CACHE-FIRST: Áp dụng ngay lập tức bản lưu đệm trên máy tính nếu có (0ms, không chờ server)
+  let hadLocalCache = false;
   try {
-    const res = await fetch(`${CURRENT_SERVER_HOST}/api/session?officerId=${encodeURIComponent(offId)}&quarter=${encodeURIComponent(q)}&year=${encodeURIComponent(y)}`, { cache: 'no-cache' });
+    const cached = localStorage.getItem(storageKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed && parsed.officer) {
+        applyLoadedSession(parsed, offId, q, y);
+        updateLastSavedTime(parsed.lastSaved || new Date().toISOString(), true);
+        hadLocalCache = true;
+      }
+    }
+  } catch (err) {}
+
+  // 2. Tải bản mới nhất từ Server API chạy nền (Background Revalidation)
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${CURRENT_SERVER_HOST}/api/session?officerId=${encodeURIComponent(offId)}&quarter=${encodeURIComponent(q)}&year=${encodeURIComponent(y)}`, { 
+      cache: 'no-cache',
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
     if (res.ok) {
       const json = await res.json();
       if (json.success && json.data) {
@@ -7116,24 +7177,13 @@ async function loadSessionForOfficer(officerId, quarter, year) {
       }
     }
   } catch (err) {
-    // Server loi hoac offline
+    // Server loi hoac offline -> đã có local cache phục vụ
   }
 
-  // 2. Thu doc tu LocalStorage
-  try {
-    const cached = localStorage.getItem(storageKey);
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (parsed && parsed.officer) {
-        applyLoadedSession(parsed, offId, q, y);
-        updateLastSavedTime(parsed.lastSaved, true);
-        return;
-      }
-    }
-  } catch (err) {}
-
-  // 3. Neu chua co, khoi tao phien mac dinh cho can bo do
-  initializeFreshOfficerSession(offId, q, y);
+  // 3. Neu chua co du lieu ca tren Server va May tinh, khoi tao phien moi
+  if (!hadLocalCache) {
+    initializeFreshOfficerSession(offId, q, y);
+  }
 }
 
 // Ap dung du lieu phien vao appState
@@ -7297,6 +7347,10 @@ async function saveActiveSession(showNotification = true) {
   // 2. Gui len Server (MongoDB Atlas Cloud)
   let serverSaved = false;
   try {
+    // Tinh gọn payload: loại bỏ trường quartersData trùng lặp giúp giảm dung lượng từ 1.7MB xuống 200KB
+    const statePayload = { ...appState };
+    if (statePayload.quartersData) delete statePayload.quartersData;
+
     const res = await fetch(`${CURRENT_SERVER_HOST}/api/session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -7304,7 +7358,7 @@ async function saveActiveSession(showNotification = true) {
         officerId: offId,
         quarter: q,
         year: y,
-        state: appState
+        state: statePayload
       })
     });
     if (res.ok) {
@@ -8644,10 +8698,13 @@ async function updateOfficerLeaderProposal(officerId, proposalVal) {
     localStorage.setItem(storageKey, JSON.stringify(sess));
 
     // Gui len server
+    const sessClean = { ...sess };
+    delete sessClean.quartersData;
+
     fetch(`${CURRENT_SERVER_HOST}/api/session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ officerId, quarter: curQ, year: curY, state: sess })
+      body: JSON.stringify({ officerId, quarter: curQ, year: curY, state: sessClean })
     }).catch(e => {});
   } catch (err) {}
 
