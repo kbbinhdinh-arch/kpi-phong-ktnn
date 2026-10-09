@@ -500,7 +500,7 @@ connectMongo();
 // 🛡️ TỰ ĐỘNG SAO LƯU DỰ PHÒNG TOÀN HỆ THỐNG ĐỊNH KỲ (DAILY AUTO-BACKUP)
 // ============================================================================
 function scheduleDailyAutoBackup() {
-  if (process.env.AUTO_BACKUP_ENABLED === 'false') return;
+  if (process.env.VERCEL || process.env.AUTO_BACKUP_ENABLED === 'false') return;
 
   const BACKUP_DIR = path.join(BASE_DIR, 'backups');
   if (!fs.existsSync(BACKUP_DIR)) {
@@ -707,9 +707,11 @@ function refreshHtmlCache() {
 }
 
 refreshHtmlCache();
-try {
-  fs.watch(HTML_FILE, () => { setTimeout(refreshHtmlCache, 300); });
-} catch (e) {}
+if (!process.env.VERCEL) {
+  try {
+    fs.watch(HTML_FILE, () => { setTimeout(refreshHtmlCache, 300); });
+  } catch (e) {}
+}
 
 function sendJson(res, statusCode, data) {
   const jsonStr = (typeof data === 'string') ? data : JSON.stringify(data);
@@ -750,6 +752,39 @@ function sendJsonDirect(res, statusCode, jsonStr) {
     'Cache-Control': 'no-cache, no-store, must-revalidate'
   });
   res.end(buf);
+}
+
+// ⚡ Hỗ trợ phân tích dữ liệu POST đa môi trường (Tương thích cả Vercel Serverless lẫn Node Native Stream)
+function parseJsonBody(req) {
+  return new Promise((resolve, reject) => {
+    if (req.body !== undefined && req.body !== null) {
+      if (typeof req.body === 'object') return resolve(req.body);
+      if (typeof req.body === 'string') {
+        try { return resolve(JSON.parse(req.body)); } catch (e) { return resolve({}); }
+      }
+    }
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        resolve(body ? JSON.parse(body) : {});
+      } catch (e) {
+        resolve({});
+      }
+    });
+    req.on('error', reject);
+  });
+}
+
+function parseRawBody(req) {
+  return new Promise((resolve, reject) => {
+    if (Buffer.isBuffer(req.body)) return resolve(req.body);
+    if (typeof req.body === 'string') return resolve(Buffer.from(req.body));
+    let chunks = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
 }
 
 async function getAuthPasswords() {
@@ -1032,6 +1067,15 @@ async function handleKpiRequest(req, res) {
   let pathname = parsedUrl.pathname;
   const searchParams = parsedUrl.searchParams;
 
+  // Hỗ trợ Vercel Serverless: giải mã đường dẫn gốc khi được rewrite qua _raw_path hoặc slug
+  if (searchParams.has('_raw_path')) {
+    const raw = searchParams.get('_raw_path');
+    pathname = raw.startsWith('/') ? raw : ('/api/' + raw);
+  } else if (req.query && req.query.slug) {
+    const slugArr = Array.isArray(req.query.slug) ? req.query.slug : [req.query.slug];
+    pathname = '/api/' + slugArr.join('/');
+  }
+
   // Chuẩn hóa tiền tố khi được phục vụ dưới cổng hợp nhất 8090
   if (pathname === '/kpi' || pathname === '/kpi/' || pathname === '/kpi-ktnn' || pathname === '/kpi-ktnn/') {
     pathname = '/';
@@ -1076,124 +1120,104 @@ async function handleKpiRequest(req, res) {
 
   // API Set Password
   if (pathname === '/api/auth/set-password' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', async () => {
-      try {
-        const payload = JSON.parse(body);
-        const { officerId, password } = payload;
-        if (!officerId || !password || String(password).trim().length < 4) {
-          return sendJson(res, 400, { success: false, error: "Mật khẩu phải có ít nhất 4 ký tự" });
-        }
-        const authData = await getAuthPasswords();
-        const salt = crypto.randomBytes(16).toString('hex');
-        authData[officerId] = {
-          hash: hashPassword(password, salt),
-          salt,
-          createdAt: authData[officerId] ? authData[officerId].createdAt : new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        await saveAuthPasswords(authData);
-        return sendJson(res, 200, { success: true, message: "Đã thiết lập mật khẩu thành công" });
-      } catch (err) {
-        return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ" });
+    try {
+      const payload = await parseJsonBody(req);
+      const { officerId, password } = payload;
+      if (!officerId || !password || String(password).trim().length < 4) {
+        return sendJson(res, 400, { success: false, error: "Mật khẩu phải có ít nhất 4 ký tự" });
       }
-    });
-    return;
+      const authData = await getAuthPasswords();
+      const salt = crypto.randomBytes(16).toString('hex');
+      authData[officerId] = {
+        hash: hashPassword(password, salt),
+        salt,
+        createdAt: authData[officerId] ? authData[officerId].createdAt : new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      await saveAuthPasswords(authData);
+      return sendJson(res, 200, { success: true, message: "Đã thiết lập mật khẩu thành công" });
+    } catch (err) {
+      return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ" });
+    }
   }
 
   // API Verify Password
   if (pathname === '/api/auth/verify' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', async () => {
-      try {
-        const payload = JSON.parse(body);
-        const { officerId, password } = payload;
-        const authData = await getAuthPasswords();
-        const userAuth = authData[officerId];
-        if (!userAuth || !userAuth.hash) {
-          return sendJson(res, 200, { success: false, error: "Tài khoản chưa thiết lập mật khẩu", notSet: true });
-        }
-        const calculatedHash = userAuth.salt 
-          ? hashPassword(password, userAuth.salt) 
-          : hashPassword(password);
-        if (calculatedHash === userAuth.hash) {
-          return sendJson(res, 200, { success: true, message: "Xác thực thành công" });
-        } else {
-          return sendJson(res, 200, { success: false, error: "Mật khẩu không chính xác" });
-        }
-      } catch (err) {
-        return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ" });
+    try {
+      const payload = await parseJsonBody(req);
+      const { officerId, password } = payload;
+      const authData = await getAuthPasswords();
+      const userAuth = authData[officerId];
+      if (!userAuth || !userAuth.hash) {
+        return sendJson(res, 200, { success: false, error: "Tài khoản chưa thiết lập mật khẩu", notSet: true });
       }
-    });
-    return;
+      const calculatedHash = userAuth.salt 
+        ? hashPassword(password, userAuth.salt) 
+        : hashPassword(password);
+      if (calculatedHash === userAuth.hash) {
+        return sendJson(res, 200, { success: true, message: "Xác thực thành công" });
+      } else {
+        return sendJson(res, 200, { success: false, error: "Mật khẩu không chính xác" });
+      }
+    } catch (err) {
+      return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ" });
+    }
   }
 
   // API Change Password
   if (pathname === '/api/auth/change-password' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', async () => {
-      try {
-        const payload = JSON.parse(body);
-        const { officerId, oldPassword, newPassword } = payload;
-        if (!officerId || !newPassword || String(newPassword).trim().length < 4) {
-          return sendJson(res, 400, { success: false, error: "Mật khẩu mới phải có ít nhất 4 ký tự" });
-        }
-        const authData = await getAuthPasswords();
-        const userAuth = authData[officerId];
-        if (userAuth && userAuth.hash) {
-          const currentValid = userAuth.salt
-            ? (hashPassword(oldPassword || '', userAuth.salt) === userAuth.hash)
-            : (hashPassword(oldPassword || '') === userAuth.hash);
-          if (!currentValid && payload.adminOfficerId !== 'hoang') {
-            return sendJson(res, 400, { success: false, error: "Mật khẩu hiện tại không chính xác" });
-          }
-        }
-        const salt = crypto.randomBytes(16).toString('hex');
-        authData[officerId] = {
-          hash: hashPassword(newPassword, salt),
-          salt,
-          createdAt: userAuth ? userAuth.createdAt : new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        await saveAuthPasswords(authData);
-        return sendJson(res, 200, { success: true, message: "Đã đổi mật khẩu thành công" });
-      } catch (err) {
-        return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ" });
+    try {
+      const payload = await parseJsonBody(req);
+      const { officerId, oldPassword, newPassword } = payload;
+      if (!officerId || !newPassword || String(newPassword).trim().length < 4) {
+        return sendJson(res, 400, { success: false, error: "Mật khẩu mới phải có ít nhất 4 ký tự" });
       }
-    });
-    return;
+      const authData = await getAuthPasswords();
+      const userAuth = authData[officerId];
+      if (userAuth && userAuth.hash) {
+        const currentValid = userAuth.salt
+          ? (hashPassword(oldPassword || '', userAuth.salt) === userAuth.hash)
+          : (hashPassword(oldPassword || '') === userAuth.hash);
+        if (!currentValid && payload.adminOfficerId !== 'hoang') {
+          return sendJson(res, 400, { success: false, error: "Mật khẩu hiện tại không chính xác" });
+        }
+      }
+      const salt = crypto.randomBytes(16).toString('hex');
+      authData[officerId] = {
+        hash: hashPassword(newPassword, salt),
+        salt,
+        createdAt: userAuth ? userAuth.createdAt : new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      await saveAuthPasswords(authData);
+      return sendJson(res, 200, { success: true, message: "Đã đổi mật khẩu thành công" });
+    } catch (err) {
+      return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ" });
+    }
   }
 
   // API Admin Set Password
   if (pathname === '/api/auth/admin-set-password' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', async () => {
-      try {
-        const payload = JSON.parse(body);
-        const { adminOfficerId, targetOfficerId, newPassword } = payload;
-        const isAuthorized = isAuthorAuthorizedMachine() || adminOfficerId === 'hoang';
-        if (!isAuthorized) {
-          return sendJson(res, 403, { success: false, error: "Quyền quản trị bị từ chối!" });
-        }
-        const authData = await getAuthPasswords();
-        const salt = crypto.randomBytes(16).toString('hex');
-        authData[targetOfficerId] = {
-          hash: hashPassword(newPassword, salt),
-          salt,
-          createdAt: authData[targetOfficerId] ? authData[targetOfficerId].createdAt : new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        await saveAuthPasswords(authData);
-        return sendJson(res, 200, { success: true, message: `Đã đặt mật khẩu cho cán bộ: ${targetOfficerId}` });
-      } catch (err) {
-        return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ" });
+    try {
+      const payload = await parseJsonBody(req);
+      const { adminOfficerId, targetOfficerId, newPassword } = payload;
+      const isAuthorized = isAuthorAuthorizedMachine() || adminOfficerId === 'hoang';
+      if (!isAuthorized) {
+        return sendJson(res, 403, { success: false, error: "Quyền quản trị bị từ chối!" });
       }
-    });
-    return;
+      const authData = await getAuthPasswords();
+      const salt = crypto.randomBytes(16).toString('hex');
+      authData[targetOfficerId] = {
+        hash: hashPassword(newPassword, salt),
+        salt,
+        createdAt: authData[targetOfficerId] ? authData[targetOfficerId].createdAt : new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      await saveAuthPasswords(authData);
+      return sendJson(res, 200, { success: true, message: `Đã đặt mật khẩu cho cán bộ: ${targetOfficerId}` });
+    } catch (err) {
+      return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ" });
+    }
   }
 
   // API Status
@@ -1346,11 +1370,8 @@ async function handleKpiRequest(req, res) {
 
   // API Save Session (CÓ LƯU TRỮ LỊCH SỬ PHIÊN BẢN - SNAPSHOT VERSIONING)
   if (pathname === '/api/session' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', async () => {
-      try {
-        const payload = JSON.parse(body);
+    try {
+      const payload = await parseJsonBody(req);
         const officerId = payload.officerId || (payload.officer && payload.officer.officerId) || (payload.state && payload.state.officer && payload.state.officer.officerId);
         const quarter = payload.quarter || (payload.officer && payload.officer.quarter) || (payload.state && payload.state.officer && payload.state.officer.quarter);
         const year = payload.year || (payload.officer && payload.officer.year) || (payload.state && payload.state.officer && payload.state.officer.year);
@@ -1483,17 +1504,12 @@ async function handleKpiRequest(req, res) {
       } catch (err) {
         return sendJson(res, 500, { success: false, error: "Lỗi ghi dữ liệu: " + err.message });
       }
-    });
-    return;
   }
 
   // --- API NỘP BÁO CÁO KPI (SUBMIT KPI) ---
   if (pathname === '/api/session/submit' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', async () => {
-      try {
-        const payload = JSON.parse(body);
+    try {
+      const payload = await parseJsonBody(req);
         const { officerId, quarter, year, state } = payload;
         if (!officerId) return sendJson(res, 400, { success: false, error: "Thiếu officerId" });
 
@@ -1567,17 +1583,12 @@ async function handleKpiRequest(req, res) {
       } catch (err) {
         return sendJson(res, 500, { success: false, error: err.message });
       }
-    });
-    return;
   }
 
   // --- API LÃNH ĐẠO PHÊ DUYỆT KPI (APPROVE KPI) ---
   if (pathname === '/api/session/approve' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', async () => {
-      try {
-        const payload = JSON.parse(body);
+    try {
+      const payload = await parseJsonBody(req);
         const { officerId, quarter, year, leaderOfficerId, leaderRatingProposal, leaderRatingNote } = payload;
         if (!officerId) return sendJson(res, 400, { success: false, error: "Thiếu officerId" });
 
@@ -1652,17 +1663,12 @@ async function handleKpiRequest(req, res) {
       } catch (err) {
         return sendJson(res, 500, { success: false, error: err.message });
       }
-    });
-    return;
   }
 
   // --- API LÃNH ĐẠO TRẢ LẠI ĐỂ SỬA ĐỔI / GIẢI TRÌNH (REJECT & RETURN) ---
   if (pathname === '/api/session/reject' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', async () => {
-      try {
-        const payload = JSON.parse(body);
+    try {
+      const payload = await parseJsonBody(req);
         const { officerId, quarter, year, leaderOfficerId, rejectReason } = payload;
         if (!officerId) return sendJson(res, 400, { success: false, error: "Thiếu officerId" });
 
@@ -1737,8 +1743,6 @@ async function handleKpiRequest(req, res) {
       } catch (err) {
         return sendJson(res, 500, { success: false, error: err.message });
       }
-    });
-    return;
   }
 
   // --- API LẤY LỊCH SỬ CÁC BẢN SAO LƯU (SNAPSHOT HISTORY) ---
@@ -1780,11 +1784,8 @@ async function handleKpiRequest(req, res) {
 
   // --- API KHÔI PHỤC DỮ LIỆU TỪ BẢN SAO LƯU (ROLLBACK TO SNAPSHOT) ---
   if (pathname === '/api/session/rollback' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', async () => {
-      try {
-        const payload = JSON.parse(body);
+    try {
+      const payload = await parseJsonBody(req);
         const { snapshotId, officerId, quarter, year } = payload;
 
         if (!snapshotId) {
@@ -1836,50 +1837,43 @@ async function handleKpiRequest(req, res) {
       } catch (err) {
         return sendJson(res, 500, { success: false, error: "Lỗi khôi phục: " + err.message });
       }
-    });
-    return;
   }
 
   // API Leader Proposal
   if (pathname === '/api/leader-proposal' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', async () => {
-      try {
-        const payload = JSON.parse(body);
-        const { officerId, quarter, year, leaderRatingProposal, leaderRatingNote } = payload;
-        if (!officerId) return sendJson(res, 400, { success: false, error: "Thiếu officerId" });
+    try {
+      const payload = await parseJsonBody(req);
+      const { officerId, quarter, year, leaderRatingProposal, leaderRatingNote } = payload;
+      if (!officerId) return sendJson(res, 400, { success: false, error: "Thiếu officerId" });
 
-        const filename = getSessionFilename(officerId, quarter, year);
-        let docData = null;
+      const filename = getSessionFilename(officerId, quarter, year);
+      let docData = null;
+      if (kpiDb) {
+        try {
+          const col = kpiDb.collection('sessions');
+          const doc = await col.findOne({ filename });
+          docData = doc && doc.data;
+        } catch(e) {}
+      }
+      if (!docData) docData = getLocalSession(filename);
+
+      if (docData) {
+        docData.leaderRatingProposal = leaderRatingProposal;
+        if (leaderRatingNote !== undefined) docData.leaderRatingNote = leaderRatingNote;
+        docData.lastSaved = new Date().toISOString();
+        saveLocalSession(filename, docData);
+
         if (kpiDb) {
           try {
-            const col = kpiDb.collection('sessions');
-            const doc = await col.findOne({ filename });
-            docData = doc && doc.data;
+            await kpiDb.collection('sessions').updateOne({ filename }, { $set: { data: docData } });
           } catch(e) {}
         }
-        if (!docData) docData = getLocalSession(filename);
-
-        if (docData) {
-          docData.leaderRatingProposal = leaderRatingProposal;
-          if (leaderRatingNote !== undefined) docData.leaderRatingNote = leaderRatingNote;
-          docData.lastSaved = new Date().toISOString();
-          saveLocalSession(filename, docData);
-
-          if (kpiDb) {
-            try {
-              await kpiDb.collection('sessions').updateOne({ filename }, { $set: { data: docData } });
-            } catch(e) {}
-          }
-          invalidateSummaryCache();
-        }
-        return sendJson(res, 200, { success: true, message: "Đã lưu đánh giá của Lãnh đạo" });
-      } catch (err) {
-        return sendJson(res, 500, { success: false, error: err.message });
+        invalidateSummaryCache();
       }
-    });
-    return;
+      return sendJson(res, 200, { success: true, message: "Đã lưu đánh giá của Lãnh đạo" });
+    } catch (err) {
+      return sendJson(res, 500, { success: false, error: err.message });
+    }
   }
 
   // --- API Xuất toàn bộ dữ liệu ra tệp JSON trực tiếp ---
@@ -1933,63 +1927,58 @@ async function handleKpiRequest(req, res) {
     if (!isAuthorized) {
       return sendJson(res, 403, { success: false, error: "BẢN QUYỀN & BẢO MẬT: Thao tác nạp dữ liệu bị từ chối do thiếu khóa Admin Key bảo vệ!" });
     }
-    let chunks = [];
-    req.on('data', chunk => chunks.push(chunk));
-    req.on('end', async () => {
+    try {
+      const buffer = await parseRawBody(req);
+      let jsonStr = '';
       try {
-        const buffer = Buffer.concat(chunks);
-        let jsonStr = '';
-        try {
-          jsonStr = zlib.gunzipSync(buffer).toString('utf8');
-        } catch(e) {
-          jsonStr = buffer.toString('utf8');
-        }
-        const importData = JSON.parse(jsonStr);
-        if (!importData.sessions) {
-          return sendJson(res, 400, { success: false, error: "Tệp dữ liệu không hợp lệ" });
-        }
-
-        let count = 0;
-        // Luôn ghi đè vào thư mục cục bộ data/
-        for (const [fname, sess] of Object.entries(importData.sessions)) {
-          saveLocalSession(fname, sess);
-          count++;
-        }
-        if (importData.officers_config) {
-          saveLocalOfficers(importData.officers_config);
-        }
-        if (importData.auth_passwords) {
-          saveLocalAuth(importData.auth_passwords);
-        }
-
-        if (kpiDb) {
-          try {
-            const sessionsCol = kpiDb.collection('sessions');
-            for (const [fname, sess] of Object.entries(importData.sessions)) {
-              await sessionsCol.updateOne({ filename: fname }, { $set: { filename: fname, data: sess } }, { upsert: true });
-            }
-
-            if (importData.officers_config) {
-              const configCol = kpiDb.collection('officers_config');
-              for (const [id, cfg] of Object.entries(importData.officers_config)) {
-                await configCol.updateOne({ id }, { $set: cfg }, { upsert: true });
-              }
-            }
-
-            if (importData.auth_passwords) {
-              await saveAuthPasswords(importData.auth_passwords);
-            }
-            await syncOfficerRolesMigration();
-          } catch (e) {}
-        }
-
-        console.log(`[IMPORT CLOUD] Đã nạp thành công ${count} phiên dữ liệu lên MongoDB từ file máy tính.`);
-        sendJson(res, 200, { success: true, count, message: `Đã nạp thành công dữ liệu ${count} cán bộ lên hệ thống Cloud từ file máy tính!` });
-      } catch(err) {
-        sendJson(res, 500, { success: false, error: "Lỗi nạp dữ liệu: " + err.message });
+        jsonStr = zlib.gunzipSync(buffer).toString('utf8');
+      } catch(e) {
+        jsonStr = buffer.toString('utf8');
       }
-    });
-    return;
+      const importData = JSON.parse(jsonStr);
+      if (!importData.sessions) {
+        return sendJson(res, 400, { success: false, error: "Tệp dữ liệu không hợp lệ" });
+      }
+
+      let count = 0;
+      // Luôn ghi đè vào thư mục cục bộ data/
+      for (const [fname, sess] of Object.entries(importData.sessions)) {
+        saveLocalSession(fname, sess);
+        count++;
+      }
+      if (importData.officers_config) {
+        saveLocalOfficers(importData.officers_config);
+      }
+      if (importData.auth_passwords) {
+        saveLocalAuth(importData.auth_passwords);
+      }
+
+      if (kpiDb) {
+        try {
+          const sessionsCol = kpiDb.collection('sessions');
+          for (const [fname, sess] of Object.entries(importData.sessions)) {
+            await sessionsCol.updateOne({ filename: fname }, { $set: { filename: fname, data: sess } }, { upsert: true });
+          }
+
+          if (importData.officers_config) {
+            const configCol = kpiDb.collection('officers_config');
+            for (const [id, cfg] of Object.entries(importData.officers_config)) {
+              await configCol.updateOne({ id }, { $set: cfg }, { upsert: true });
+            }
+          }
+
+          if (importData.auth_passwords) {
+            await saveAuthPasswords(importData.auth_passwords);
+          }
+          await syncOfficerRolesMigration();
+        } catch (e) {}
+      }
+
+      console.log(`[IMPORT CLOUD] Đã nạp thành công ${count} phiên dữ liệu lên MongoDB từ file máy tính.`);
+      return sendJson(res, 200, { success: true, count, message: `Đã nạp thành công dữ liệu ${count} cán bộ lên hệ thống Cloud từ file máy tính!` });
+    } catch(err) {
+      return sendJson(res, 500, { success: false, error: "Lỗi nạp dữ liệu: " + err.message });
+    }
   }
 
   // --- API Chuẩn hóa Chức danh trên Cloud (Thủ kho tiền: Thu Trang, GDV: Lệ Thủy) ---
