@@ -11019,8 +11019,82 @@ function exportToanPhongBackup() {
     });
 }
 
-// Nạp tệp sao lưu từ máy tính lên Web để đồng bộ toàn bộ 35 cán bộ
-function handleImportToanPhong(event) {
+// --- TIỆN ÍCH PHỤC HỒI & SAO LƯU DỮ LIỆU TOÀN PHÒNG ---
+function sanitizeSessionClient(sess) {
+  if (!sess || typeof sess !== 'object') return sess;
+  const copy = { ...sess };
+  if (copy.quartersData) delete copy.quartersData;
+  return copy;
+}
+
+async function parseBackupFileContent(arrayBuffer) {
+  const uint8 = new Uint8Array(arrayBuffer);
+  // Kiểm tra Gzip magic bytes 0x1f, 0x8b
+  if (uint8[0] === 0x1f && uint8[1] === 0x8b) {
+    if (typeof DecompressionStream !== 'undefined') {
+      const ds = new DecompressionStream('gzip');
+      const writer = ds.writable.getWriter();
+      writer.write(arrayBuffer);
+      writer.close();
+      const res = new Response(ds.readable);
+      const text = await res.text();
+      return JSON.parse(text);
+    } else {
+      throw new Error("Trình duyệt không hỗ trợ DecompressionStream. Vui lòng sử dụng tệp .json hoặc cập nhật trình duyệt.");
+    }
+  } else {
+    const text = new TextDecoder('utf-8').decode(arrayBuffer);
+    return JSON.parse(text);
+  }
+}
+
+function showImportProgressModal() {
+  let modal = document.getElementById('kpiImportProgressModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'kpiImportProgressModal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.65);z-index:999999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);';
+    modal.innerHTML = `
+      <div style="background:#ffffff;border-radius:12px;padding:24px 28px;max-width:520px;width:92%;box-shadow:0 20px 40px rgba(0,0,0,0.3);border-top:5px solid #3182ce;font-family:system-ui,-apple-system,sans-serif;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <div style="font-size:24px;">🔄</div>
+          <h3 style="margin:0;font-size:16px;font-weight:700;color:#1a365d;">PHỤC HỒI & ĐỒNG BỘ DỮ LIỆU CLOUD</h3>
+        </div>
+        <p id="kpiImportProgressText" style="font-size:13px;color:#4a5568;margin-bottom:14px;line-height:1.4;">Đang chuẩn bị dữ liệu...</p>
+        <div style="width:100%;background:#e2e8f0;border-radius:9999px;height:12px;overflow:hidden;margin-bottom:6px;">
+          <div id="kpiImportProgressBar" style="width:0%;height:100%;background:linear-gradient(90deg,#3182ce,#38a169);transition:width 0.25s ease;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:#718096;font-weight:600;">
+          <span id="kpiImportProgressDetail">Vui lòng không đóng trình duyệt...</span>
+          <span id="kpiImportProgressPct" style="color:#2b6cb0;font-weight:700;">0%</span>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  modal.style.display = 'flex';
+  return modal;
+}
+
+function updateImportProgress(pct, text, detail) {
+  showImportProgressModal();
+  const bar = document.getElementById('kpiImportProgressBar');
+  const txt = document.getElementById('kpiImportProgressText');
+  const pctEl = document.getElementById('kpiImportProgressPct');
+  const dtl = document.getElementById('kpiImportProgressDetail');
+  if (bar) bar.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+  if (txt && text) txt.innerText = text;
+  if (pctEl) pctEl.innerText = `${Math.round(pct)}%`;
+  if (dtl && detail) dtl.innerText = detail;
+}
+
+function hideImportProgressModal() {
+  const modal = document.getElementById('kpiImportProgressModal');
+  if (modal) modal.style.display = 'none';
+}
+
+// Nạp tệp sao lưu từ máy tính lên Web để đồng bộ toàn bộ 35 cán bộ theo từng lô nhỏ an toàn
+async function handleImportToanPhong(event) {
   const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || (appState.officer && (appState.officer.id || appState.officer.officerId)) || '';
   if (loggedUser !== 'hoang') {
     alert('BẢN QUYỀN & BẢO MẬT: Chức năng Đồng bộ Web chỉ dành riêng cho Quản trị viên (Hoàng)!');
@@ -11031,34 +11105,84 @@ function handleImportToanPhong(event) {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
 
-  if (!confirm(`XÁC NHẬN ĐỒNG BỘ DỮ LIỆU:\nBạn có chắc chắn muốn nạp dữ liệu từ tệp "${file.name}" lên hệ thống không?\n\nToàn bộ dữ liệu điểm số của 35 cán bộ sẽ được cập nhật đồng bộ ngay lập tức.`)) {
+  if (!confirm(`XÁC NHẬN ĐỒNG BỘ DỮ LIỆU:\nBạn có chắc chắn muốn nạp dữ liệu từ tệp "${file.name}" lên hệ thống Cloud không?\n\nToàn bộ dữ liệu điểm số của 35 cán bộ sẽ được cập nhật đồng bộ an toàn theo từng lô.`)) {
     event.target.value = '';
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const arrayBuffer = e.target.result;
-    fetch(`${CURRENT_SERVER_HOST}/api/backup/import-all?adminOfficerId=hoang`, {
-      method: 'POST',
-      body: arrayBuffer
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        alert(data.message || 'Đồng bộ dữ liệu thành công!');
-        window.location.reload();
-      } else {
-        alert('Lỗi nạp dữ liệu: ' + (data.error || 'Thất bại'));
+  const fileInput = event.target;
+  try {
+    updateImportProgress(5, `Đang đọc tệp "${file.name}"...`, "Đang giải mã dữ liệu sao lưu...");
+    const arrayBuffer = await file.arrayBuffer();
+    const importData = await parseBackupFileContent(arrayBuffer);
+
+    if (!importData || (!importData.sessions && !importData.officers_config)) {
+      throw new Error("Tệp sao lưu không chứa cấu trúc dữ liệu hợp lệ (thiếu sessions hoặc officers_config).");
+    }
+
+    // 1. Đồng bộ cấu hình 35 cán bộ và mật khẩu (Lô 1 ~15KB)
+    if (importData.officers_config || importData.auth_passwords) {
+      updateImportProgress(10, "Đang đồng bộ danh bạ 35 cán bộ & mật khẩu phòng...", "Lô cấu hình cơ sở");
+      const cfgRes = await fetch(`${CURRENT_SERVER_HOST}/api/backup/import-chunk?adminOfficerId=hoang`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chunkType: 'config',
+          officers_config: importData.officers_config,
+          auth_passwords: importData.auth_passwords
+        })
+      });
+      if (!cfgRes.ok) {
+        const errText = await cfgRes.text();
+        throw new Error(`Lỗi cập nhật cấu hình (${cfgRes.status}): ${errText.slice(0, 120)}`);
       }
-      event.target.value = '';
-    })
-    .catch(err => {
-      alert('Lỗi kết nối máy chủ: ' + err.message);
-      event.target.value = '';
-    });
-  };
-  reader.readAsArrayBuffer(file);
+    }
+
+    // 2. Đồng bộ các hồ sơ cán bộ theo từng lô nhỏ (mỗi lô 3 cán bộ ~250KB, tuyệt đối an toàn dưới trần 4.5MB của Vercel)
+    const sessions = importData.sessions || {};
+    const sessionKeys = Object.keys(sessions);
+    const totalSessions = sessionKeys.length;
+    const CHUNK_SIZE = 3;
+    let processed = 0;
+
+    for (let i = 0; i < totalSessions; i += CHUNK_SIZE) {
+      const batchKeys = sessionKeys.slice(i, i + CHUNK_SIZE);
+      const batchObj = {};
+      batchKeys.forEach(k => {
+        batchObj[k] = sanitizeSessionClient(sessions[k]);
+      });
+
+      processed += batchKeys.length;
+      const pct = Math.round(10 + (processed / totalSessions) * 85);
+      const sampleNames = batchKeys.map(k => k.split('_')[0]).join(', ');
+      updateImportProgress(pct, `Đang nạp hồ sơ cán bộ: ${sampleNames} (${processed}/${totalSessions})...`, `Tiến độ: ${processed}/${totalSessions} hồ sơ`);
+
+      const batchRes = await fetch(`${CURRENT_SERVER_HOST}/api/backup/import-chunk?adminOfficerId=hoang`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chunkType: 'sessions',
+          sessions: batchObj
+        })
+      });
+
+      if (!batchRes.ok) {
+        const errText = await batchRes.text();
+        throw new Error(`Lỗi đồng bộ hồ sơ (${batchRes.status}): ${errText.slice(0, 120)}`);
+      }
+    }
+
+    updateImportProgress(100, `✅ ĐÃ ĐỒNG BỘ THÀNH CÔNG ${processed} HỒ SƠ CÁN BỘ!`, "Đang khởi động lại trang web...");
+    setTimeout(() => {
+      window.location.reload();
+    }, 1200);
+
+  } catch (err) {
+    hideImportProgressModal();
+    alert('LỖI ĐỒNG BỘ DỮ LIỆU: ' + err.message);
+  } finally {
+    if (fileInput) fileInput.value = '';
+  }
 }
 
 function escapeHtml(text) {

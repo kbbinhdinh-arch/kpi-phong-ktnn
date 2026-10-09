@@ -5746,7 +5746,7 @@
           "col_w": "",
           "ghichu": "",
           "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHIỆP VỤ",
-          "parent_level2": "C. CÔNG TÁC KIỂM TRA VÀ GIẢI QUYẾT KHIẾU NẠI, T��� CÁO, KIẾN NGHỊ, PHẢN ÁNH",
+          "parent_level2": "C. CÔNG TÁC KIỂM TRA VÀ GIẢI QUYẾT KHIẾU NẠI, TỐ CÁO, KIẾN NGHỊ, PHẢN ÁNH",
           "parent_section": "Tổ chức thực hiện kiểm tra nội bộ theo kế hoạch; kiểm tra đột xuất; tự kiểm tra",
           "depth": 10
         },
@@ -11430,7 +11430,7 @@
           "col_u": "",
           "col_v": "",
           "col_w": "",
-          "ghichu": "Thay đổi UQ CTK Công an tỉnh và Quỹ PCTP; thay đổi mẫu dấu Trung đoàn CSCĐ E06; thay đổi CTK P QN ������ông; đk mở tk quỹ PCTT P QN Bắc",
+          "ghichu": "Thay đổi UQ CTK Công an tỉnh và Quỹ PCTP; thay đổi mẫu dấu Trung đoàn CSCĐ E06; thay đổi CTK P QN ����ông; đk mở tk quỹ PCTT P QN Bắc",
           "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHIỆP VỤ",
           "parent_level2": "B. CÔNG TÁC CHUYÊN MÔN, NGHIỆP VỤ",
           "parent_section": "Công tác đăng ký và sử dụng tài khoản; phong tỏa, tất toán tài khoản",
@@ -14217,7 +14217,7 @@
           "col_w": "",
           "ghichu": "",
           "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHIỆP VỤ",
-          "parent_level2": "C. CÔNG TÁC KIỂM TRA VÀ GIẢI QUYẾT KHIẾU NẠI, TỐ CÁO, KIẾN NGHỊ, PHẢN ÁNH",
+          "parent_level2": "C. CÔNG TÁC KI��M TRA VÀ GIẢI QUYẾT KHIẾU NẠI, TỐ CÁO, KIẾN NGHỊ, PHẢN ÁNH",
           "parent_section": "Phối hợp giải quyết đơn thư, khiếu nại, tố cáo, kiến nghị phản ánh thuộc lĩnh vực được phân công",
           "depth": 10,
           "_isCustomized": false
@@ -17095,7 +17095,7 @@
           "isTask": true,
           "stt": "1.16",
           "nhiemvu": "Xây dựng quy định, quy chế, kế hoạch, công văn hướng dẫn",
-          "congviec": "Báo cáo định kỳ, đột xuất; tham mưu ��iều chỉnh, bổ sung chương trình, kế hoạch khi cần thiết",
+          "congviec": "Báo cáo định kỳ, đột xuất; tham mưu điều chỉnh, b�� sung chương trình, kế hoạch khi cần thiết",
           "sp_daura": "Báo cáo/Tờ trình điều chỉnh",
           "sp_chitiet": "Báo cáo/Tờ trình điều chỉnh",
           "diem_tc": 50,
@@ -24425,8 +24425,8 @@
   "quarterFilterActiveOnly": true,
   "selfRatingNote": "",
   "leaderRatingProposal": "",
-  "status": "da_duyet",
-  "lastSaved": "2026-09-30T01:59:01.328Z",
+  "status": "tra_lai",
+  "lastSaved": "2026-09-25T02:34:33.624Z",
   "quartersData": {
     "Quý III": [
       {
@@ -28405,7 +28405,7 @@
             "isLevel2": false,
             "isTask": true,
             "stt": "3.4",
-            "nhiemvu": "Công tác mở, quản lý và sử dụng tài khoản của Kho bạc Nhà nước khu vực tại các ngân hàng thương m���i",
+            "nhiemvu": "Công tác mở, quản lý và sử dụng tài khoản của Kho bạc Nhà nước khu vực tại các ngân hàng thương mại",
             "congviec": "Rà soát, trình ký hồ sơ mở tài khoản tại các ngân hàng thương mại",
             "sp_daura": "Hồ sơ",
             "sp_chitiet": "Hồ sơ",
@@ -31098,7 +31098,7 @@
             "isLevel2": false,
             "isTask": true,
             "stt": "3.6",
-            "nhiemvu": "Báo cáo chưa có tiền lệ, biểu mẫu phức tạp, cần nhiều th��i gian thực hiện",
+            "nhiemvu": "Báo cáo chưa có tiền lệ, biểu mẫu phức tạp, cần nhiều thời gian thực hi���n",
             "congviec": "Dự thảo Văn bản",
             "sp_daura": "Dự thảo",
             "sp_chitiet": "Dự thảo",
@@ -42387,7 +42387,7 @@
             "col_v": "",
             "col_w": "",
             "ghichu": "",
-            "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHIỆP VỤ",
+            "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUY��N MÔN NGHIỆP VỤ",
             "parent_level2": "B. CÔNG TÁC CHUYÊN MÔN, NGHIỆP VỤ",
             "parent_section": "Công tác kế toán các nghiệp vụ khác"
           },
@@ -47579,19 +47579,16 @@
       }
     ]
   },
-  "activeTab": "tab-monthly",
-  "isSubmitted": true,
-  "submittedAt": "2026-09-30T01:42:33.114Z",
+  "activeTab": "tab-print-views",
+  "isSubmitted": false,
+  "submittedAt": "2026-09-23T02:43:05.704Z",
   "activeQuarterSubTab": "tab-print-views",
   "activeMonthlySubTab": "tab-monthly",
   "proposedRating": "Hoàn thành tốt nhiệm vụ",
   "monthlyCategoryFilter": "ALL",
   "printCustomDate": "Gia Lai, ngày ...    tháng   ..    năm 2026",
-  "isApproved": true,
+  "isApproved": false,
   "rejectedAt": "2026-09-25T01:36:35.032Z",
   "rejectedBy": "hoang",
-  "rejectReason": null,
-  "_restoredFrom": "2026-09-25T01:49:07.982Z",
-  "approvedAt": "2026-09-30T01:59:01.328Z",
-  "approvedBy": "hoang"
+  "rejectReason": "Yêu cầu rà soát, giải trình lại số lượng và lỗi chất lượng."
 }

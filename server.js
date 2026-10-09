@@ -780,6 +780,9 @@ function parseRawBody(req) {
   return new Promise((resolve, reject) => {
     if (Buffer.isBuffer(req.body)) return resolve(req.body);
     if (typeof req.body === 'string') return resolve(Buffer.from(req.body));
+    if (req.body !== undefined && req.body !== null && typeof req.body === 'object') {
+      return resolve(Buffer.from(JSON.stringify(req.body)));
+    }
     let chunks = [];
     req.on('data', chunk => chunks.push(chunk));
     req.on('end', () => resolve(Buffer.concat(chunks)));
@@ -1899,13 +1902,16 @@ async function handleKpiRequest(req, res) {
           const sessionDocs = await kpiDb.collection('sessions').find({}).toArray();
           sessionDocs.forEach(doc => {
             if (doc.filename && doc.data) {
-              exportData.sessions[doc.filename] = doc.data;
+              exportData.sessions[doc.filename] = sanitizeSessionData(doc.data);
             }
           });
         } catch(e) {}
       }
       if (Object.keys(exportData.sessions).length === 0) {
-        exportData.sessions = getAllLocalSessions();
+        const local = getAllLocalSessions();
+        for (const [k, v] of Object.entries(local)) {
+          exportData.sessions[k] = sanitizeSessionData(v);
+        }
       }
 
       res.writeHead(200, {
@@ -1928,14 +1934,19 @@ async function handleKpiRequest(req, res) {
       return sendJson(res, 403, { success: false, error: "BẢN QUYỀN & BẢO MẬT: Thao tác nạp dữ liệu bị từ chối do thiếu khóa Admin Key bảo vệ!" });
     }
     try {
-      const buffer = await parseRawBody(req);
-      let jsonStr = '';
-      try {
-        jsonStr = zlib.gunzipSync(buffer).toString('utf8');
-      } catch(e) {
-        jsonStr = buffer.toString('utf8');
+      let importData = null;
+      if (req.body && typeof req.body === 'object' && (req.body.sessions || req.body.officers_config)) {
+        importData = req.body;
+      } else {
+        const buffer = await parseRawBody(req);
+        let jsonStr = '';
+        try {
+          jsonStr = zlib.gunzipSync(buffer).toString('utf8');
+        } catch(e) {
+          jsonStr = buffer.toString('utf8');
+        }
+        importData = JSON.parse(jsonStr);
       }
-      const importData = JSON.parse(jsonStr);
       if (!importData.sessions) {
         return sendJson(res, 400, { success: false, error: "Tệp dữ liệu không hợp lệ" });
       }
@@ -1943,7 +1954,8 @@ async function handleKpiRequest(req, res) {
       let count = 0;
       // Luôn ghi đè vào thư mục cục bộ data/
       for (const [fname, sess] of Object.entries(importData.sessions)) {
-        saveLocalSession(fname, sess);
+        const cleanSess = sanitizeSessionData(sess);
+        saveLocalSession(fname, cleanSess);
         count++;
       }
       if (importData.officers_config) {
@@ -1957,7 +1969,8 @@ async function handleKpiRequest(req, res) {
         try {
           const sessionsCol = kpiDb.collection('sessions');
           for (const [fname, sess] of Object.entries(importData.sessions)) {
-            await sessionsCol.updateOne({ filename: fname }, { $set: { filename: fname, data: sess } }, { upsert: true });
+            const cleanSess = sanitizeSessionData(sess);
+            await sessionsCol.updateOne({ filename: fname }, { $set: { filename: fname, data: cleanSess } }, { upsert: true });
           }
 
           if (importData.officers_config) {
@@ -1974,10 +1987,76 @@ async function handleKpiRequest(req, res) {
         } catch (e) {}
       }
 
+      invalidateSummaryCache();
       console.log(`[IMPORT CLOUD] Đã nạp thành công ${count} phiên dữ liệu lên MongoDB từ file máy tính.`);
       return sendJson(res, 200, { success: true, count, message: `Đã nạp thành công dữ liệu ${count} cán bộ lên hệ thống Cloud từ file máy tính!` });
     } catch(err) {
       return sendJson(res, 500, { success: false, error: "Lỗi nạp dữ liệu: " + err.message });
+    }
+  }
+
+  // --- API Nạp phân đoạn dữ liệu (Import Chunk) tối ưu cho Vercel Serverless (< 4.5MB) ---
+  if (pathname === '/api/backup/import-chunk' && req.method === 'POST') {
+    const adminOfficerId = searchParams.get('adminOfficerId');
+    const adminKey = req.headers['x-admin-key'] || searchParams.get('adminKey');
+    const configuredKey = process.env.ADMIN_SECRET_KEY || 'kbxv_ktnn_admin_secret_2026_secure';
+    const isAuthorized = isAuthorAuthorizedMachine() || (adminKey === configuredKey && adminOfficerId === 'hoang');
+    if (!isAuthorized) {
+      return sendJson(res, 403, { success: false, error: "BẢN QUYỀN & BẢO MẬT: Thao tác nạp dữ liệu bị từ chối do thiếu khóa Admin Key bảo vệ!" });
+    }
+    try {
+      const payload = await parseJsonBody(req);
+      const { chunkType, officers_config, auth_passwords, sessions } = payload;
+      let count = 0;
+
+      // 1. Nạp cấu hình cán bộ và mật khẩu (nếu có)
+      if (officers_config && typeof officers_config === 'object') {
+        saveLocalOfficers(officers_config);
+        if (kpiDb) {
+          try {
+            const configCol = kpiDb.collection('officers_config');
+            for (const [id, cfg] of Object.entries(officers_config)) {
+              await configCol.updateOne({ id }, { $set: cfg }, { upsert: true });
+            }
+          } catch (e) {}
+        }
+      }
+      if (auth_passwords && typeof auth_passwords === 'object') {
+        saveLocalAuth(auth_passwords);
+        if (kpiDb) {
+          try {
+            await saveAuthPasswords(auth_passwords);
+          } catch (e) {}
+        }
+      }
+
+      // 2. Nạp lô hồ sơ cán bộ (sessions chunk)
+      if (sessions && typeof sessions === 'object') {
+        const entries = Object.entries(sessions);
+        for (const [fname, sess] of entries) {
+          const cleanSess = sanitizeSessionData(sess);
+          saveLocalSession(fname, cleanSess);
+          count++;
+        }
+        if (kpiDb) {
+          try {
+            const sessionsCol = kpiDb.collection('sessions');
+            for (const [fname, sess] of entries) {
+              const cleanSess = sanitizeSessionData(sess);
+              await sessionsCol.updateOne({ filename: fname }, { $set: { filename: fname, data: cleanSess } }, { upsert: true });
+            }
+          } catch (e) {}
+        }
+      }
+
+      invalidateSummaryCache();
+      return sendJson(res, 200, {
+        success: true,
+        count,
+        message: `Đã nạp thành công ${count} hồ sơ cán bộ!`
+      });
+    } catch (err) {
+      return sendJson(res, 500, { success: false, error: "Lỗi nạp phân đoạn: " + err.message });
     }
   }
 

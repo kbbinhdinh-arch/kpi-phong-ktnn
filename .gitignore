@@ -6,6 +6,7 @@ node-runtime/
 .env
 .env.local
 .env.*.local
+ConnectMongo_Str.txt
 
 # Backups and temporary files
 *.bak

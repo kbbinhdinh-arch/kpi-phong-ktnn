@@ -17901,13 +17901,13 @@
           "nhiemvu": "Công tác kế toán dự toán",
           "congviec": "Tiếp nhận hồ sơ; Kiểm tra, lập chứng từ, thực hiện phân bổ/điều chỉnh dự toán; Giao diện dữ liệu giữa các chương trình",
           "sp_daura": "Chứng từ",
-          "sp_chitiet": "10 Chứng từ",
+          "sp_chitiet": "4 Chứng từ",
           "diem_tc": 10,
           "diem_thang_chua_hs": 20,
           "diem_thang_da_hs": 22,
           "he_so": 1.1,
           "co_thuchien": "Có",
-          "soluong_tt": 10,
+          "soluong_tt": 4,
           "hoanthanh": 22,
           "khong_ht": 0,
           "diem_pct": "1",
@@ -19940,7 +19940,7 @@
           "col_w": "",
           "ghichu": "",
           "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHIỆP VỤ",
-          "parent_level2": "B. CÔNG TÁC CHUYÊN MÔN, NGHIỆP VỤ",
+          "parent_level2": "B. CÔNG TÁC CHUY��N MÔN, NGHIỆP VỤ",
           "parent_section": "Trả lãi tiền gửi và thu phí dịch vụ thanh toán tài khoản tiền gửi",
           "depth": 10,
           "_isCustomized": false
@@ -24411,7 +24411,7 @@
     }
   ],
   "filterActiveOnly": false,
-  "activeMonthIdx": 2,
+  "activeMonthIdx": 1,
   "unitCompletionPercent": 100,
   "generalCriteria": {
     "c1": 5,
@@ -24430,8 +24430,8 @@
   "quarterFilterActiveOnly": true,
   "selfRatingNote": "",
   "leaderRatingProposal": "",
-  "status": "da_duyet",
-  "lastSaved": "2026-09-30T01:58:55.885Z",
+  "status": "tra_lai",
+  "lastSaved": "2026-09-25T02:13:53.185Z",
   "quartersData": {
     "Quý III": [
       {
@@ -25584,7 +25584,7 @@
             "ghichu": "",
             "parent_level1": "II. VỊ TRÍ CÔNG CHỨC CHUYÊN MÔN NGHIỆP VỤ",
             "parent_level2": "A. CÔNG TÁC XÂY DỰNG VĂN BẢN HÀNH CHÍNH",
-            "parent_section": "Tham gia ý kiến; trả lời vướng mắc; đề xuất, kiến nghị với các đ��n vị"
+            "parent_section": "Tham gia ý kiến; trả lời vướng mắc; đề xuất, kiến nghị với các đơn vị"
           },
           {
             "rowIndex": 36,
@@ -47585,19 +47585,16 @@
     ]
   },
   "activeTab": "tab-monthly",
-  "isSubmitted": true,
-  "submittedAt": "2026-09-30T01:46:24.853Z",
+  "isSubmitted": false,
+  "submittedAt": "2026-09-14T02:02:04.441Z",
   "activeQuarterSubTab": "tab-print-views",
   "activeMonthlySubTab": "tab-monthly",
   "proposedRating": "Hoàn thành tốt nhiệm vụ",
-  "monthlyCategoryFilter": "II.B.CHI",
+  "monthlyCategoryFilter": "II.D",
   "printCustomDate": "Gia Lai, ngày 21 tháng 09 năm 2026",
-  "isApproved": true,
+  "monthlySearchTerm": "",
+  "isApproved": false,
   "rejectedAt": "2026-09-25T01:35:44.322Z",
   "rejectedBy": "hoang",
-  "rejectReason": null,
-  "_restoredFrom": "2026-09-25T01:49:07.982Z",
-  "monthlySearchTerm": "",
-  "approvedAt": "2026-09-30T01:58:55.885Z",
-  "approvedBy": "hoang"
+  "rejectReason": "Yêu cầu rà soát, giải trình lại số lượng và lỗi chất lượng."
 }
