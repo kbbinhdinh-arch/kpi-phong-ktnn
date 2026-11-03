@@ -2071,13 +2071,34 @@ async function handleKpiRequest(req, res) {
         return sendJson(res, 500, { success: false, error: "Chưa kết nối CSDL MongoDB" });
       }
       const adminDb = dbClient.db().admin();
+      const connStatus = await adminDb.command({ connectionStatus: 1 });
       const dbsList = await adminDb.listDatabases();
+      
+      const candidateNames = [
+        'kpi_ktnn_db', 'vtvl_ktnn', 'chibo', 'chibo_db', 'qltk', 'qltk_db', 'kpi_kbnn_kvxv', 'test',
+        'sample_mflix', 'sample_airbnb', 'sample_weatherdata', 'sample_restaurants', 
+        'sample_training', 'sample_supplies', 'sample_analytics', 'sample_geospatial', 'sample_guides'
+      ];
+      const allFoundDbs = new Set(dbsList.databases.map(d => d.name));
+      for (const cand of candidateNames) {
+        try {
+          const testCols = await dbClient.db(cand).listCollections().toArray();
+          if (testCols && testCols.length > 0) {
+            allFoundDbs.add(cand);
+          }
+        } catch (e) {}
+      }
+
       const report = {
+        authenticatedUser: connStatus.authInfo,
         totalSizeOnDiskMB: (dbsList.totalSize / (1024 * 1024)).toFixed(2),
         databases: []
       };
-      for (const d of dbsList.databases) {
-        const curDb = dbClient.db(d.name);
+      for (const dbName of allFoundDbs) {
+        const curDb = dbClient.db(dbName);
+        let dbStats = null;
+        try { dbStats = await curDb.command({ dbStats: 1 }); } catch (e) {}
+
         const colList = await curDb.listCollections().toArray();
         const collections = [];
         for (const col of colList) {
@@ -2096,8 +2117,9 @@ async function handleKpiRequest(req, res) {
           }
         }
         report.databases.push({
-          name: d.name,
-          sizeOnDiskMB: Number((d.sizeOnDisk / (1024 * 1024)).toFixed(2)),
+          name: dbName,
+          dataSizeMB: dbStats ? Number((dbStats.dataSize / (1024 * 1024)).toFixed(2)) : null,
+          storageSizeMB: dbStats ? Number((dbStats.storageSize / (1024 * 1024)).toFixed(2)) : null,
           collections
         });
       }
