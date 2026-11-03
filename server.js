@@ -2126,7 +2126,7 @@ async function handleKpiRequest(req, res) {
       // Kiểm tra xem CSDL có đang bị chặn ghi (Write Quota Exceeded) hay không
       let writeStatus = { canWrite: false };
       try {
-        const testCol = curDb.collection('_test_quota');
+        const testCol = kpiDb.collection('_test_quota');
         await testCol.insertOne({ test: 1, at: new Date() });
         await testCol.deleteOne({ test: 1 });
         writeStatus = { canWrite: true, message: "MongoDB Atlas vẫn cho phép ghi dữ liệu bình thường, chưa bị khóa!" };
