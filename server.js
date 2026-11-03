@@ -2140,6 +2140,75 @@ async function handleKpiRequest(req, res) {
     }
   }
 
+  // --- API Tối ưu hóa & Thu gọn CSDL MongoDB Atlas (Giải phóng vùng đệm WiredTiger) ---
+  if (pathname === '/api/admin/reclaim-storage' && (req.method === 'POST' || req.method === 'GET')) {
+    const adminOfficerId = searchParams.get('adminOfficerId');
+    if (adminOfficerId !== 'hoang') {
+      return sendJson(res, 403, { success: false, error: "BẢN QUYỀN & BẢO MẬT: Chỉ quản trị viên (Hoàng) mới có quyền thực hiện!" });
+    }
+    if (!kpiDb) {
+      return sendJson(res, 500, { success: false, error: "Chưa kết nối CSDL MongoDB" });
+    }
+    try {
+      console.log("[RECLAIM STORAGE] Bắt đầu quá trình tối ưu và làm sạch bộ nhớ đệm WiredTiger...");
+      
+      // 1. Sao lưu toàn bộ dữ liệu hiện thời vào RAM
+      const oldSessions = await kpiDb.collection('sessions').find({}).toArray();
+      const oldConfigs = await kpiDb.collection('officers_config').find({}).toArray();
+      const oldAuth = await kpiDb.collection('auth_passwords').find({}).toArray();
+
+      if (!oldSessions || oldSessions.length === 0) {
+        return sendJson(res, 400, { success: false, error: "Không tìm thấy dữ liệu sessions để làm sạch!" });
+      }
+
+      // Tinh gọn dữ liệu sessions (loại bỏ trường đệm quartersData thừa)
+      const cleanSessions = oldSessions.map(doc => {
+        return {
+          filename: doc.filename,
+          data: sanitizeSessionData(doc.data),
+          updatedAt: doc.updatedAt || new Date().toISOString()
+        };
+      });
+
+      // 2. Drop collections cũ để WiredTiger giải phóng các file .wt phình to trên đĩa AWS
+      try { await kpiDb.collection('session_snapshots').drop(); } catch (e) {}
+      try { await kpiDb.collection('sessions').drop(); } catch (e) {}
+
+      // 3. Tái tạo collection và index chuẩn
+      const newSessionsCol = kpiDb.collection('sessions');
+      await newSessionsCol.createIndex({ filename: 1 }, { unique: true });
+
+      // Nạp lại dữ liệu tinh gọn vào sessions
+      if (cleanSessions.length > 0) {
+        await newSessionsCol.insertMany(cleanSessions);
+      }
+
+      // Tái tạo index cho snapshots
+      const newSnapCol = kpiDb.collection('session_snapshots');
+      await newSnapCol.createIndex({ filename: 1, savedAt: -1 });
+
+      // 4. Xóa bộ đệm RAM
+      invalidateSummaryCache();
+
+      // 5. Lấy thống kê sau khi làm sạch
+      const dbStats = await kpiDb.command({ dbStats: 1 });
+
+      const result = {
+        success: true,
+        message: `ĐÃ TỐI ƯU HÓA THÀNH CÔNG! Đã giải phóng hoàn toàn vùng đệm thừa trên MongoDB Atlas cho ${cleanSessions.length} hồ sơ cán bộ.`,
+        restoredCount: cleanSessions.length,
+        newDataSizeMB: Number((dbStats.dataSize / (1024 * 1024)).toFixed(2)),
+        newStorageSizeMB: Number((dbStats.storageSize / (1024 * 1024)).toFixed(2))
+      };
+
+      console.log(`[RECLAIM STORAGE SUCCESS] Hoàn tất! Dung lượng mới: ${result.newStorageSizeMB} MB`);
+      return sendJson(res, 200, result);
+    } catch (err) {
+      console.error("[RECLAIM STORAGE ERROR]", err);
+      return sendJson(res, 500, { success: false, error: "Lỗi thu gọn CSDL: " + err.message });
+    }
+  }
+
   // --- API Chuẩn hóa Chức danh trên Cloud (Thủ kho tiền: Thu Trang, GDV: Lệ Thủy) ---
   if (pathname === '/api/sync-roles' && (req.method === 'GET' || req.method === 'POST')) {
     await syncOfficerRolesMigration();
