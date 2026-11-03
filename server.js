@@ -2060,6 +2060,53 @@ async function handleKpiRequest(req, res) {
     }
   }
 
+  // --- API Kiểm tra thống kê dung lượng MongoDB Atlas ---
+  if (pathname === '/api/admin/db-stats' && req.method === 'GET') {
+    const adminOfficerId = searchParams.get('adminOfficerId');
+    if (adminOfficerId !== 'hoang') {
+      return sendJson(res, 403, { success: false, error: "Chỉ quản trị viên mới có quyền tra cứu!" });
+    }
+    try {
+      if (!dbClient) {
+        return sendJson(res, 500, { success: false, error: "Chưa kết nối CSDL MongoDB" });
+      }
+      const adminDb = dbClient.db().admin();
+      const dbsList = await adminDb.listDatabases();
+      const report = {
+        totalSizeOnDiskMB: (dbsList.totalSize / (1024 * 1024)).toFixed(2),
+        databases: []
+      };
+      for (const d of dbsList.databases) {
+        const curDb = dbClient.db(d.name);
+        const colList = await curDb.listCollections().toArray();
+        const collections = [];
+        for (const col of colList) {
+          try {
+            const stats = await curDb.command({ collStats: col.name });
+            collections.push({
+              name: col.name,
+              count: stats.count,
+              sizeMB: Number((stats.size / (1024 * 1024)).toFixed(2)),
+              storageSizeMB: Number((stats.storageSize / (1024 * 1024)).toFixed(2)),
+              avgObjSizeKB: Number((stats.avgObjSize / 1024).toFixed(2))
+            });
+          } catch (e) {
+            const count = await curDb.collection(col.name).countDocuments();
+            collections.push({ name: col.name, count, error: e.message });
+          }
+        }
+        report.databases.push({
+          name: d.name,
+          sizeOnDiskMB: Number((d.sizeOnDisk / (1024 * 1024)).toFixed(2)),
+          collections
+        });
+      }
+      return sendJson(res, 200, { success: true, report });
+    } catch (err) {
+      return sendJson(res, 500, { success: false, error: err.message });
+    }
+  }
+
   // --- API Chuẩn hóa Chức danh trên Cloud (Thủ kho tiền: Thu Trang, GDV: Lệ Thủy) ---
   if (pathname === '/api/sync-roles' && (req.method === 'GET' || req.method === 'POST')) {
     await syncOfficerRolesMigration();
