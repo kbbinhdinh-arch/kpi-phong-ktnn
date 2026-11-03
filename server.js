@@ -2123,7 +2123,18 @@ async function handleKpiRequest(req, res) {
           collections
         });
       }
-      return sendJson(res, 200, { success: true, report });
+      // Kiểm tra xem CSDL có đang bị chặn ghi (Write Quota Exceeded) hay không
+      let writeStatus = { canWrite: false };
+      try {
+        const testCol = curDb.collection('_test_quota');
+        await testCol.insertOne({ test: 1, at: new Date() });
+        await testCol.deleteOne({ test: 1 });
+        writeStatus = { canWrite: true, message: "MongoDB Atlas vẫn cho phép ghi dữ liệu bình thường, chưa bị khóa!" };
+      } catch (wErr) {
+        writeStatus = { canWrite: false, error: wErr.message };
+      }
+
+      return sendJson(res, 200, { success: true, writeStatus, report });
     } catch (err) {
       return sendJson(res, 500, { success: false, error: err.message });
     }
