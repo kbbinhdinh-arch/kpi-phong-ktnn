@@ -5093,17 +5093,15 @@ function saveState() {
 }
 
 function resetDefault() {
-  if (window.APP_AUTHOR_INFO && !window.APP_AUTHOR_INFO.isAuthorizedDevice) {
-    alert("BẢN QUYỀN TÁC GIẢ: Ứng dụng thuộc bản quyền của ông Trần Quốc Hoàng. Chức năng hiệu chỉnh hệ thống bị khóa trên thiết bị này, chỉ được phép thực hiện trên máy chủ gốc (kvxv-hoangtq)!");
-    return;
-  }
-  const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || (appState.officer && appState.officer.officerId) || 'hoang';
-  if (loggedUser !== 'hoang') {
-    alert('Chức năng Đặt lại dữ liệu gốc chỉ dành riêng cho Quản trị viên hệ thống!');
-    return;
-  }
-  if (confirm("Bạn có chắc chắn muốn đặt lại dữ liệu gốc ban đầu theo file Mau02a_Thang không?")) {
+  const offId = (appState.officer && appState.officer.officerId) || 'hoang';
+  const q = (appState.officer && appState.officer.quarter) || 'Quý I';
+  const y = (appState.officer && appState.officer.year) || 2026;
+  const storageKey = typeof getSessionStorageKey === 'function' ? getSessionStorageKey(offId, q, y) : `KBXV_KPI_SESS_${offId}_${q}_${y}`;
+
+  if (confirm(`Đồng chí có chắc chắn muốn ĐẶT LẠI bảng tính ${q}/${y} của [${(appState.officer && appState.officer.name) || offId}] về bảng trắng ban đầu không?\n\n(Thao tác này sẽ xóa bản lưu tạm trên máy này và nạp lại bảng trắng 0% sạch sẽ)`)) {
+    localStorage.removeItem(storageKey);
     localStorage.removeItem('KBXV_KPI_APP_STATE_V6');
+    sessionStorage.removeItem(storageKey);
     location.reload();
   }
 }
@@ -5724,6 +5722,15 @@ function renderMonthTable24() {
           </div>
         `;
       } else if (appState.status === 'da_nop') {
+        const curQCheck = (appState.officer && appState.officer.quarter) || 'Quý III';
+        if (curQCheck !== 'Quý III' && curQCheck !== 'QuyIII' && appState.submittedAt && String(appState.submittedAt).includes('2026-09')) {
+          // Triệt tiêu rò rỉ ngày nộp Quý III sang Quý I, không render banner khóa
+          appState.status = 'draft';
+          appState.isSubmitted = false;
+          appState.submittedAt = null;
+          lockBannerContainer.innerHTML = '';
+          return;
+        }
         const subTime = appState.submittedAt ? (new Date(appState.submittedAt).toLocaleTimeString('vi-VN') + ' ' + new Date(appState.submittedAt).toLocaleDateString('vi-VN')) : '';
         lockBannerContainer.innerHTML = `
           <div style="background: #fffaf0; border: 1px solid #fbd38d; border-left: 5px solid #dd6b20; padding: 8px 16px; border-radius: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
@@ -7140,18 +7147,27 @@ async function loadSessionForOfficer(officerId, quarter, year) {
   const q = quarter || (appState.officer && appState.officer.quarter) || 'Quý III';
   const y = year || (appState.officer && appState.officer.year) || 2026;
   const storageKey = getSessionStorageKey(offId, q, y);
+  const isNotQ3 = (q !== 'Quý III' && q !== 'QuyIII');
 
   // 1. CACHE-FIRST: Áp dụng ngay lập tức bản lưu đệm trên máy tính nếu có (0ms, không chờ server)
   let hadLocalCache = false;
   try {
     const cached = localStorage.getItem(storageKey);
     if (cached) {
-      const parsed = JSON.parse(cached);
+      let parsed = JSON.parse(cached);
       if (parsed && parsed.officer) {
-        // Tự động dọn dẹp lỗi rò rỉ trạng thái 'da_nop' ảo từ phiên bản cũ: nếu không phải Quý III và chưa có dữ liệu thực tế
-        if (q !== 'Quý III' && q !== 'QuyIII' && !hasAnyMonthlyData(parsed)) {
+        // TỰ ĐỘNG DỌN DẸP LỖI RÒ RỈ TRẠNG THÁI:
+        // Nếu không phải Quý III mà bản lưu cục bộ lại mang cờ 'da_nop', 'isSubmitted' hoặc ngày nộp tháng 9 của Quý III
+        const hasQ3LeakedSubmission = (parsed.status === 'da_nop' || parsed.status === 'da_duyet' || parsed.isSubmitted || (parsed.submittedAt && String(parsed.submittedAt).includes('2026-09')));
+        const hasDirtyTemplateData = parsed.months && parsed.months.some(m => m && m.rows && m.rows.some(r => (r.ghichu && r.ghichu.includes('QLTT Gia Lai')) || (r.stt === '1.1' && r.soluong_tt == 150)));
+
+        if (isNotQ3 && (hasQ3LeakedSubmission || hasDirtyTemplateData)) {
+          console.warn('[SELF-HEAL] Phát hiện và xóa triệt để bản lưu đệm bị dính trạng thái nộp Quý III / mẫu cũ:', storageKey);
           localStorage.removeItem(storageKey);
-        } else {
+          parsed = null;
+        }
+
+        if (parsed) {
           applyLoadedSession(parsed, offId, q, y);
           updateLastSavedTime(parsed.lastSaved || new Date().toISOString(), true);
           hadLocalCache = true;
@@ -7174,14 +7190,28 @@ async function loadSessionForOfficer(officerId, quarter, year) {
       const json = await res.json();
       if (json.success && json.data) {
         if (json.isNew) {
-          if (hadLocalCache && hasAnyMonthlyData(appState)) {
-            // Máy chủ chưa có bản nộp, nhưng máy trạm đang có bản soạn nháp -> giữ nguyên bản nháp của máy trạm
-            console.log('[CACHE] Giữ nguyên bản nháp cục bộ đang soạn thảo trên máy trạm.');
-            return;
-          } else {
+          // Máy chủ xác nhận: Quý này CHƯA TỪNG NỘP bài trên hệ thống!
+          const hasDirtyTemplateData = appState.months && appState.months.some(m => m && m.rows && m.rows.some(r => (r.ghichu && r.ghichu.includes('QLTT Gia Lai')) || (r.stt === '1.1' && r.soluong_tt == 150)));
+
+          // Nếu quý không phải Quý III và chưa từng nộp, hoặc có dữ liệu mẫu rác cũ: xóa sạch và nạp bảng trắng mới
+          if (isNotQ3 && (hasDirtyTemplateData || !hadLocalCache || appState.status === 'da_nop' || appState.isSubmitted || (appState.submittedAt && String(appState.submittedAt).includes('2026-09')))) {
+            console.warn('[SELF-HEAL] Khởi tạo bảng trắng sạch sẽ 0% cho quý chưa nộp:', q);
+            localStorage.removeItem(storageKey);
             initializeFreshOfficerSession(offId, q, y);
             return;
           }
+
+          // Nếu là bản nháp thực sự đang soạn thảo: đảm bảo KHÔNG bao giờ bị mang cờ 'da_nop'
+          appState.status = 'draft';
+          appState.isSubmitted = false;
+          appState.submittedAt = null;
+          appState.isApproved = false;
+          appState.approvedAt = null;
+          appState.approvedBy = null;
+          appState.rejectReason = null;
+          try { localStorage.setItem(storageKey, JSON.stringify(appState)); } catch(e){}
+          renderAll();
+          return;
         }
         applyLoadedSession(json.data, offId, q, y);
         try { localStorage.setItem(storageKey, JSON.stringify(appState)); } catch(e){}
@@ -10083,6 +10113,22 @@ function setTabVisible(btnId, isVisible) {
 function updateUserInterfaceByRole() {
   const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || (appState.officer && appState.officer.officerId) || 'hoang';
   
+  // CHỐT TỰ ĐỘNG CHỮA LỖI (SELF-HEAL):
+  // Nếu đang xem Quý I, Quý II, Quý IV nhưng appState lại dính ngày nộp tháng 9 của Quý III (rò rỉ từ phiên cũ)
+  const curQ = (appState.officer && appState.officer.quarter) || 'Quý III';
+  if (curQ !== 'Quý III' && curQ !== 'QuyIII') {
+    if (appState.status === 'da_nop' || appState.status === 'da_duyet' || appState.isSubmitted || (appState.submittedAt && String(appState.submittedAt).includes('2026-09'))) {
+      console.warn('[SELF-HEAL UI] Phát hiện rò rỉ trạng thái nộp Quý III sang ' + curQ + ', đưa về chế độ soạn thảo.');
+      appState.status = 'draft';
+      appState.isSubmitted = false;
+      appState.submittedAt = null;
+      appState.isApproved = false;
+      appState.approvedAt = null;
+      appState.approvedBy = null;
+      appState.rejectReason = null;
+    }
+  }
+
   // Đảm bảo đối với non-admin, cán bộ luôn là chính người đang đăng nhập
   let curOffId = (appState.officer && appState.officer.officerId) || loggedUser;
   if (loggedUser !== 'hoang' && loggedUser !== 'son') {
