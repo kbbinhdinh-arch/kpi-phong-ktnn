@@ -7416,23 +7416,13 @@ async function saveActiveSession(showNotification = true) {
   _hasUnsavedLocalChanges = false;
   updateLastSavedTime(saveTime, true);
 
-  // QUY CHUẨN LƯU DỮ LIỆU CỤC BỘ THEO YÊU CẦU:
-  // Thao tác nhập liệu và lưu kết quả (Lưu tạm/F9/Tự lưu) CHỈ LƯU TRỰC TIẾP TẠI MÁY NGƯỜI DÙNG.
-  // Tuyệt đối KHÔNG đẩy lên MongoDB và KHÔNG tự ý chuyển trạng thái thành đã nộp!
-  // Chỉ khi người dùng bấm nút "Nộp báo cáo KPI quý", hệ thống mới gửi lên Cloud qua /api/session/submit.
+  // ĐỒNG BỘ BẢN NHÁP HYBRID AN TOÀN (HYBRID SAFE DRAFT SYNC):
+  // 1. Luôn lưu tức thì vào máy trạm (LocalStorage) ở trên.
+  // 2. Gửi đồng bộ lên Cloud/Server nhưng BẢO TOÀN trạng thái 'da_luu', isSubmitted: false.
+  // 3. KHÔNG KHÓA BẢNG TÍNH. Người dùng sang máy khác vẫn tải được bản nháp để làm tiếp.
+  // 4. Chỉ khi bấm 'Nộp báo cáo KPI quý', hệ thống mới chuyển thành 'da_nop' và khóa bảng.
   const isDraftMode = (appState.status !== 'da_nop' && appState.status !== 'da_duyet');
-  if (isDraftMode) {
-    if (typeof updateAutosaveIndicator === 'function') {
-      const timeNow = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      updateAutosaveIndicator(`🟢 Đã lưu vào máy trạm (${timeNow}) · Bản nháp`);
-    }
-    if (showNotification) {
-      showToast(`💾 Đã lưu thành công dữ liệu trên máy trạm của bạn! Khi hoàn tất, hãy bấm nút "Nộp báo cáo KPI quý" để gửi lên Lãnh đạo phòng.`, 4500);
-    }
-    return;
-  }
 
-  // 2. Chỉ gửi lên Server (MongoDB Atlas Cloud) khi hồ sơ đã ở trạng thái ĐÃ NỘP hoặc Lãnh đạo phê duyệt
   let serverSaved = false;
   try {
     const statePayload = { ...appState };
@@ -7458,7 +7448,11 @@ async function saveActiveSession(showNotification = true) {
         updateAutosaveIndicator(`🟢 Đã đồng bộ Cloud (${timeNow})`);
       }
       if (showNotification) {
-        showToast(`💾 Đã lưu thành công kết quả thẩm định lên CSDL Cloud!`, 4000);
+        if (isDraftMode) {
+          showToast('💾 Đã lưu an toàn bản nháp! (Đã đồng bộ lên hệ thống, sẵn sàng mở trên mọi máy tính)', 4000);
+        } else {
+          showToast('💾 Đã lưu thành công kết quả thẩm định lên CSDL Cloud!', 4000);
+        }
       }
     } else {
       console.warn("Server tra ve ma loi:", res.status);
