@@ -7148,9 +7148,14 @@ async function loadSessionForOfficer(officerId, quarter, year) {
     if (cached) {
       const parsed = JSON.parse(cached);
       if (parsed && parsed.officer) {
-        applyLoadedSession(parsed, offId, q, y);
-        updateLastSavedTime(parsed.lastSaved || new Date().toISOString(), true);
-        hadLocalCache = true;
+        // Tự động dọn dẹp lỗi rò rỉ trạng thái 'da_nop' ảo từ phiên bản cũ: nếu không phải Quý III và chưa có dữ liệu thực tế
+        if (q !== 'Quý III' && q !== 'QuyIII' && !hasAnyMonthlyData(parsed)) {
+          localStorage.removeItem(storageKey);
+        } else {
+          applyLoadedSession(parsed, offId, q, y);
+          updateLastSavedTime(parsed.lastSaved || new Date().toISOString(), true);
+          hadLocalCache = true;
+        }
       }
     }
   } catch (err) {}
@@ -7168,6 +7173,16 @@ async function loadSessionForOfficer(officerId, quarter, year) {
     if (res.ok) {
       const json = await res.json();
       if (json.success && json.data) {
+        if (json.isNew) {
+          if (hadLocalCache && hasAnyMonthlyData(appState)) {
+            // Máy chủ chưa có bản nộp, nhưng máy trạm đang có bản soạn nháp -> giữ nguyên bản nháp của máy trạm
+            console.log('[CACHE] Giữ nguyên bản nháp cục bộ đang soạn thảo trên máy trạm.');
+            return;
+          } else {
+            initializeFreshOfficerSession(offId, q, y);
+            return;
+          }
+        }
         applyLoadedSession(json.data, offId, q, y);
         try { localStorage.setItem(storageKey, JSON.stringify(appState)); } catch(e){}
         updateLastSavedTime(json.data.lastSaved || new Date().toISOString(), false);
@@ -7187,7 +7202,22 @@ async function loadSessionForOfficer(officerId, quarter, year) {
 // Ap dung du lieu phien vao appState
 function applyLoadedSession(data, offId, q, y) {
   const officerCfg = (window.OFFICERS_ASSIGNMENTS && window.OFFICERS_ASSIGNMENTS[offId]) || {};
+  
+  // Xác định trạng thái chính xác từ phiên nạp vào, dập tắt mọi rò rỉ cờ nộp từ phiên trước
+  const isSubmittedClean = !!(data && (data.isSubmitted || data.status === 'da_nop' || data.status === 'da_duyet'));
+  const isApprovedClean = !!(data && (data.isApproved || data.status === 'da_duyet'));
+  const statusClean = (data && data.status) ? data.status : (isSubmittedClean ? 'da_nop' : 'draft');
+
   appState = Object.assign({}, appState, data);
+
+  // Ghi đè tường minh các trường trạng thái nộp bài
+  appState.status = statusClean;
+  appState.isSubmitted = isSubmittedClean;
+  appState.isApproved = isApprovedClean;
+  appState.submittedAt = (data && data.submittedAt) || null;
+  appState.approvedAt = (data && data.approvedAt) || null;
+  appState.approvedBy = (data && data.approvedBy) || null;
+  appState.rejectReason = (data && data.rejectReason) || null;
 
   if (!appState.officer) appState.officer = {};
   appState.officer.officerId = offId;
@@ -7262,6 +7292,15 @@ function initializeFreshOfficerSession(offId, q, y) {
   };
 
   appState.months = [];
+  appState.status = 'draft';
+  appState.isSubmitted = false;
+  appState.isApproved = false;
+  appState.submittedAt = null;
+  appState.approvedAt = null;
+  appState.approvedBy = null;
+  appState.rejectReason = null;
+  appState.lastSaved = null;
+
   syncTemplateStructureToMonths();
   initMonthsDataIfEmpty();
   renderAll();
@@ -7310,12 +7349,6 @@ async function saveActiveSession(showNotification = true) {
     return;
   }
 
-  // BẢO VỆ CSDL: Nếu phiên làm việc hoàn toàn trống (chưa có tác vụ nào được chọn 'Có' hoặc sản lượng > 0)
-  // và đây là lệnh tự động lưu ngầm (showNotification = false), đồng thời trạng thái chưa nộp/chưa duyệt
-  // thì TUYỆT ĐỐI KHÔNG lưu lên Server để tránh sinh phiên ảo rác làm ô nhiễm quý chưa nhập số liệu!
-  if (!showNotification && !hasAnyMonthlyData(appState) && appState.status !== 'da_nop' && appState.status !== 'da_duyet') {
-    return;
-  }
   const offId = appState.officer.officerId || 'hoang';
   const q = appState.officer.quarter || 'Quý III';
   const y = appState.officer.year || 2026;
@@ -7323,10 +7356,11 @@ async function saveActiveSession(showNotification = true) {
 
   const saveTime = new Date().toISOString();
   appState.lastSaved = saveTime;
-  if (appState.isSubmitted) {
-    appState.status = "da_nop";
-  } else {
-    appState.status = appState.status || "da_luu";
+
+  // Nếu hồ sơ chưa nộp chính thức, trạng thái lưu nháp luôn là 'da_luu' và isSubmitted luôn là false
+  if (appState.status !== 'da_nop' && appState.status !== 'da_duyet') {
+    appState.status = 'da_luu';
+    appState.isSubmitted = false;
   }
 
   // Tự động tính toán & gán completionPercent cho từng tháng trong appState.months
@@ -7341,7 +7375,7 @@ async function saveActiveSession(showNotification = true) {
     });
   }
 
-  // 1. Luu LocalStorage
+  // 1. Luôn lưu trực tiếp an toàn tại máy người dùng (LocalStorage)
   try {
     localStorage.setItem(storageKey, JSON.stringify(appState));
     localStorage.setItem('KBXV_KPI_APP_STATE_V6', JSON.stringify(appState));
@@ -7349,10 +7383,28 @@ async function saveActiveSession(showNotification = true) {
     console.error("Loi luu localStorage:", err);
   }
 
-  // 2. Gui len Server (MongoDB Atlas Cloud)
+  _hasUnsavedLocalChanges = false;
+  updateLastSavedTime(saveTime, true);
+
+  // QUY CHUẨN LƯU DỮ LIỆU CỤC BỘ THEO YÊU CẦU:
+  // Thao tác nhập liệu và lưu kết quả (Lưu tạm/F9/Tự lưu) CHỈ LƯU TRỰC TIẾP TẠI MÁY NGƯỜI DÙNG.
+  // Tuyệt đối KHÔNG đẩy lên MongoDB và KHÔNG tự ý chuyển trạng thái thành đã nộp!
+  // Chỉ khi người dùng bấm nút "Nộp báo cáo KPI quý", hệ thống mới gửi lên Cloud qua /api/session/submit.
+  const isDraftMode = (appState.status !== 'da_nop' && appState.status !== 'da_duyet');
+  if (isDraftMode) {
+    if (typeof updateAutosaveIndicator === 'function') {
+      const timeNow = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      updateAutosaveIndicator(`🟢 Đã lưu vào máy trạm (${timeNow}) · Bản nháp`);
+    }
+    if (showNotification) {
+      showToast(`💾 Đã lưu thành công dữ liệu trên máy trạm của bạn! Khi hoàn tất, hãy bấm nút "Nộp báo cáo KPI quý" để gửi lên Lãnh đạo phòng.`, 4500);
+    }
+    return;
+  }
+
+  // 2. Chỉ gửi lên Server (MongoDB Atlas Cloud) khi hồ sơ đã ở trạng thái ĐÃ NỘP hoặc Lãnh đạo phê duyệt
   let serverSaved = false;
   try {
-    // Tinh gọn payload: loại bỏ trường quartersData trùng lặp giúp giảm dung lượng từ 1.7MB xuống 200KB
     const statePayload = { ...appState };
     if (statePayload.quartersData) delete statePayload.quartersData;
 
@@ -7373,10 +7425,10 @@ async function saveActiveSession(showNotification = true) {
       updateLastSavedTime(saveTime, false);
       if (typeof updateAutosaveIndicator === 'function') {
         const timeNow = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        updateAutosaveIndicator(`🟢 Đã lưu an toàn lên Cloud (${timeNow})`);
+        updateAutosaveIndicator(`🟢 Đã đồng bộ Cloud (${timeNow})`);
       }
       if (showNotification) {
-        showToast(`💾 Đã lưu thành công toàn bộ kết quả của ${appState.officer.name} vào CSDL Cloud! Dữ liệu được bảo toàn an toàn.`, 4000);
+        showToast(`💾 Đã lưu thành công kết quả thẩm định lên CSDL Cloud!`, 4000);
       }
     } else {
       console.warn("Server tra ve ma loi:", res.status);
@@ -7393,7 +7445,7 @@ async function saveActiveSession(showNotification = true) {
       updateAutosaveIndicator('⚠️ Đã lưu máy tính (Ngoại tuyến - chờ mạng)');
     }
     if (showNotification) {
-      showToast(`⚠️ Mất kết nối Internet! Dữ liệu của ${appState.officer.name} đã được bảo vệ 100% trên máy bạn.`, 5000);
+      showToast(`⚠️ Không thể kết nối Cloud! Dữ liệu của ${appState.officer.name} đã được bảo vệ trên máy bạn.`, 5000);
     }
   }
 }

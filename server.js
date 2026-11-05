@@ -1446,6 +1446,17 @@ async function handleKpiRequest(req, res) {
         const cleanState = sanitizeSessionData(state);
         cleanState.lastSaved = state.lastSaved;
 
+        // BẢO VỆ CHẶT CHẼ TRẠNG THÁI:
+        // Nếu hồ sơ chưa từng nộp chính thức trên máy chủ, một lệnh lưu thông thường
+        // TUYỆT ĐỐI KHÔNG ĐƯỢC gán trạng thái 'da_nop' (tránh rò rỉ cờ isSubmitted từ phiên cũ).
+        // Chỉ có thao tác nộp bài chính thức (/api/session/submit hoặc action: 'submit') mới được mang trạng thái 'da_nop'.
+        const isOfficiallySubmitted = existingSession && (existingSession.isSubmitted || existingSession.status === 'da_nop' || existingSession.status === 'da_duyet');
+        if (!isOfficiallySubmitted && payload.action !== 'submit') {
+          cleanState.status = 'da_luu';
+          cleanState.isSubmitted = false;
+          cleanState.submittedAt = null;
+        }
+
         // 1. Luôn ghi đè an toàn vào ổ đĩa máy chủ bất đồng bộ (Non-blocking I/O)
         await saveLocalSessionAsync(filename, cleanState);
 
@@ -2311,6 +2322,42 @@ async function handleKpiRequest(req, res) {
     } catch (err) {
       console.error("[CLEAN DUMMY QUARTERS ERROR]", err);
       return sendJson(res, 500, { success: false, error: "Lỗi dọn dẹp phiên ảo: " + err.message });
+    }
+  }
+
+  // --- API Đặt lại (Reset) trạng thái hồ sơ của cán bộ về Chưa nộp / Bảng trắng ---
+  if (pathname === '/api/admin/reset-officer-quarter' && (req.method === 'POST' || req.method === 'GET')) {
+    const adminOfficerId = searchParams.get('adminOfficerId');
+    const targetOfficerId = searchParams.get('officerId');
+    const targetQuarter = searchParams.get('quarter') || "Quý I";
+    const targetYear = searchParams.get('year') || "2026";
+
+    if (adminOfficerId !== 'hoang') {
+      return sendJson(res, 403, { success: false, error: "BẢN QUYỀN & BẢO MẬT: Chỉ quản trị viên (Hoàng) mới có quyền thực hiện!" });
+    }
+    if (!targetOfficerId) {
+      return sendJson(res, 400, { success: false, error: "Thiếu thông số officerId" });
+    }
+
+    const filename = getSessionFilename(targetOfficerId, targetQuarter, targetYear);
+    try {
+      if (kpiDb) {
+        await kpiDb.collection('sessions').deleteOne({ filename });
+        await kpiDb.collection('session_snapshots').deleteMany({ filename });
+      }
+      try {
+        const localPath = path.join(SESSIONS_DIR, filename);
+        if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
+      } catch(e) {}
+      
+      invalidateSummaryCache();
+      return sendJson(res, 200, {
+        success: true,
+        message: `Đã reset thành công trạng thái của cán bộ [${targetOfficerId}] ${targetQuarter}/${targetYear} về Chưa nộp (0%).`,
+        filename
+      });
+    } catch(err) {
+      return sendJson(res, 500, { success: false, error: "Lỗi reset: " + err.message });
     }
   }
 
