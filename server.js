@@ -1383,48 +1383,9 @@ async function handleKpiRequest(req, res) {
     const cfg = await getOfficersConfig();
     const defaultData = createDefaultSession(officerId, quarter, year, cfg[officerId]);
 
-    // Tự động kế thừa số liệu KPI từ tháng cuối quý trước sang tháng đầu quý sau
-    try {
-      const prevData = await getPreviousQuarterLastMonthData(officerId, quarter, year);
-      if (prevData && prevData.found && prevData.lastMonth && prevData.lastMonth.rows && prevData.lastMonth.rows.length > 0) {
-        const qMonths = getQuarterMonthsInfoServer(quarter, year);
-        const sourceRows = prevData.lastMonth.rows;
-        const role = (cfg[officerId] && cfg[officerId].role) || 'KTV';
-
-        defaultData.months = [
-          {
-            monthNum: qMonths[0].monthNum,
-            name: qMonths[0].name,
-            rows: JSON.parse(JSON.stringify(sourceRows)),
-            _isInheritedFromPrevQuarter: true
-          },
-          {
-            monthNum: qMonths[1].monthNum,
-            name: qMonths[1].name,
-            rows: JSON.parse(JSON.stringify(sourceRows))
-          },
-          {
-            monthNum: qMonths[2].monthNum,
-            name: qMonths[2].name,
-            rows: JSON.parse(JSON.stringify(sourceRows))
-          }
-        ];
-
-        defaultData.months.forEach(m => {
-          m.completionPercent = calculateMonthPctFromRows(m, role);
-        });
-
-        defaultData.inheritedFrom = {
-          prevQuarter: prevData.prevInfo.quarter,
-          prevYear: prevData.prevInfo.year,
-          sourceMonthName: prevData.lastMonth.name || prevData.prevInfo.lastMonthName,
-          inheritedAt: new Date().toISOString()
-        };
-      }
-    } catch (e) {
-      console.warn("Lỗi auto-inherit server session:", e);
-    }
-
+    // Lưu ý: Đối với quý mới chưa từng nhập dữ liệu, giữ nguyên defaultData.months = null
+    // để phía Client khởi tạo bảng tính Mẫu 02a hoàn toàn mới (sạch sẽ, tỷ lệ 0%, chưa chọn Có).
+    // Nếu người dùng có nhu cầu kế thừa, họ sẽ chủ động bấm nút "Kế thừa từ quý trước".
     return sendJson(res, 200, { success: true, isNew: true, filename, data: defaultData });
   }
 
@@ -2263,6 +2224,93 @@ async function handleKpiRequest(req, res) {
     } catch (err) {
       console.error("[RECLAIM STORAGE ERROR]", err);
       return sendJson(res, 500, { success: false, error: "Lỗi thu gọn CSDL: " + err.message });
+    }
+  }
+
+  // --- API Dọn dẹp các phiên ảo Quý I, Quý II, Quý IV sinh ra do mở nhầm / lưu tự động mẫu cũ ---
+  if (pathname === '/api/admin/clean-dummy-quarters' && (req.method === 'POST' || req.method === 'GET')) {
+    const adminOfficerId = searchParams.get('adminOfficerId');
+    if (adminOfficerId !== 'hoang') {
+      return sendJson(res, 403, { success: false, error: "BẢN QUYỀN & BẢO MẬT: Chỉ quản trị viên (Hoàng) mới có quyền thực hiện!" });
+    }
+    if (!kpiDb) {
+      return sendJson(res, 500, { success: false, error: "Chưa kết nối CSDL MongoDB" });
+    }
+    try {
+      console.log("[CLEAN DUMMY QUARTERS] Bắt đầu rà soát các phiên ảo phi-Quý III...");
+      
+      // 1. Lấy danh sách tất cả sessions hiện tại
+      const allSessions = await kpiDb.collection('sessions').find({}).toArray();
+      const totalBefore = allSessions.length;
+
+      // 2. Phân loại: Giữ lại TUYỆT ĐỐI 100% các file Quý III (bất kể định dạng chữ hoa/thường, có/không dấu)
+      const q3Docs = [];
+      const dummyDocs = [];
+
+      for (const s of allSessions) {
+        const fn = (s.filename || '').toLowerCase();
+        if (fn.includes('quyiii') || fn.includes('quýiii') || fn.includes('quý iii') || fn.includes('quy iii')) {
+          q3Docs.push(s.filename);
+        } else {
+          dummyDocs.push(s.filename);
+        }
+      }
+
+      console.log(`[CLEAN DUMMY QUARTERS] Tìm thấy ${q3Docs.length} hồ sơ Quý III cần BẢO TOÀN TUYỆT ĐỐI, và ${dummyDocs.length} hồ sơ ảo cần dọn dẹp.`);
+
+      // 3. Xóa các dummy sessions khỏi collection 'sessions' và 'session_snapshots'
+      let deletedSessionsCount = 0;
+      let deletedSnapshotsCount = 0;
+
+      if (dummyDocs.length > 0) {
+        const delRes = await kpiDb.collection('sessions').deleteMany({ filename: { $in: dummyDocs } });
+        deletedSessionsCount = delRes.deletedCount || 0;
+
+        try {
+          const snapDelRes = await kpiDb.collection('session_snapshots').deleteMany({ filename: { $in: dummyDocs } });
+          deletedSnapshotsCount = snapDelRes.deletedCount || 0;
+        } catch (e) {
+          console.warn("[CLEAN DUMMY QUARTERS] Lỗi xóa snapshots:", e.message);
+        }
+      }
+
+      // 4. Xóa các file ảo tương ứng trên ổ đĩa local (data/sessions) nếu có
+      let localDeletedCount = 0;
+      try {
+        const sessionsDir = path.join(__dirname, 'data', 'sessions');
+        if (fs.existsSync(sessionsDir)) {
+          const localFiles = fs.readdirSync(sessionsDir);
+          for (const lf of localFiles) {
+            const lfn = lf.toLowerCase();
+            if (!lfn.includes('quyiii') && !lfn.includes('quýiii') && !lfn.includes('quý iii') && !lfn.includes('quy iii') && lf.endsWith('.json')) {
+              try { fs.unlinkSync(path.join(sessionsDir, lf)); localDeletedCount++; } catch (e) {}
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("[CLEAN DUMMY QUARTERS] Lỗi dọn file local:", e.message);
+      }
+
+      // 5. Làm mới bộ đệm RAM để API Summary phản ánh ngay lập tức
+      invalidateSummaryCache();
+
+      // 6. Kiểm tra lại số lượng còn lại
+      const totalAfter = await kpiDb.collection('sessions').countDocuments();
+
+      return sendJson(res, 200, {
+        success: true,
+        message: `ĐÃ DỌN DẸP SẠCH TOÀN BỘ ${deletedSessionsCount} PHIÊN ẢO KHÔNG PHẢI QUÝ III! Dữ liệu Quý III (${totalAfter} bản ghi) được bảo toàn 100%.`,
+        totalBefore,
+        deletedSessionsCount,
+        deletedSnapshotsCount,
+        localDeletedCount,
+        deletedFilenames: dummyDocs,
+        remainingQ3Count: totalAfter,
+        protectedQ3FilenamesCount: q3Docs.length
+      });
+    } catch (err) {
+      console.error("[CLEAN DUMMY QUARTERS ERROR]", err);
+      return sendJson(res, 500, { success: false, error: "Lỗi dọn dẹp phiên ảo: " + err.message });
     }
   }
 
