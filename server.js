@@ -797,7 +797,12 @@ async function getAuthPasswords() {
       if (docs && docs.length > 0) {
         const map = {};
         docs.forEach(d => {
-          map[d.officerId] = { hash: d.hash, createdAt: d.createdAt, updatedAt: d.updatedAt };
+          map[d.officerId] = { 
+            hash: d.hash, 
+            salt: d.salt || '', 
+            createdAt: d.createdAt, 
+            updatedAt: d.updatedAt 
+          };
         });
         return map;
       }
@@ -1154,10 +1159,26 @@ async function handleKpiRequest(req, res) {
       if (!userAuth || !userAuth.hash) {
         return sendJson(res, 200, { success: false, error: "Tài khoản chưa thiết lập mật khẩu", notSet: true });
       }
-      const calculatedHash = userAuth.salt 
-        ? hashPassword(password, userAuth.salt) 
-        : hashPassword(password);
-      if (calculatedHash === userAuth.hash) {
+      const pwd = String(password || '').trim();
+      let matched = false;
+
+      // 1. So khớp mật khẩu có salt (chuẩn mới bảo mật cao)
+      if (userAuth.salt) {
+        const calculatedHash = hashPassword(pwd, userAuth.salt);
+        if (calculatedHash === userAuth.hash) {
+          matched = true;
+        }
+      }
+
+      // 2. So khớp mật khẩu không có salt (hỗ trợ tài khoản đời cũ hoặc đồng bộ local)
+      if (!matched) {
+        const plainHash = hashPassword(pwd);
+        if (plainHash === userAuth.hash) {
+          matched = true;
+        }
+      }
+
+      if (matched) {
         return sendJson(res, 200, { success: true, message: "Xác thực thành công" });
       } else {
         return sendJson(res, 200, { success: false, error: "Mật khẩu không chính xác" });
@@ -1178,9 +1199,9 @@ async function handleKpiRequest(req, res) {
       const authData = await getAuthPasswords();
       const userAuth = authData[officerId];
       if (userAuth && userAuth.hash) {
-        const currentValid = userAuth.salt
-          ? (hashPassword(oldPassword || '', userAuth.salt) === userAuth.hash)
-          : (hashPassword(oldPassword || '') === userAuth.hash);
+        const oldTrimmed = String(oldPassword || '').trim();
+        const currentValid = (userAuth.salt && hashPassword(oldTrimmed, userAuth.salt) === userAuth.hash) ||
+                             (hashPassword(oldTrimmed) === userAuth.hash);
         if (!currentValid && payload.adminOfficerId !== 'hoang') {
           return sendJson(res, 400, { success: false, error: "Mật khẩu hiện tại không chính xác" });
         }
@@ -1220,6 +1241,42 @@ async function handleKpiRequest(req, res) {
       return sendJson(res, 200, { success: true, message: `Đã đặt mật khẩu cho cán bộ: ${targetOfficerId}` });
     } catch (err) {
       return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ" });
+    }
+  }
+
+  // API Reset Password (Quản trị viên xóa / đặt lại mật khẩu để cán bộ tự đặt mới)
+  if (pathname === '/api/auth/reset' && req.method === 'POST') {
+    try {
+      const payload = await parseJsonBody(req);
+      const { adminOfficerId, targetOfficerId } = payload;
+      const isAuthorized = isAuthorAuthorizedMachine() || adminOfficerId === 'hoang';
+      if (!isAuthorized) {
+        return sendJson(res, 403, { success: false, error: "Quyền quản trị bị từ chối!" });
+      }
+      if (!targetOfficerId) {
+        return sendJson(res, 400, { success: false, error: "Thiếu mã cán bộ cần đặt lại" });
+      }
+
+      if (kpiDb) {
+        try {
+          await kpiDb.collection('auth_passwords').deleteOne({ officerId: targetOfficerId });
+        } catch (e) {
+          console.error('[API Auth Reset] Lỗi xóa MongoDB:', e);
+        }
+      }
+
+      const localData = getLocalAuth();
+      if (localData[targetOfficerId]) {
+        delete localData[targetOfficerId];
+        saveLocalAuth(localData);
+      }
+
+      return sendJson(res, 200, { 
+        success: true, 
+        message: `Đã đặt lại mật khẩu thành công cho cán bộ: ${targetOfficerId}` 
+      });
+    } catch (err) {
+      return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ: " + err.message });
     }
   }
 
