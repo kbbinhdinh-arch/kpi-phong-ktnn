@@ -7516,6 +7516,79 @@ async function saveActiveSession(showNotification = true) {
       showToast(`⚠️ Không thể kết nối Cloud! Dữ liệu của ${appState.officer.name} đã được bảo vệ trên máy bạn.`, 5000);
     }
   }
+
+  // ⚡ TỰ ĐỘNG CẬP NHẬT TỨC THỜI (0ms) DỮ LIỆU BẢNG TỔNG HỢP TOÀN PHÒNG CHO CÁN BỘ NÀY (DÙ CHƯA BẤM NỘP)
+  try {
+    let sumM = 0;
+    let cntM = 0;
+    let m1Val = 0, m2Val = 0, m3Val = 0;
+    if (appState.months && Array.isArray(appState.months)) {
+      appState.months.forEach((m, idx) => {
+        const p = Number(m.completionPercent) || 0;
+        if (idx === 0) m1Val = p;
+        if (idx === 1) m2Val = p;
+        if (idx === 2) m3Val = p;
+        if (p > 0) { sumM += p; cntM++; }
+      });
+    }
+    const avgVal = cntM > 0 ? Math.round((sumM / appState.months.length) * 10) / 10 : 0;
+    let gScore = 0;
+    if (appState.generalCriteria) {
+      for (const k of Object.keys(appState.generalCriteria)) {
+        gScore += Number(appState.generalCriteria[k] || 0);
+      }
+      gScore = Math.min(30, Math.round(gScore * 10) / 10);
+    }
+    const tScore = Math.round((avgVal * 0.7) * 10) / 10;
+    const totScore = Math.round((tScore + gScore) * 10) / 10;
+
+    let calcRate = "Chưa đánh giá";
+    if (totScore >= 90 && avgVal >= 90) calcRate = "Hoàn thành xuất sắc nhiệm vụ";
+    else if (totScore >= 75 && avgVal >= 75) calcRate = "Hoàn thành tốt nhiệm vụ";
+    else if (totScore >= 50 && avgVal >= 50) calcRate = "Hoàn thành nhiệm vụ";
+    else if (totScore > 0) calcRate = "Không hoàn thành nhiệm vụ";
+
+    const isSubmittedNow = !!(appState.isSubmitted || appState.status === 'da_nop' || appState.status === 'da_duyet');
+    const myStatus = isSubmittedNow ? 'da_nop' : ((avgVal > 0 || totScore > 0 || appState.lastSaved) ? 'da_luu' : 'chua_nop');
+
+    // Cập nhật ngay vào currentDeptSummaryData trong RAM
+    if (Array.isArray(currentDeptSummaryData) && currentDeptSummaryData.length > 0) {
+      const existingIdx = currentDeptSummaryData.findIndex(item => item.id === offId);
+      if (existingIdx >= 0) {
+        const item = currentDeptSummaryData[existingIdx];
+        item.m1Pct = m1Val;
+        item.m2Pct = m2Val;
+        item.m3Pct = m3Val;
+        item.avgPct = avgVal;
+        item.taskScore = tScore;
+        item.generalScore = gScore;
+        item.totalScore = totScore;
+        item.rating = appState.proposedRating || calcRate;
+        item.proposedRating = item.rating;
+        item.status = myStatus;
+        item.isSubmitted = isSubmittedNow;
+        item.lastSaved = saveTime;
+      }
+    }
+
+    // Xóa cờ cache để lần tới mở Tab 3 hoặc fetch server luôn đồng bộ mới
+    _lastDeptSummaryFetchTime = 0;
+    const cacheKey = `KBXV_SUMMARY_CACHE_${q}_${y}`;
+    try {
+      if (Array.isArray(currentDeptSummaryData) && currentDeptSummaryData.length > 0) {
+        localStorage.setItem(cacheKey, JSON.stringify({ officers: currentDeptSummaryData, stats: window._lastDeptSummaryStats }));
+      }
+    } catch(e) {}
+
+    // Nếu tab hiện tại đang mở là Tab 3 (Tổng hợp toàn phòng), render lại ngay tức thì
+    const tabDeptEl = document.getElementById('tab-department-kpi');
+    if (tabDeptEl && tabDeptEl.classList.contains('active')) {
+      renderDeptSummaryTable(currentDeptSummaryData);
+      renderDeptSummaryStats();
+    }
+  } catch(sumSyncErr) {
+    console.warn('Lỗi cập nhật nhanh bảng tổng hợp:', sumSyncErr);
+  }
 }
 
 // Chon can bo moi
@@ -7687,6 +7760,48 @@ async function loadDepartmentSummary(showNotification = false, forceRefresh = fa
       if (json.success && json.officers && json.officers.length > 0) {
         officersList = json.officers;
         stats = json.stats;
+
+        // ⚡ HỢP NHẤT BẢN NHÁP CỦA CHÍNH CÁN BỘ ĐANG ĐĂNG NHẬP:
+        // Nếu cán bộ đang làm việc trên máy này có dữ liệu lưu mới hơn dữ liệu server,
+        // ưu tiên giữ nguyên số liệu vừa lưu của cán bộ đó để không bị mất kết quả tạm thời.
+        const activeOffId = (appState.officer && appState.officer.officerId) || '';
+        const activeQ = (appState.officer && appState.officer.quarter) || '';
+        const activeY = (appState.officer && appState.officer.year) || 2026;
+        if (activeOffId && activeQ === curQ && Number(activeY) === Number(curY)) {
+          const myIdx = officersList.findIndex(o => o.id === activeOffId);
+          if (myIdx >= 0) {
+            const serverItem = officersList[myIdx];
+            if (!serverItem.isSubmitted && (appState.status === 'da_luu' || appState.lastSaved)) {
+              let sM = 0, cM = 0;
+              if (appState.months && Array.isArray(appState.months)) {
+                appState.months.forEach((m, idx) => {
+                  const p = Number(m.completionPercent) || 0;
+                  if (idx === 0) serverItem.m1Pct = p;
+                  if (idx === 1) serverItem.m2Pct = p;
+                  if (idx === 2) serverItem.m3Pct = p;
+                  if (p > 0) { sM += p; cM++; }
+                });
+                serverItem.avgPct = cM > 0 ? Math.round((sM / appState.months.length) * 10) / 10 : 0;
+              }
+              if (appState.generalCriteria) {
+                let g = 0;
+                for (const k of Object.keys(appState.generalCriteria)) g += Number(appState.generalCriteria[k] || 0);
+                serverItem.generalScore = Math.min(30, Math.round(g * 10) / 10);
+              }
+              serverItem.taskScore = Math.round((serverItem.avgPct * 0.7) * 10) / 10;
+              serverItem.totalScore = Math.round((serverItem.taskScore + serverItem.generalScore) * 10) / 10;
+              serverItem.status = 'da_luu';
+              if (serverItem.totalScore > 0 && (!serverItem.rating || serverItem.rating === 'Chưa đánh giá')) {
+                if (serverItem.totalScore >= 90 && serverItem.avgPct >= 90) serverItem.rating = 'Hoàn thành xuất sắc nhiệm vụ';
+                else if (serverItem.totalScore >= 75 && serverItem.avgPct >= 75) serverItem.rating = 'Hoàn thành tốt nhiệm vụ';
+                else if (serverItem.totalScore >= 50 && serverItem.avgPct >= 50) serverItem.rating = 'Hoàn thành nhiệm vụ';
+                else serverItem.rating = 'Không hoàn thành nhiệm vụ';
+                serverItem.proposedRating = appState.proposedRating || serverItem.rating;
+              }
+            }
+          }
+        }
+
         currentDeptSummaryData = officersList;
         window._lastDeptSummaryStats = stats;
         window._currentDeptSummaryQuarter = curQ;
@@ -8036,8 +8151,8 @@ function renderDeptSummaryTable(officersList) {
       statusBadge = `<span style="background: #feebc8; color: #7b341e; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; white-space: nowrap;" title="Cán bộ đã nộp, chờ Lãnh đạo thẩm định${timeText}">🔒 Đã nộp${timeText}</span>`;
     } else if (o.status === 'tra_lai') {
       statusBadge = `<span style="background: #fed7d7; color: #9b2c2c; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; white-space: nowrap;" title="Lãnh đạo trả lại để chỉnh sửa: ${escapeHtml(o.rejectReason || '')}">⚠️ Trả lại</span>`;
-    } else if (o.status === 'da_luu') {
-      statusBadge = '<span style="background: #ebf8ff; color: #2b6cb0; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 11px; white-space: nowrap;" title="Đang lưu bài làm, chưa nộp">🔵 Đang làm</span>';
+    } else if (o.status === 'da_luu' || o.status === 'draft' || (o.avgPct > 0 && !o.isSubmitted && o.status !== 'tra_lai')) {
+      statusBadge = '<span style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; white-space: nowrap;" title="Đã lưu bài làm trên hệ thống (chưa nộp chính thức)">📝 Đang làm</span>';
     }
 
     // Hiển thị STT hoặc Huy chương thứ hạng

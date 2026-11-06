@@ -399,6 +399,25 @@ async function ensureMongoConnected() {
 async function initCloudSeedData() {
   try {
     if (!kpiDb) return;
+    // [AUTH_SYNC] Đồng bộ danh mục mật khẩu từ data/auth_passwords.json lên MongoDB Atlas nếu có cập nhật mới
+    try {
+      if (fs.existsSync(AUTH_FILE)) {
+        const localAuth = JSON.parse(fs.readFileSync(AUTH_FILE, 'utf8'));
+        const authCol = kpiDb.collection('auth_passwords');
+        for (const [id, item] of Object.entries(localAuth)) {
+          if (item && item.hash) {
+            await authCol.updateOne(
+              { officerId: id },
+              { $set: { officerId: id, hash: item.hash, salt: item.salt || '', updatedAt: item.updatedAt || new Date().toISOString() } },
+              { upsert: true }
+            );
+          }
+        }
+      }
+    } catch (authSyncErr) {
+      console.warn('[AUTH_SYNC] Lỗi đồng bộ mật khẩu lên MongoDB:', authSyncErr.message);
+    }
+
     const configCol = kpiDb.collection('officers_config');
     const count = await configCol.countDocuments();
     if (count === 0) {
@@ -1163,7 +1182,7 @@ async function handleKpiRequest(req, res) {
       let matched = false;
 
       // 1. So khớp mật khẩu có salt (chuẩn mới bảo mật cao)
-      if (userAuth.salt) {
+      if (userAuth && userAuth.salt) {
         const calculatedHash = hashPassword(pwd, userAuth.salt);
         if (calculatedHash === userAuth.hash) {
           matched = true;
@@ -1171,10 +1190,52 @@ async function handleKpiRequest(req, res) {
       }
 
       // 2. So khớp mật khẩu không có salt (hỗ trợ tài khoản đời cũ hoặc đồng bộ local)
-      if (!matched) {
+      if (!matched && userAuth && userAuth.hash) {
         const plainHash = hashPassword(pwd);
         if (plainHash === userAuth.hash) {
           matched = true;
+        }
+      }
+
+      // 3. Fallback kiểm tra file auth_passwords.json trong repository (khi admin reset về 123456 hoặc commit git)
+      if (!matched) {
+        const localAuth = getLocalAuth();
+        const localUserAuth = localAuth[officerId];
+        if (localUserAuth && localUserAuth.hash) {
+          if (localUserAuth.salt) {
+            if (hashPassword(pwd, localUserAuth.salt) === localUserAuth.hash) matched = true;
+          }
+          if (!matched && hashPassword(pwd) === localUserAuth.hash) {
+            matched = true;
+          }
+          // Nếu khớp từ local file, tự động đồng bộ ngay bản ghi này lên MongoDB Atlas!
+          if (matched && kpiDb) {
+            try {
+              await kpiDb.collection('auth_passwords').updateOne(
+                { officerId },
+                { $set: { officerId, hash: localUserAuth.hash, salt: localUserAuth.salt || '', updatedAt: new Date().toISOString() } },
+                { upsert: true }
+              );
+            } catch (e) {}
+          }
+        }
+      }
+
+      // 4. Fallback trường hợp reset khẩn cấp: Nếu mật khẩu nhập là 123456 và tài khoản chưa đổi được mật khẩu
+      if (!matched && pwd === '123456') {
+        const defaultHash = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92';
+        const localAuth = getLocalAuth();
+        if (localAuth[officerId] && localAuth[officerId].hash === defaultHash) {
+          matched = true;
+          if (kpiDb) {
+            try {
+              await kpiDb.collection('auth_passwords').updateOne(
+                { officerId },
+                { $set: { officerId, hash: defaultHash, salt: '', updatedAt: new Date().toISOString() } },
+                { upsert: true }
+              );
+            } catch (e) {}
+          }
         }
       }
 
@@ -1230,9 +1291,18 @@ async function handleKpiRequest(req, res) {
         return sendJson(res, 403, { success: false, error: "Quyền quản trị bị từ chối!" });
       }
       const authData = await getAuthPasswords();
-      const salt = crypto.randomBytes(16).toString('hex');
+      const trimmed = String(newPassword).trim();
+      let salt = '';
+      let hash = '';
+      if (trimmed === '123456') {
+        hash = hashPassword('123456');
+        salt = '';
+      } else {
+        salt = crypto.randomBytes(16).toString('hex');
+        hash = hashPassword(trimmed, salt);
+      }
       authData[targetOfficerId] = {
-        hash: hashPassword(newPassword, salt),
+        hash,
         salt,
         createdAt: authData[targetOfficerId] ? authData[targetOfficerId].createdAt : new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -1525,7 +1595,7 @@ async function handleKpiRequest(req, res) {
             console.warn('[MongoDB WARNING] Lỗi ghi lên Cloud, đã lưu cục bộ an toàn:', snapErr.message);
           }
         }
-        invalidateSummaryCacheDebounced();
+        invalidateSummaryCache();
 
         return sendJson(res, 200, {
           success: true,
@@ -2419,8 +2489,12 @@ async function handleKpiRequest(req, res) {
         allSessionsMap = getAllLocalSessions();
       }
     }
-    if (Object.keys(allSessionsMap).length === 0) {
-      allSessionsMap = getAllLocalSessions();
+    // HỢP NHẤT THÔNG MINH: Luôn nạp thêm các file local session nếu MongoDB chưa có đủ
+    const localSessions = getAllLocalSessions();
+    for (const [fn, lData] of Object.entries(localSessions)) {
+      if (!allSessionsMap[fn]) {
+        allSessionsMap[fn] = lData;
+      }
     }
 
     for (const off of officersList) {
@@ -2479,14 +2553,21 @@ async function handleKpiRequest(req, res) {
           item.approvedBy = "Trưởng phòng (Chính thức)";
           item.rejectReason = null;
         } else {
-          item.status = sess.status || (item.isSubmitted ? "da_nop" : "da_luu");
+          item.status = sess.status || (item.isSubmitted ? "da_nop" : ((item.avgPct > 0 || item.totalScore > 0 || sess.lastSaved) ? "da_luu" : "chua_nop"));
         }
         item.lastSaved = sess.lastSaved || null;
 
-        if (sess.months && Array.isArray(sess.months) && sess.months.length > 0) {
+        let monthsArr = [];
+        if (Array.isArray(sess.months)) {
+          monthsArr = sess.months;
+        } else if (sess.months && typeof sess.months === 'object') {
+          monthsArr = Object.values(sess.months);
+        }
+
+        if (monthsArr.length > 0) {
           let sumPct = 0;
           let mCount = 0;
-          sess.months.forEach((m, idx) => {
+          monthsArr.forEach((m, idx) => {
             let pct = Number(m.completionPercent);
             if (isNaN(pct) || pct === 0) {
               pct = calculateMonthPctFromRows(m, off.role);
@@ -2499,7 +2580,7 @@ async function handleKpiRequest(req, res) {
               mCount++;
             }
           });
-          item.avgPct = mCount > 0 ? Math.round((sumPct / sess.months.length) * 10) / 10 : 0;
+          item.avgPct = mCount > 0 ? Math.round((sumPct / monthsArr.length) * 10) / 10 : 0;
         }
 
         if (sess.generalCriteria) {
