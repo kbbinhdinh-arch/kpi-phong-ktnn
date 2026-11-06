@@ -4116,24 +4116,27 @@
             <label style="font-size: 11.5px; font-weight: 700; color: #2d3748; display: inline-flex; align-items: center; gap: 3px; margin: 0;">
               📁 Nhóm nghiệp vụ:
             </label>
-            <select id="monthlyCategoryFilter" class="form-control" style="width: 285px; height: 26px; padding: 2px 6px; font-size: 11.5px; font-weight: 600; border-color: #3182ce; color: #2b6cb0; border-radius: 4px;" onchange="onMonthlyCategoryFilterChange(this.value)">
+            <select id="monthlyCategoryFilter" class="form-control" style="width: 325px; height: 26px; padding: 2px 6px; font-size: 11.5px; font-weight: 600; border-color: #3182ce; color: #2b6cb0; border-radius: 4px;" onchange="onMonthlyCategoryFilterChange(this.value)">
               <option value="ALL">-- Tất cả các nhóm (Toàn bộ 189 việc) --</option>
               <option value="I" id="optGroupLeader">🏢 I. Lãnh đạo, quản lý (5 việc)</option>
               <option value="II.A">📄 II.A Văn bản hành chính (31 việc)</option>
               <option value="II.B">💼 II.B Tất cả chuyên môn Kế toán (82 việc)</option>
-              <option value="II.B.THU">&nbsp;&nbsp;├─ B.1 Kế toán Thu NSNN (TCS) (8 việc)</option>
-              <option value="II.B.CHI">&nbsp;&nbsp;├─ B.2 Kế toán Chi NSNN (TABMIS) (10 việc)</option>
-              <option value="II.B.TT">&nbsp;&nbsp;├─ B.3 Thanh toán LKB & Ngân hàng (8 việc)</option>
-              <option value="II.B.DUTOAN">&nbsp;&nbsp;├─ B.4 Kế toán Dự toán (5 việc)</option>
-              <option value="II.B.KHO">&nbsp;&nbsp;├─ B.5 Công tác Kho, Quỹ & Tiền mặt (4 việc)</option>
-              <option value="II.B.TK">&nbsp;&nbsp;├─ B.6 Đăng ký TK & Mã số ĐVQHNS (13 việc)</option>
-              <option value="II.B.NHTM">&nbsp;&nbsp;├─ B.7 Tài khoản KBNN tại NHTM (5 việc)</option>
-              <option value="II.B.TONGKE">&nbsp;&nbsp;├─ B.8 Tổng Kế toán nhà nước (BCTCNN) (9 việc)</option>
-              <option value="II.B.QUYETTOAN">&nbsp;&nbsp;├─ B.9 Quyết toán năm & Khóa sổ (11 việc)</option>
-              <option value="II.B.VPHC">&nbsp;&nbsp;└─ B.10 Xử phạt vi phạm hành chính (7 việc)</option>
+              <option value="II.B.1.1">&nbsp;&nbsp;├─ 1.1 Kế toán Dự toán (1 việc)</option>
+              <option value="II.B.1.2">&nbsp;&nbsp;├─ 1.2 Kế toán Thu NSNN (8 việc)</option>
+              <option value="II.B.1.3">&nbsp;&nbsp;├─ 1.3 Kế toán Chi NSNN (6 việc)</option>
+              <option value="II.B.1.4">&nbsp;&nbsp;├─ 1.4 Thanh toán LKB, TTSPĐT, TTLNH (9 việc)</option>
+              <option value="II.B.1.5">&nbsp;&nbsp;├─ 1.5 Kế toán nghiệp vụ khác (4 việc)</option>
+              <option value="II.B.1.6">&nbsp;&nbsp;├─ 1.6 Xử lý số dư & Chuyển nguồn kinh phí cuối năm (7 việc)</option>
+              <option value="II.B.1.7">&nbsp;&nbsp;├─ 1.7 Lưu trữ, bảo quản tài liệu kế toán (4 việc)</option>
+              <option value="II.B.2">&nbsp;&nbsp;├─ 2. Đăng ký & sử dụng TK, Mã QHNS (15 việc)</option>
+              <option value="II.B.3">&nbsp;&nbsp;├─ 3. Quản lý tài khoản KBNN tại NHTM (5 việc)</option>
+              <option value="II.B.4">&nbsp;&nbsp;├─ 4. Công tác Kho, Quỹ & Tiền mặt (4 việc)</option>
+              <option value="II.B.5">&nbsp;&nbsp;├─ 5. Tổng Kế toán nhà nước (BCTCNN) (9 việc)</option>
+              <option value="II.B.6">&nbsp;&nbsp;├─ 6. Lập báo cáo quyết toán năm (3 việc)</option>
+              <option value="II.B.7">&nbsp;&nbsp;└─ 7. Xử phạt vi phạm hành chính (7 việc)</option>
               <option value="II.C">🔍 II.C Kiểm tra & Giải quyết KNTC (28 việc)</option>
               <option value="II.D">📊 II.D Báo cáo định kỳ & đột xuất (20 việc)</option>
-              <option value="II.E">🤝 II.E Công tác khác & TCCB, Đảng vụ (23 việc)</option>
+              <option value="II.E">🤝 II.E Công tác khác (Đảng vụ, TCCB, Văn thư) (23 việc)</option>
             </select>
 
             <div style="position: relative; display: inline-flex; align-items: center;">
@@ -4378,24 +4381,24 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             <label style="font-size: 12px; font-weight: 700; color: var(--text-muted);">Phân loại nhóm:</label>
-            <select id="detCategoryFilter" class="form-control" style="width: 270px;" onchange="renderDetailedCatalog(this.value)">
+            <select id="detCategoryFilter" class="form-control" style="width: 285px;" onchange="renderDetailedCatalog(this.value)">
               <option value="ALL">-- Tất cả các nhóm nghiệp vụ --</option>
               <option value="Nhiệm vụ được giao trực tiếp thực hiện">I. Lãnh đạo trực tiếp thực hiện</option>
               <option value="A. Công tác xây dựng văn bản hành chính">II.A Văn bản hành chính</option>
-              <option value="B.1 Kế toán ngân sách - Dự toán">II.B.1 Kế toán Dự toán</option>
-              <option value="B.2 Kế toán Thu NSNN">II.B.2 Kế toán Thu NSNN (TCS)</option>
-              <option value="B.3 Kế toán Chi NSNN">II.B.3 Kế toán Chi NSNN (TABMIS)</option>
-              <option value="B.4 Thanh toán LKB & Ngân hàng">II.B.4 Thanh toán LKB & Ngân hàng</option>
-              <option value="B.5 Kế toán nghiệp vụ khác & Khóa sổ">II.B.5 Khóa sổ & Nghiệp vụ khác</option>
-              <option value="B.6 Quyết toán NSNN & Chuyển nguồn">II.B.6 Quyết toán NSNN & Chuyển nguồn</option>
-              <option value="B.7 Đăng ký sử dụng tài khoản">II.B.7 Đăng ký tài khoản (DVC)</option>
-              <option value="B.8 Công tác kho, quỹ">II.B.8 Công tác kho quỹ & Tiền mặt</option>
-              <option value="B.9 Tổng Kế toán nhà nước (BCTCNN)">II.B.9 Tổng Kế toán nhà nước (BCTCNN)</option>
-              <option value="B.10 Báo cáo Quyết toán năm">II.B.10 Báo cáo Quyết toán năm</option>
-              <option value="B.11 Xử phạt VPHC">II.B.11 Xử phạt VPHC</option>
-              <option value="B.12 Công tác kiểm tra">II.B.12 Công tác kiểm tra</option>
-              <option value="B.13 Báo cáo định kỳ & đột xuất">II.B.13 Báo cáo định kỳ & đột xuất</option>
-              <option value="C. Công tác khác">II.C Công tác khác & Đảng vụ</option>
+              <option value="B.1 Kế toán ngân sách - Dự toán">1.1 Kế toán Dự toán</option>
+              <option value="B.2 Kế toán Thu NSNN">1.2 Kế toán Thu NSNN (TCS)</option>
+              <option value="B.3 Kế toán Chi NSNN">1.3 Kế toán Chi NSNN (TABMIS)</option>
+              <option value="B.4 Thanh toán LKB & Ngân hàng">1.4 Thanh toán LKB, TTSPĐT, TTLNH</option>
+              <option value="B.5 Kế toán nghiệp vụ khác & Khóa sổ">1.5 Kế toán nghiệp vụ khác & Khóa sổ</option>
+              <option value="B.6 Quyết toán NSNN & Chuyển nguồn">1.6 Quyết toán NSNN & Chuyển nguồn</option>
+              <option value="B.7 Đăng ký sử dụng tài khoản">2. Đăng ký & sử dụng tài khoản</option>
+              <option value="B.8 Công tác kho, quỹ">4. Công tác Kho, Quỹ & Tiền mặt</option>
+              <option value="B.9 Tổng Kế toán nhà nước (BCTCNN)">5. Tổng Kế toán nhà nước (BCTCNN)</option>
+              <option value="B.10 Báo cáo Quyết toán năm">6. Lập báo cáo Quyết toán năm</option>
+              <option value="B.11 Xử phạt VPHC">7. Xử phạt vi phạm hành chính</option>
+              <option value="B.12 Công tác kiểm tra">II.C Công tác kiểm tra & KNTC</option>
+              <option value="B.13 Báo cáo định kỳ & đột xuất">II.D Báo cáo định kỳ & đột xuất</option>
+              <option value="C. Công tác khác">II.E Công tác khác (Đảng vụ, TCCB)</option>
             </select>
 
             <label style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-left: 6px;">Tháng tiếp nhận:</label>
@@ -5611,40 +5614,73 @@ function renderPlanTable() {
 function getRowGroupCode(r) {
   const pL1 = r.parent_level1 || '';
   const pL2 = r.parent_level2 || '';
-  const pSec = (r.parent_section || '').toLowerCase();
-  const nv = (r.nhiemvu || '').toLowerCase();
-  const cv = (r.congviec || '').toLowerCase();
+  const pSec = r.parent_section || r.nhiemvu || '';
+  const stt = String(r.stt || '').trim();
 
-  if (pL1.includes('LÃNH ĐẠO') || r.stt === 'I') return 'I';
-  if (pL2.includes('VĂN BẢN') || (pL2.includes('A.') && String(r.stt).startsWith('1.'))) return 'II.A';
-  if (pL2.includes('KIỂM TRA')) return 'II.C';
-  if (pL2.includes('BÁO CÁO')) return 'II.D';
-  if (pL2.includes('CÔNG TÁC KHÁC')) return 'II.E';
+  if (pL1.includes('LÃNH ĐẠO') || stt === 'I') return 'I';
+  if (pL2.includes('A. CÔNG TÁC XÂY DỰNG') || pL2.includes('VĂN BẢN')) return 'II.A';
+  if (pL2.includes('C. CÔNG TÁC KIỂM TRA') || pL2.includes('KIỂM TRA')) return 'II.C';
+  if (pL2.includes('D. THỰC HIỆN CÔNG TÁC BÁO CÁO') || pL2.includes('BÁO CÁO')) return 'II.D';
+  if (pL2.includes('E. CÔNG TÁC KHÁC') || pL2.includes('CÔNG TÁC KHÁC')) return 'II.E';
 
-  // Sub-groups in II.B
-  if (pSec.includes('thu nsnn') || cv.includes('thu nsnn') || nv.includes('thu nsnn')) return 'II.B.THU';
-  if (pSec.includes('chi ngân sách') || pSec.includes('chi nsnn') || cv.includes('tabmis') || nv.includes('chi nsnn')) return 'II.B.CHI';
-  if (pSec.includes('thanh toán liên') || pSec.includes('song phương') || cv.includes('lkb') || cv.includes('tts pđt') || cv.includes('ttspđt')) return 'II.B.TT';
-  if (pSec.includes('kho, quỹ') || pSec.includes('kho quỹ') || cv.includes('tiền mặt') || cv.includes('kho tiền')) return 'II.B.KHO';
-  if (pSec.includes('dự toán') || nv.includes('dự toán')) return 'II.B.DUTOAN';
-  if (pSec.includes('tài khoản của kho bạc') || pSec.includes('ngân hàng thương mại')) return 'II.B.NHTM';
-  if (pSec.includes('tài khoản') || pSec.includes('mã số quan hệ') || cv.includes('dvc') || cv.includes('đvq hns') || cv.includes('đvqhns')) return 'II.B.TK';
-  if (pSec.includes('tổng kế toán') || cv.includes('bctcnn')) return 'II.B.TONGKE';
-  if (pSec.includes('quyết toán') || pSec.includes('chuyển nguồn') || pSec.includes('nghiệp vụ khác') || pSec.includes('kinh phí cuối năm') || pSec.includes('lưu trữ, bảo quản')) return 'II.B.QUYETTOAN';
-  if (pSec.includes('xử phạt') || cv.includes('vphc')) return 'II.B.VPHC';
+  // Inside II.B (Công tác chuyên môn, nghiệp vụ chuẩn 100% QĐ 1253/Mẫu 02a - 82 việc)
+  if (pL2.includes('B. CÔNG TÁC CHUYÊN MÔN') || pL1.includes('CHUYÊN MÔN')) {
+    // 1. Kế toán NSNN (1.1 -> 1.7)
+    if (stt.startsWith('1.1.') || pSec.includes('kế toán dự toán')) return 'II.B.1.1';
+    if (stt.startsWith('1.2.') || pSec.includes('thu NSNN')) return 'II.B.1.2';
+    if (stt.startsWith('1.3.') || pSec.includes('chi ngân sách')) return 'II.B.1.3';
+    if (stt.startsWith('1.4.') || pSec.includes('Thanh toán liên kho bạc')) return 'II.B.1.4';
+    if (stt.startsWith('1.5.') || pSec.includes('nghiệp vụ khác')) return 'II.B.1.5';
+    if (stt.startsWith('1.6.') || pSec.includes('cuối năm') || pSec.includes('chuyển nguồn')) return 'II.B.1.6';
+    if (stt.startsWith('1.7.') || pSec.includes('lưu trữ, bảo quản, tiêu hủy tài liệu')) return 'II.B.1.7';
 
-  if (pL1.includes('CHUYÊN MÔN') || pL2.includes('CHUYÊN MÔN')) return 'II.B';
+    // 3. Mở, quản lý và sử dụng TK KBNN tại NHTM (Ưu tiên kiểm tra trước mục 2 để tránh trùng từ khóa tài khoản)
+    if (stt.startsWith('3.') || pSec.includes('ngân hàng thương mại')) return 'II.B.3';
+
+    // 2. Đăng ký & sử dụng tài khoản tại KBNN (bao gồm hồ sơ TK và mã QHNS)
+    if (stt.startsWith('2.') || pSec.includes('đăng ký') || pSec.includes('tài khoản') || pSec.includes('TK')) return 'II.B.2';
+
+    // 4. Kho, quỹ
+    if (stt.startsWith('4.') || pSec.includes('kho, quỹ') || pSec.includes('kho quỹ')) return 'II.B.4';
+
+    // 5. Tổng kế toán nhà nước (BCTCNN)
+    if (stt.startsWith('5.') || pSec.includes('tổng kế toán')) return 'II.B.5';
+
+    // 6. Lập báo cáo quyết toán năm
+    if (stt.startsWith('6.') || pSec.includes('báo cáo quyết toán năm')) return 'II.B.6';
+
+    // 7. Xử phạt vi phạm hành chính
+    if (stt.startsWith('7.') || pSec.includes('xử phạt')) return 'II.B.7';
+
+    return 'II.B';
+  }
 
   return 'II.E';
 }
 
 function rowMatchesGroup(r, selectedGroup) {
   if (!selectedGroup || selectedGroup === 'ALL') return true;
+
+  // Ánh xạ tương thích ngược các mã nhóm cũ nếu còn lưu trong cache người dùng
+  const legacyMap = {
+    'II.B.THU': 'II.B.1.2',
+    'II.B.CHI': 'II.B.1.3',
+    'II.B.TT': 'II.B.1.4',
+    'II.B.DUTOAN': 'II.B.1.1',
+    'II.B.KHO': 'II.B.4',
+    'II.B.TK': 'II.B.2',
+    'II.B.NHTM': 'II.B.3',
+    'II.B.TONGKE': 'II.B.5',
+    'II.B.QUYETTOAN': 'II.B.1.6',
+    'II.B.VPHC': 'II.B.7'
+  };
+  const normGroup = legacyMap[selectedGroup] || selectedGroup;
+
   const grp = getRowGroupCode(r);
-  if (selectedGroup === 'II.B') {
+  if (normGroup === 'II.B') {
     return grp.startsWith('II.B');
   }
-  return grp === selectedGroup;
+  return grp === normGroup;
 }
 
 function onMonthlyCategoryFilterChange(val) {
@@ -5804,6 +5840,22 @@ function renderMonthTable24() {
   const role = (appState.officer && appState.officer.role) || 'GDV';
   const mult = getRoleMultiplier();
   const filterActive = (appState.filterActiveOnly === true);
+  // Đồng bộ ánh xạ tương thích ngược cho bộ lọc nhóm nếu có lưu mã cũ
+  const _legacyFilterMap = {
+    'II.B.THU': 'II.B.1.2',
+    'II.B.CHI': 'II.B.1.3',
+    'II.B.TT': 'II.B.1.4',
+    'II.B.DUTOAN': 'II.B.1.1',
+    'II.B.KHO': 'II.B.4',
+    'II.B.TK': 'II.B.2',
+    'II.B.NHTM': 'II.B.3',
+    'II.B.TONGKE': 'II.B.5',
+    'II.B.QUYETTOAN': 'II.B.1.6',
+    'II.B.VPHC': 'II.B.7'
+  };
+  if (appState.monthlyCategoryFilter && _legacyFilterMap[appState.monthlyCategoryFilter]) {
+    appState.monthlyCategoryFilter = _legacyFilterMap[appState.monthlyCategoryFilter];
+  }
   const selectedGroup = appState.monthlyCategoryFilter || 'ALL';
   const searchTerm = (appState.monthlySearchTerm || '').toLowerCase().trim();
   const isAnyFilterActive = (filterActive || selectedGroup !== 'ALL' || searchTerm !== '');
