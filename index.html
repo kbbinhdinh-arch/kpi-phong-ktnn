@@ -7213,13 +7213,12 @@ function updateLastSavedTime(isoString, isLocalOnly = false) {
   }
 }
 
-// Tai phien lam viec (CACHE-FIRST ĐỂ HIỂN THỊ TỨC THÌ TRONG 0MS)
+// Tai phien lam viec (CACHE-FIRST ĐỂ HIỂN THỊ TỨC THỜI TRONG 0MS)
 async function loadSessionForOfficer(officerId, quarter, year) {
   const offId = officerId || (appState.officer && appState.officer.officerId) || 'hoang';
   const q = quarter || (appState.officer && appState.officer.quarter) || 'Quý III';
   const y = year || (appState.officer && appState.officer.year) || 2026;
   const storageKey = getSessionStorageKey(offId, q, y);
-  const isNotQ3 = (q !== 'Quý III' && q !== 'QuyIII');
 
   // 1. CACHE-FIRST: Áp dụng ngay lập tức bản lưu đệm trên máy tính nếu có (0ms, không chờ server)
   let hadLocalCache = false;
@@ -7228,22 +7227,9 @@ async function loadSessionForOfficer(officerId, quarter, year) {
     if (cached) {
       let parsed = JSON.parse(cached);
       if (parsed && parsed.officer) {
-        // TỰ ĐỘNG DỌN DẸP LỖI RÒ RỈ TRẠNG THÁI:
-        // Nếu không phải Quý III mà bản lưu cục bộ lại mang cờ 'da_nop', 'isSubmitted' hoặc ngày nộp tháng 9 của Quý III
-        const hasQ3LeakedSubmission = (parsed.status === 'da_nop' || parsed.status === 'da_duyet' || parsed.isSubmitted || (parsed.submittedAt && String(parsed.submittedAt).includes('2026-09')));
-        const hasDirtyTemplateData = parsed.months && parsed.months.some(m => m && m.rows && m.rows.some(r => (r.ghichu && r.ghichu.includes('QLTT Gia Lai')) || (r.stt === '1.1' && r.soluong_tt == 150)));
-
-        if (isNotQ3 && (hasQ3LeakedSubmission || hasDirtyTemplateData)) {
-          console.warn('[SELF-HEAL] Phát hiện và xóa triệt để bản lưu đệm bị dính trạng thái nộp Quý III / mẫu cũ:', storageKey);
-          localStorage.removeItem(storageKey);
-          parsed = null;
-        }
-
-        if (parsed) {
-          applyLoadedSession(parsed, offId, q, y);
-          updateLastSavedTime(parsed.lastSaved || new Date().toISOString(), true);
-          hadLocalCache = true;
-        }
+        applyLoadedSession(parsed, offId, q, y);
+        updateLastSavedTime(parsed.lastSaved || new Date().toISOString(), true);
+        hadLocalCache = true;
       }
     }
   } catch (err) {}
@@ -7262,27 +7248,14 @@ async function loadSessionForOfficer(officerId, quarter, year) {
       const json = await res.json();
       if (json.success && json.data) {
         if (json.isNew) {
-          // Máy chủ xác nhận: Quý này CHƯA TỪNG NỘP bài trên hệ thống!
-          const hasDirtyTemplateData = appState.months && appState.months.some(m => m && m.rows && m.rows.some(r => (r.ghichu && r.ghichu.includes('QLTT Gia Lai')) || (r.stt === '1.1' && r.soluong_tt == 150)));
-
-          // Nếu quý không phải Quý III và chưa từng nộp, hoặc có dữ liệu mẫu rác cũ: xóa sạch và nạp bảng trắng mới
-          if (isNotQ3 && (hasDirtyTemplateData || !hadLocalCache || appState.status === 'da_nop' || appState.isSubmitted || (appState.submittedAt && String(appState.submittedAt).includes('2026-09')))) {
-            console.warn('[SELF-HEAL] Khởi tạo bảng trắng sạch sẽ 0% cho quý chưa nộp:', q);
-            localStorage.removeItem(storageKey);
-            initializeFreshOfficerSession(offId, q, y);
+          // Máy chủ chưa có bản ghi cho kỳ này.
+          // NẾU TRÊN MÁY TÍNH ĐÃ CÓ BẢN LƯU (hadLocalCache = true): BẢO VỆ TUYỆT ĐỐI BẢN LƯU CỦA NGƯỜI DÙNG!
+          if (hadLocalCache) {
+            console.log('[CACHE-PROTECT] Bảo vệ an toàn bản lưu cục bộ của người dùng trên máy trạm:', storageKey);
             return;
           }
-
-          // Nếu là bản nháp thực sự đang soạn thảo: đảm bảo KHÔNG bao giờ bị mang cờ 'da_nop'
-          appState.status = 'draft';
-          appState.isSubmitted = false;
-          appState.submittedAt = null;
-          appState.isApproved = false;
-          appState.approvedAt = null;
-          appState.approvedBy = null;
-          appState.rejectReason = null;
-          try { localStorage.setItem(storageKey, JSON.stringify(appState)); } catch(e){}
-          renderAll();
+          // Nếu trên máy cũng chưa từng có dữ liệu, khởi tạo phiên mới
+          initializeFreshOfficerSession(offId, q, y);
           return;
         }
         applyLoadedSession(json.data, offId, q, y);
@@ -7301,7 +7274,6 @@ async function loadSessionForOfficer(officerId, quarter, year) {
   }
 }
 
-// Ap dung du lieu phien vao appState
 function applyLoadedSession(data, offId, q, y) {
   const officerCfg = (window.OFFICERS_ASSIGNMENTS && window.OFFICERS_ASSIGNMENTS[offId]) || {};
   
