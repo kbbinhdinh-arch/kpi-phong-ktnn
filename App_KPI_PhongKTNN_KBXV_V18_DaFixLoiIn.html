@@ -4217,8 +4217,21 @@
             👤 Phụ trách tổng hợp: <strong>Phạm Thị Cẩm Tú (GDV)</strong> | ✍ Người phê duyệt: <strong>Hoàng Anh Sơn (Trưởng phòng)</strong> | Kỳ: <strong class="print-quarter">Quý III</strong> / <strong class="print-year">2026</strong>
           </p>
         </div>
-        <div style="display: flex; gap: 8px; align-items: center;">
-          <button class="btn btn-outline btn-sm" onclick="loadDepartmentSummary(true)" style="height: 32px; font-weight: 600;">
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <div style="display: inline-flex; align-items: center; gap: 5px; background: #edf2f7; padding: 2px 8px; border-radius: 6px; border: 1px solid #cbd5e0;">
+            <label for="deptSummaryQuarterSelect" style="font-size: 11.5px; font-weight: 700; color: #2d3748; margin: 0; white-space: nowrap;">📅 Kỳ tổng hợp:</label>
+            <select id="deptSummaryQuarterSelect" class="form-control" style="width: 95px; height: 28px; padding: 2px 6px; font-size: 11.5px; font-weight: 700; color: #2b6cb0; border-color: #3182ce; border-radius: 4px;" onchange="onDeptSummaryQuarterChange(this.value)">
+              <option value="Quý I">Quý I</option>
+              <option value="Quý II">Quý II</option>
+              <option value="Quý III">Quý III</option>
+              <option value="Quý IV">Quý IV</option>
+            </select>
+            <select id="deptSummaryYearSelect" class="form-control" style="width: 70px; height: 28px; padding: 2px 4px; font-size: 11.5px; font-weight: 700; border-radius: 4px;" onchange="onDeptSummaryYearChange(this.value)">
+              <option value="2026">2026</option>
+              <option value="2025">2025</option>
+            </select>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="loadDepartmentSummary(true, true)" style="height: 32px; font-weight: 600;" title="Tải lại số liệu mới nhất từ máy chủ cho kỳ này">
             🔄 Tải lại dữ liệu
           </button>
           <button class="btn btn-sm" onclick="exportDepartmentSummaryToExcel()" style="background: #276749; color: #fff; height: 32px; font-weight: 700;">
@@ -4917,6 +4930,13 @@ async function switchQuarter(newQuarter) {
   // Lưu ý: Không tự ý kế thừa ngầm khi chuyển quý - để người dùng chủ động bấm nút "Kế thừa từ quý trước" nếu muốn
   appState.activeMonthIdx = 0;
   renderAll();
+
+  // Tự động làm mới bảng Tổng hợp toàn phòng nếu đang xem tab này
+  if (appState.activeTab === 'tab-department-kpi') {
+    currentDeptSummaryData = [];
+    window._lastDeptSummaryStats = null;
+    loadDepartmentSummary(false, true);
+  }
 }
 
 function initMonthsDataIfEmpty() {
@@ -7591,24 +7611,78 @@ function preloadDepartmentSummary() {
 }
 
 // Tải dữ liệu Bảng Tổng hợp KPI toàn phòng (HIỂN THỊ TỨC THÌ 0 GIÂY - ZERO WAIT)
+async function onDeptSummaryQuarterChange(newQ) {
+  if (!newQ) return;
+  appState.officer.quarter = newQ;
+  const offQSelect = document.getElementById('officerQuarter');
+  if (offQSelect) offQSelect.value = newQ;
+
+  // Xóa sạch cache RAM để nạp mới cho quý được chọn
+  currentDeptSummaryData = [];
+  window._lastDeptSummaryStats = null;
+  window._currentDeptSummaryQuarter = newQ;
+
+  saveState();
+  renderMonthTabsHeader();
+  updateMonthIndicator();
+  await loadDepartmentSummary(true, true);
+}
+
+async function onDeptSummaryYearChange(newY) {
+  if (!newY) return;
+  appState.officer.year = Number(newY);
+  const offYSelect = document.getElementById('officerYear');
+  if (offYSelect) offYSelect.value = newY;
+
+  currentDeptSummaryData = [];
+  window._lastDeptSummaryStats = null;
+  window._currentDeptSummaryYear = Number(newY);
+
+  saveState();
+  renderMonthTabsHeader();
+  updateMonthIndicator();
+  await loadDepartmentSummary(true, true);
+}
+
+// Tải dữ liệu Bảng Tổng hợp KPI toàn phòng (HỖ TRỢ ĐA KỲ QUÝ CHUẨN XÁC 100%)
 async function loadDepartmentSummary(showNotification = false, forceRefresh = false) {
   const curQ = (appState.officer && appState.officer.quarter) || "Quý III";
   const curY = (appState.officer && appState.officer.year) || 2026;
   const cacheKey = `KBXV_SUMMARY_CACHE_${curQ}_${curY}`;
 
-  // 1. TỨC THÌ 0 GIÂY TỪ BỘ NHỚ RAM: Nếu RAM đã có dữ liệu và không ép tải lại, hiển thị NGAY LẬP TỨC
-  if (currentDeptSummaryData && currentDeptSummaryData.length > 0 && !forceRefresh) {
+  // Đồng bộ giá trị chọn trên dropdown kỳ tổng hợp của Tab 3
+  const tab3QSelect = document.getElementById('deptSummaryQuarterSelect');
+  if (tab3QSelect && tab3QSelect.value !== curQ) {
+    tab3QSelect.value = curQ;
+  }
+  const tab3YSelect = document.getElementById('deptSummaryYearSelect');
+  if (tab3YSelect && tab3YSelect.value !== String(curY)) {
+    tab3YSelect.value = String(curY);
+  }
+
+  // Cập nhật text hiển thị kỳ trong subtitle
+  document.querySelectorAll('.print-quarter').forEach(el => el.innerText = curQ);
+  document.querySelectorAll('.print-year').forEach(el => el.innerText = String(curY));
+
+  // KIỂM TRA ĐỔI QUÝ: Nếu quý hiện tại khác quý đang giữ trong RAM, xóa sạch RAM cache của quý cũ
+  const isQuarterChanged = (window._currentDeptSummaryQuarter !== curQ || window._currentDeptSummaryYear !== curY);
+  if (isQuarterChanged || forceRefresh) {
+    currentDeptSummaryData = [];
+    window._lastDeptSummaryStats = null;
+  }
+
+  // 1. TỨC THÌ 0 GIÂY TỪ BỘ NHỚ RAM (CHỈ KHI ĐÚNG QUÝ VÀ KHÔNG ÉP TẢI LẠI)
+  if (currentDeptSummaryData && currentDeptSummaryData.length > 0 && !forceRefresh && !isQuarterChanged) {
     if (window._lastDeptSummaryStats) renderDeptSummaryStats(window._lastDeptSummaryStats);
     renderDeptSummaryTable(currentDeptSummaryData);
     updateDeptFilterCounters(currentDeptSummaryData);
 
-    // Nếu vừa mới đồng bộ từ máy chủ trong vòng 20 giây thì hoàn thành ngay, không cần gọi mạng
     const now = Date.now();
     if (now - _lastDeptSummaryFetchTime < 20000 && !showNotification) {
       return;
     }
   } else {
-    // 2. TỨC THÌ TỪ LOCALSTORAGE: Đọc ngay bộ nhớ đệm (0ms) nếu RAM chưa có dữ liệu
+    // 2. TỨC THÌ TỪ LOCALSTORAGE THEO ĐÚNG QUÝ: Đọc ngay bộ nhớ đệm (0ms) của quý đó
     try {
       const cachedRaw = localStorage.getItem(cacheKey);
       if (cachedRaw) {
@@ -7616,6 +7690,8 @@ async function loadDepartmentSummary(showNotification = false, forceRefresh = fa
         if (cached && cached.officers && cached.officers.length > 0) {
           currentDeptSummaryData = cached.officers;
           window._lastDeptSummaryStats = cached.stats;
+          window._currentDeptSummaryQuarter = curQ;
+          window._currentDeptSummaryYear = curY;
           renderDeptSummaryStats(cached.stats);
           renderDeptSummaryTable(cached.officers);
           updateDeptFilterCounters(cached.officers);
@@ -7624,7 +7700,7 @@ async function loadDepartmentSummary(showNotification = false, forceRefresh = fa
     } catch(e) {}
   }
 
-  // 3. ĐỒNG BỘ MỚI NHẤT TỪ MÁY CHỦ (Chạy nền không làm giật lag giao diện)
+  // 3. ĐỒNG BỘ MỚI NHẤT TỪ MÁY CHỦ CHO ĐÚNG QUÝ NÀY
   const btnReload = document.querySelector('button[onclick*="loadDepartmentSummary"]');
   if (btnReload && showNotification) btnReload.innerHTML = '🔄 Đang cập nhật...';
 
@@ -7632,7 +7708,7 @@ async function loadDepartmentSummary(showNotification = false, forceRefresh = fa
   let stats = null;
 
   try {
-    const refreshParam = forceRefresh ? '&refresh=1' : '';
+    const refreshParam = (forceRefresh || isQuarterChanged) ? '&refresh=1' : '';
     const res = await fetch(`${CURRENT_SERVER_HOST}/api/summary?quarter=${encodeURIComponent(curQ)}&year=${encodeURIComponent(curY)}${refreshParam}`, { cache: 'no-cache' });
     if (res.ok) {
       const json = await res.json();
@@ -7641,9 +7717,11 @@ async function loadDepartmentSummary(showNotification = false, forceRefresh = fa
         stats = json.stats;
         currentDeptSummaryData = officersList;
         window._lastDeptSummaryStats = stats;
+        window._currentDeptSummaryQuarter = curQ;
+        window._currentDeptSummaryYear = curY;
         _lastDeptSummaryFetchTime = Date.now();
 
-        // Lưu bản sao LocalStorage cho các lần mở tiếp theo
+        // Lưu bản sao LocalStorage cho đúng quý
         try {
           localStorage.setItem(cacheKey, JSON.stringify({ officers: officersList, stats }));
         } catch(e){}
@@ -7652,7 +7730,7 @@ async function loadDepartmentSummary(showNotification = false, forceRefresh = fa
         renderDeptSummaryStats(stats);
         renderDeptSummaryTable(officersList);
 
-        if (showNotification) showToast("Đã cập nhật số liệu Bảng tổng hợp mới nhất từ máy chủ!");
+        if (showNotification) showToast(`Đã cập nhật số liệu Bảng tổng hợp ${curQ}/${curY} mới nhất từ máy chủ!`);
         if (btnReload && showNotification) btnReload.innerHTML = '🔄 Tải lại dữ liệu';
         return;
       }
@@ -7663,10 +7741,11 @@ async function loadDepartmentSummary(showNotification = false, forceRefresh = fa
 
   if (btnReload && showNotification) btnReload.innerHTML = '🔄 Tải lại dữ liệu';
 
-  // 4. Dự phòng khi mất kết nối mạng hoàn toàn: Quét từ LocalStorage của 35 cán bộ
-  if (!currentDeptSummaryData || currentDeptSummaryData.length === 0) {
+  // 4. Dự phòng khi mất kết nối mạng hoặc máy chủ chưa có dữ liệu: Quét từ LocalStorage của 35 cán bộ
+  if (!currentDeptSummaryData || currentDeptSummaryData.length === 0 || isQuarterChanged) {
     const allCfg = window.OFFICERS_ASSIGNMENTS || {};
     let subCount = 0, excCount = 0, gdCount = 0, cmpCount = 0, notCount = 0;
+    officersList = [];
 
     for (const key of Object.keys(allCfg)) {
       const off = allCfg[key];
@@ -7683,7 +7762,7 @@ async function loadDepartmentSummary(showNotification = false, forceRefresh = fa
         isKPIAggregator: !!off.isKPIAggregator,
         status: "chua_tao",
         m1Pct: 0, m2Pct: 0, m3Pct: 0, avgPct: 0,
-        taskScore: 0, generalScore: 30, totalScore: 0,
+        taskScore: 0, generalScore: 0, totalScore: 0,
         rating: "Chưa đánh giá",
         leaderRatingProposal: "",
         lastSaved: null
@@ -7691,7 +7770,18 @@ async function loadDepartmentSummary(showNotification = false, forceRefresh = fa
 
       try {
         const isCurrentActiveOfficer = (appState.officer && appState.officer.officerId === off.id);
-        const raw = isCurrentActiveOfficer ? JSON.stringify(appState) : localStorage.getItem(storageKey);
+        let raw = null;
+        if (isCurrentActiveOfficer && appState.officer.quarter === curQ) {
+          raw = JSON.stringify(appState);
+        } else if (isCurrentActiveOfficer && appState.quartersData && appState.quartersData[curQ]) {
+          raw = JSON.stringify({
+            officer: { ...appState.officer, quarter: curQ },
+            months: appState.quartersData[curQ],
+            status: 'da_luu'
+          });
+        } else {
+          raw = localStorage.getItem(storageKey);
+        }
 
         if (raw) {
           const sess = JSON.parse(raw);
@@ -7772,12 +7862,14 @@ async function loadDepartmentSummary(showNotification = false, forceRefresh = fa
 
     currentDeptSummaryData = officersList;
     window._lastDeptSummaryStats = stats;
+    window._currentDeptSummaryQuarter = curQ;
+    window._currentDeptSummaryYear = curY;
     updateDeptFilterCounters(officersList);
     renderDeptSummaryStats(stats);
     renderDeptSummaryTable(officersList);
   }
 
-  if (showNotification) showToast("Đã tải lại dữ liệu Tổng hợp KPI toàn phòng!");
+  if (showNotification) showToast(`Đã tải lại dữ liệu Tổng hợp KPI toàn phòng (${curQ})!`);
 }
 
 // Render cac the thong ke

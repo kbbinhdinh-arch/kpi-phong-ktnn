@@ -2425,7 +2425,26 @@ async function handleKpiRequest(req, res) {
 
     for (const off of officersList) {
       const filename = getSessionFilename(off.id, quarter, year);
-      const sess = allSessionsMap[filename];
+      const safeQNoSpace = String(quarter).replace(/\s+/g, '');
+      const altFilename = `${off.id}_${safeQNoSpace}_${year}.json`;
+      const altFilename2 = `${off.id}_${normalizeQuarter(quarter)}_${year}.json`;
+
+      let sess = allSessionsMap[filename] || allSessionsMap[altFilename] || allSessionsMap[altFilename2];
+
+      // Fallback: Tìm theo metadata bên trong session nếu filename không khớp chính xác
+      if (!sess) {
+        const normQ = normalizeQuarter(quarter);
+        for (const [fn, sData] of Object.entries(allSessionsMap)) {
+          if (fn.startsWith(off.id + '_') && sData && sData.officer) {
+            const sQ = normalizeQuarter(sData.officer.quarter);
+            const sY = String(sData.officer.year || 2026);
+            if (sQ === normQ && sY === String(year)) {
+              sess = sData;
+              break;
+            }
+          }
+        }
+      }
 
       let item = {
         id: off.id,
@@ -2439,7 +2458,7 @@ async function handleKpiRequest(req, res) {
         isKPIAggregator: !!off.isKPIAggregator,
         status: "chua_tao",
         m1Pct: 0, m2Pct: 0, m3Pct: 0, avgPct: 0,
-        taskScore: 0, generalScore: 30, totalScore: 0,
+        taskScore: 0, generalScore: 0, totalScore: 0,
         rating: "Chưa đánh giá",
         leaderRatingProposal: "",
         lastSaved: null
