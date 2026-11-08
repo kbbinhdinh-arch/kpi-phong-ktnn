@@ -4892,10 +4892,12 @@ function hasAnyMonthlyData(state) {
 }
 
 async function switchQuarter(newQuarter) {
+  clearTimeout(_debouncedSaveTimer);
   const oldQuarter = appState.officer.quarter || "Quý III";
   const curY = (appState.officer && appState.officer.year) || 2026;
   const offId = (appState.officer && appState.officer.officerId) || 'hoang';
 
+  if (oldQuarter === newQuarter) return;
   if (!appState.quartersData) appState.quartersData = {};
 
   // 1. Chỉ lưu phiên của quý cũ nếu thực sự có dữ liệu công việc thực hiện
@@ -4919,6 +4921,37 @@ async function switchQuarter(newQuarter) {
   renderAll();
 
   // Tự động làm mới bảng Tổng hợp toàn phòng nếu đang xem tab này
+  if (appState.activeTab === 'tab-department-kpi') {
+    currentDeptSummaryData = [];
+    window._lastDeptSummaryStats = null;
+    loadDepartmentSummary(false, true);
+  }
+}
+
+async function switchYear(newYear) {
+  clearTimeout(_debouncedSaveTimer);
+  const oldYear = Number((appState.officer && appState.officer.year) || 2026);
+  const targetYear = Number(newYear) || 2026;
+  const curQ = (appState.officer && appState.officer.quarter) || "Quý III";
+  const offId = (appState.officer && appState.officer.officerId) || 'hoang';
+
+  if (oldYear === targetYear) return;
+
+  // 1. Lưu dữ liệu của năm hiện tại nếu thực sự có công việc thực hiện
+  if (hasAnyMonthlyData(appState)) {
+    await saveActiveSession(false);
+  }
+
+  // 2. Gán năm mới và lưu vào sessionStorage
+  appState.officer.year = targetYear;
+  try { sessionStorage.setItem('KBXV_CURRENT_YEAR', String(targetYear)); } catch (e) {}
+
+  // 3. Tải đúng phiên làm việc của (offId, curQ, targetYear) độc lập hoàn toàn
+  await loadSessionForOfficer(offId, curQ, targetYear);
+
+  appState.activeMonthIdx = 0;
+  renderAll();
+
   if (appState.activeTab === 'tab-department-kpi') {
     currentDeptSummaryData = [];
     window._lastDeptSummaryStats = null;
@@ -5071,10 +5104,10 @@ function loadSavedState() {
       ? getSessionStorageKey(offId, q, y) 
       : ('KBXV_KPI_SESS_' + offId + '_' + q + '_' + y);
       
-    const saved = localStorage.getItem(storageKey) || localStorage.getItem('KBXV_KPI_APP_STATE_V6');
+    const saved = localStorage.getItem(storageKey);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (parsed && parsed.officer) {
+      if (parsed && parsed.officer && (typeof countClientSessionActiveTasks !== 'function' || countClientSessionActiveTasks(parsed) > 0)) {
         appState = parsed;
       }
     }
@@ -5095,8 +5128,9 @@ function saveState() {
       ? getSessionStorageKey(offId, q, y) 
       : ('KBXV_KPI_SESS_' + offId + '_' + q + '_' + y);
 
-    localStorage.setItem(storageKey, JSON.stringify(appState));
-    localStorage.setItem('KBXV_KPI_APP_STATE_V6', JSON.stringify(appState));
+    const cleanCopy = { ...appState };
+    if (cleanCopy.quartersData) delete cleanCopy.quartersData;
+    localStorage.setItem(storageKey, JSON.stringify(cleanCopy));
 
     // Debounced automatic save to local web server
     clearTimeout(_debouncedSaveTimer);
@@ -7476,10 +7510,14 @@ async function saveActiveSession(showNotification = true) {
     });
   }
 
-  // 1. Luôn lưu trực tiếp an toàn tại máy người dùng (LocalStorage)
+  // 1. Luôn lưu trực tiếp an toàn tại máy người dùng (LocalStorage riêng theo từng kỳ 3 chiều)
+  const statePayload = { ...appState };
+  if (statePayload.quartersData) delete statePayload.quartersData;
+
   try {
-    localStorage.setItem(storageKey, JSON.stringify(appState));
-    localStorage.setItem('KBXV_KPI_APP_STATE_V6', JSON.stringify(appState));
+    if (countClientSessionActiveTasks(statePayload) > 0) {
+      localStorage.setItem(storageKey, JSON.stringify(statePayload));
+    }
   } catch (err) {
     console.error("Loi luu localStorage:", err);
   }
@@ -7496,9 +7534,6 @@ async function saveActiveSession(showNotification = true) {
 
   let serverSaved = false;
   try {
-    const statePayload = { ...appState };
-    if (statePayload.quartersData) delete statePayload.quartersData;
-
     const res = await fetch(`${CURRENT_SERVER_HOST}/api/session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -7510,6 +7545,12 @@ async function saveActiveSession(showNotification = true) {
       })
     });
     if (res.ok) {
+      const resJson = await res.json().catch(() => ({}));
+      if (resJson && resJson.restoredOriginal && resJson.data) {
+        applyLoadedSession(resJson.data, offId, q, y);
+        try { localStorage.setItem(storageKey, JSON.stringify(resJson.data)); } catch(e){}
+        return;
+      }
       _pendingServerSync = false;
       serverSaved = true;
       _hasUnsavedLocalChanges = false;
@@ -7620,9 +7661,10 @@ async function saveActiveSession(showNotification = true) {
 
 // Chon can bo moi
 async function onSelectOfficer(officerId) {
+  clearTimeout(_debouncedSaveTimer);
   const currentOffId = appState.officer && appState.officer.officerId;
-  if (currentOffId && currentOffId !== officerId) {
-    // Tu dong luu phien cu truoc khi chuyen
+  if (currentOffId && currentOffId !== officerId && hasAnyMonthlyData(appState)) {
+    // Chỉ tự động lưu phiên cũ trước khi chuyển nếu thực sự có dữ liệu công việc
     await saveActiveSession(false);
   }
 
@@ -10914,15 +10956,7 @@ function updateOfficerField(field, value) {
     return;
   }
   if (field === 'year') {
-    appState.officer.year = Number(value);
-    const qMonths = getQuarterMonthsInfo(appState.officer.quarter, appState.officer.year);
-    if (appState.months) {
-      appState.months.forEach((m, idx) => {
-        m.name = qMonths[idx].name;
-      });
-    }
-    saveState();
-    renderAll();
+    switchYear(value);
     return;
   }
   appState.officer[field] = value;

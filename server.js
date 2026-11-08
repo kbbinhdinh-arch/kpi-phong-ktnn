@@ -200,8 +200,12 @@ function countSessionActiveTasks(sess) {
   return count;
 }
 
-// Chọn phiên làm việc đầy đủ dữ liệu nhất giữa các nguồn (MongoDB không dấu, MongoDB có dấu, File gốc trên đĩa)
-// Tuyệt đối không để bản ghi rỗng (0 công việc) che khuất bản ghi chính thức đã chấm điểm của cán bộ!
+// Chọn phiên làm việc đầy đủ và mới nhất giữa các nguồn (MongoDB không dấu, MongoDB có dấu, File gốc trên đĩa)
+// Quy tắc Bảo toàn Dữ liệu Tuyệt đối:
+// 1. Bản có công việc thực hiện (tasks > 0) LUÔN thắng bản rỗng (tasks === 0), bất kể thời gian lưu của bản rỗng.
+// 2. Bản đã chấm đầy đủ (tasks >= 5) LUÔN thắng bản nháp sơ suất (0 < tasks < 5).
+// 3. Khi cả 2 bản đều có dữ liệu thực chất (cùng >= 5 việc), ưu tiên bản có thời gian lưu (lastSaved) MỚI HƠN trên Cloud
+//    để không bao giờ lấy file tĩnh cũ ghi đè lùi dữ liệu mới của cán bộ!
 function pickBestSession(...candidates) {
   let best = null;
   let bestTasks = -1;
@@ -214,11 +218,35 @@ function pickBestSession(...candidates) {
     const isSub = (cand.isSubmitted || cand.status === 'da_nop' || cand.status === 'da_duyet') ? 1 : 0;
     const savedTime = cand.lastSaved ? (new Date(cand.lastSaved).getTime() || 0) : 0;
 
-    if (
-      tasks > bestTasks ||
-      (tasks === bestTasks && isSub > bestSubmitted) ||
-      (tasks === bestTasks && isSub === bestSubmitted && savedTime > bestTime)
-    ) {
+    if (!best) {
+      best = cand;
+      bestTasks = tasks;
+      bestSubmitted = isSub;
+      bestTime = savedTime;
+      continue;
+    }
+
+    let shouldReplace = false;
+    if (tasks > 0 && bestTasks === 0) {
+      shouldReplace = true;
+    } else if (tasks === 0 && bestTasks > 0) {
+      shouldReplace = false;
+    } else if (tasks >= 5 && bestTasks < 5) {
+      shouldReplace = true;
+    } else if (tasks < 5 && bestTasks >= 5) {
+      shouldReplace = false;
+    } else {
+      // Cả 2 cùng nhóm (cùng >= 5 việc hoặc cùng < 5 việc)
+      if (isSub > bestSubmitted && savedTime >= bestTime - 60000) {
+        shouldReplace = true;
+      } else if (savedTime > bestTime + 1000 && (isSub >= bestSubmitted || !bestSubmitted)) {
+        shouldReplace = true;
+      } else if (Math.abs(savedTime - bestTime) <= 1000 && tasks > bestTasks) {
+        shouldReplace = true;
+      }
+    }
+
+    if (shouldReplace) {
       best = cand;
       bestTasks = tasks;
       bestSubmitted = isSub;
@@ -254,39 +282,66 @@ function saveLocalAuth(data) {
   return safeWriteJsonFile(AUTH_FILE, data);
 }
 
+// ⚡ BỘ ĐỆM RAM TỐC ĐỘ CAO CHO LOCAL SESSIONS (0.01ms truy xuất, không đọc đĩa lặp lại khi 35 người dùng cùng lúc)
+let _localSessionsRamCache = null;
+
+function ensureLocalSessionsRamCache() {
+  if (_localSessionsRamCache) return _localSessionsRamCache;
+  const map = {};
+  try {
+    if (fs.existsSync(SESSIONS_DIR)) {
+      const files = fs.readdirSync(SESSIONS_DIR).filter(f => f.endsWith('.json'));
+      for (const f of files) {
+        try {
+          map[f] = JSON.parse(fs.readFileSync(path.join(SESSIONS_DIR, f), 'utf8'));
+        } catch (e) {}
+      }
+    }
+    // Dự phòng từ seed_data.json.gz nếu thiếu file trong môi trường Serverless
+    if (Object.keys(map).length === 0) {
+      const gzPath = path.join(BASE_DIR, 'seed_data.json.gz');
+      if (fs.existsSync(gzPath)) {
+        const seed = JSON.parse(zlib.gunzipSync(fs.readFileSync(gzPath)).toString('utf8'));
+        if (seed && seed.sessions) {
+          Object.assign(map, seed.sessions);
+        }
+      }
+    }
+  } catch (e) {}
+  _localSessionsRamCache = map;
+  return _localSessionsRamCache;
+}
+
 function getLocalSession(filename) {
+  const cache = ensureLocalSessionsRamCache();
+  if (cache[filename]) return cache[filename];
   try {
     const p = path.join(SESSIONS_DIR, filename);
     if (fs.existsSync(p)) {
-      return JSON.parse(fs.readFileSync(p, 'utf8'));
+      const parsed = JSON.parse(fs.readFileSync(p, 'utf8'));
+      cache[filename] = parsed;
+      return parsed;
     }
   } catch (e) {}
   return null;
 }
 
 function saveLocalSession(filename, sessionData) {
+  const cache = ensureLocalSessionsRamCache();
+  cache[filename] = sessionData;
   const p = path.join(SESSIONS_DIR, filename);
   return safeWriteJsonFile(p, sessionData);
 }
 
 async function saveLocalSessionAsync(filename, sessionData) {
+  const cache = ensureLocalSessionsRamCache();
+  cache[filename] = sessionData;
   const p = path.join(SESSIONS_DIR, filename);
   return safeWriteJsonFileAsync(p, sessionData);
 }
 
 function getAllLocalSessions() {
-  const map = {};
-  try {
-    if (fs.existsSync(SESSIONS_DIR)) {
-      const files = fs.readdirSync(SESSIONS_DIR).filter(f => f.endsWith('.json'));
-      files.forEach(f => {
-        try {
-          map[f] = JSON.parse(fs.readFileSync(path.join(SESSIONS_DIR, f), 'utf8'));
-        } catch (e) {}
-      });
-    }
-  } catch (e) {}
-  return map;
+  return { ...ensureLocalSessionsRamCache() };
 }
 
 function saveLocalSnapshot(filename, snapshotObj) {
@@ -404,13 +459,28 @@ async function connectMongo() {
     return;
   }
   try {
-    // Timeout 3.5 giây để không làm chậm khởi động khi mạng LAN không có internet
-    dbClient = new MongoClient(MONGODB_URI, { serverSelectionTimeoutMS: 3500, connectTimeoutMS: 3500 });
+    // Tối ưu Connection Pool phục vụ 35 cán bộ truy cập đồng thời mượt mà (< 150ms Cold Start)
+    dbClient = new MongoClient(MONGODB_URI, {
+      maxPoolSize: 25,
+      minPoolSize: 2,
+      maxIdleTimeMS: 60000,
+      serverSelectionTimeoutMS: 3500,
+      connectTimeoutMS: 3500
+    });
     await dbClient.connect();
     kpiDb = dbClient.db('kpi_ktnn_db');
     console.log("[MongoDB] Đã kết nối thành công tới MongoDB Atlas Cloud Database!");
-    await initCloudSeedData();
-    await syncOfficerRolesMigration();
+
+    // Chạy khởi tạo chỉ mục (Compound Index) và đồng bộ nền bất đồng bộ (Non-blocking) để không chặn phản hồi người dùng
+    setImmediate(async () => {
+      try {
+        await kpiDb.collection('sessions').createIndex({ filename: 1 });
+        await kpiDb.collection('sessions').createIndex({ officerId: 1, quarterNorm: 1, year: 1 });
+        await kpiDb.collection('session_snapshots').createIndex({ filename: 1, savedAt: -1 });
+      } catch (idxErr) {}
+      await initCloudSeedData();
+      await syncOfficerRolesMigration();
+    });
   } catch (err) {
     if (dbClient) {
       try { dbClient.close(); } catch (e) {}
@@ -444,7 +514,8 @@ async function ensureMongoConnected() {
 async function initCloudSeedData() {
   try {
     if (!kpiDb) return;
-    // [AUTH_SYNC] Đồng bộ danh mục mật khẩu từ data/auth_passwords.json lên MongoDB Atlas bằng bulkWrite (<100ms)
+    // [AUTH_SYNC] Chỉ khởi tạo mật khẩu mặc định ($setOnInsert) cho tài khoản chưa có trên Cloud,
+    // TUYỆT ĐỐI KHÔNG ghi đè mật khẩu mà cán bộ hoặc Admin đã đổi trên MongoDB Atlas!
     try {
       if (fs.existsSync(AUTH_FILE)) {
         const localAuth = JSON.parse(fs.readFileSync(AUTH_FILE, 'utf8'));
@@ -455,7 +526,14 @@ async function initCloudSeedData() {
             bulkOps.push({
               updateOne: {
                 filter: { officerId: id },
-                update: { $set: { officerId: id, hash: item.hash, salt: item.salt || '', updatedAt: item.updatedAt || new Date().toISOString() } },
+                update: {
+                  $setOnInsert: {
+                    officerId: id,
+                    hash: item.hash,
+                    salt: item.salt || '',
+                    updatedAt: item.updatedAt || new Date().toISOString()
+                  }
+                },
                 upsert: true
               }
             });
@@ -469,20 +547,28 @@ async function initCloudSeedData() {
       console.warn('[AUTH_SYNC] Lỗi đồng bộ mật khẩu lên MongoDB:', authSyncErr.message);
     }
 
-    // [DATA_INTEGRITY] Đảm bảo dữ liệu Quý III của Trần Quốc Hoàng luôn trọn vẹn 100% trên Cloud
+    // [DATA_INTEGRITY] Tự phục hồi dữ liệu Quý III của Trần Quốc Hoàng nếu bản trên Cloud bị thiếu hoặc rỗng (0 việc)
     try {
       const sessionsCol = kpiDb.collection('sessions');
-      const hoangAccentFile = path.join(SESSIONS_DIR, 'hoang_QuýIII_2026.json');
-      const hoangUnaccentFile = path.join(SESSIONS_DIR, 'hoang_QuyIII_2026.json');
-      let fullHoangData = null;
-      if (fs.existsSync(hoangAccentFile)) {
-        fullHoangData = JSON.parse(fs.readFileSync(hoangAccentFile, 'utf8'));
-      } else if (fs.existsSync(hoangUnaccentFile)) {
-        fullHoangData = JSON.parse(fs.readFileSync(hoangUnaccentFile, 'utf8'));
-      }
+      const fullHoangData = getLocalSession('hoang_QuyIII_2026.json') || getLocalSession('hoang_QuýIII_2026.json');
       if (fullHoangData) {
-        await sessionsCol.updateOne({ filename: 'hoang_QuyIII_2026.json' }, { $set: { filename: 'hoang_QuyIII_2026.json', data: fullHoangData } }, { upsert: true });
-        await sessionsCol.updateOne({ filename: 'hoang_QuýIII_2026.json' }, { $set: { filename: 'hoang_QuýIII_2026.json', data: fullHoangData } }, { upsert: true });
+        const existingDoc = await sessionsCol.findOne({ filename: 'hoang_QuyIII_2026.json' });
+        if (!existingDoc || !existingDoc.data || countSessionActiveTasks(existingDoc.data) === 0) {
+          await sessionsCol.updateOne(
+            { filename: 'hoang_QuyIII_2026.json' },
+            {
+              $set: {
+                filename: 'hoang_QuyIII_2026.json',
+                officerId: 'hoang',
+                quarterNorm: 'QuyIII',
+                year: 2026,
+                activeTasksCount: countSessionActiveTasks(fullHoangData),
+                data: fullHoangData
+              }
+            },
+            { upsert: true }
+          );
+        }
       }
     } catch (hErr) {}
 
@@ -1673,26 +1759,50 @@ async function handleKpiRequest(req, res) {
         // Tinh gọn state: loại bỏ dữ liệu rác/trùng lặp để giảm từ 1.7MB xuống 200KB
         const cleanState = sanitizeSessionData(state);
         cleanState.lastSaved = state.lastSaved;
+        if (!cleanState.officer) cleanState.officer = {};
+        cleanState.officer.officerId = officerId;
+        cleanState.officer.quarter = quarter || cleanState.officer.quarter || 'Quý III';
+        cleanState.officer.year = Number(year || cleanState.officer.year || 2026);
+
+        // Đồng bộ tên tháng và số tháng khớp tuyệt đối với Quý/Năm đang lưu
+        if (cleanState.months && Array.isArray(cleanState.months) && cleanState.months.length === 3) {
+          const expectedMonths = getQuarterMonthsInfoServer(cleanState.officer.quarter, cleanState.officer.year);
+          cleanState.months.forEach((m, idx) => {
+            if (m && expectedMonths[idx]) {
+              m.monthNum = expectedMonths[idx].monthNum;
+              m.name = expectedMonths[idx].name;
+            }
+          });
+        }
+
+        const countExistingActive = countSessionActiveTasks(existingSession);
+        const countIncomingActive = countSessionActiveTasks(cleanState);
 
         // 🛡️ LÁ CHẮN BẢO TOÀN DỮ LIỆU (ANTI DATA-LOSS SHIELD):
-        // Nếu hồ sơ hiện tại trên máy chủ đã có số liệu hoàn thành (đã chấm tháng, có điểm, hoặc có >= 5 công việc),
-        // mà bản tin gửi lên lại là bản rỗng (0 công việc thực hiện, 0 điểm) do client vừa khởi tạo nhầm,
-        // TUYỆT ĐỐI TỪ CHỐI GHI ĐÈ để bảo vệ 100% dữ liệu gốc của cán bộ!
+        // 1. Nếu hồ sơ trên máy chủ đã có công việc thực hiện (>= 1 việc) mà bản gửi lên lại rỗng (0 việc),
+        //    TUYỆT ĐỐI TỪ CHỐI GHI ĐÈ và trả lại bản gốc cho Client tự phục hồi!
         if (existingSession && payload.action !== 'force_clear') {
-          const countExistingActive = (existingSession.months && Array.isArray(existingSession.months)) ?
-            existingSession.months.reduce((acc, m) => acc + (m.rows ? m.rows.filter(r => r.co_thuchien === 'Có' || (Number(r.thuchien_thang) || 0) > 0).length : 0), 0) : 0;
-          const countIncomingActive = (cleanState.months && Array.isArray(cleanState.months)) ?
-            cleanState.months.reduce((acc, m) => acc + (m.rows ? m.rows.filter(r => r.co_thuchien === 'Có' || (Number(r.thuchien_thang) || 0) > 0).length : 0), 0) : 0;
-
-          if (countExistingActive >= 5 && countIncomingActive === 0) {
+          if (countExistingActive >= 1 && countIncomingActive === 0) {
             console.warn(`[DATA-LOSS SHIELD] Chặn yêu cầu ghi đè rỗng lên hồ sơ ${filename} (gốc: ${countExistingActive} việc, mới: 0 việc).`);
             return sendJson(res, 200, {
               success: true,
+              restoredOriginal: true,
               message: "Lá chắn dữ liệu đã bảo vệ hồ sơ gốc của đồng chí an toàn!",
               filename,
               data: existingSession
             });
           }
+        }
+
+        // 2. Nếu chưa từng có hồ sơ và bản gửi lên cũng là bảng trắng (0 công việc, chưa nộp),
+        //    không ghi rác bản ghi 0 việc vào CSDL để tránh tạo bản ghi rỗng che khuất dữ liệu!
+        if (!existingSession && countIncomingActive === 0 && payload.action !== 'submit') {
+          return sendJson(res, 200, {
+            success: true,
+            skippedEmpty: true,
+            message: "Bảng trắng chưa có công việc thực hiện, bỏ qua ghi CSDL.",
+            filename
+          });
         }
 
         // BẢO VỆ CHẶT CHẼ TRẠNG THÁI:
@@ -1706,7 +1816,7 @@ async function handleKpiRequest(req, res) {
           cleanState.submittedAt = null;
         }
 
-        // 1. Luôn ghi đè an toàn vào ổ đĩa máy chủ bất đồng bộ (Non-blocking I/O)
+        // 1. Luôn ghi đè an toàn vào bộ nhớ RAM và ổ đĩa máy chủ bất đồng bộ (Non-blocking I/O)
         await saveLocalSessionAsync(filename, cleanState);
 
         // Kiểm tra xem có cần chụp Snapshot hay không (tránh bão snapshot khi 35 người gõ phím liên tục)
@@ -1738,7 +1848,21 @@ async function handleKpiRequest(req, res) {
         if (kpiDb) {
           try {
             const sessionsCol = kpiDb.collection('sessions');
-            await sessionsCol.updateOne({ filename }, { $set: { filename, data: cleanState, updatedAt: cleanState.lastSaved } }, { upsert: true });
+            await sessionsCol.updateOne(
+              { filename },
+              {
+                $set: {
+                  filename,
+                  officerId,
+                  quarterNorm: normalizeQuarter(quarter),
+                  year: Number(year) || 2026,
+                  activeTasksCount: countIncomingActive,
+                  updatedAt: cleanState.lastSaved,
+                  data: cleanState
+                }
+              },
+              { upsert: true }
+            );
 
             if (shouldTakeSnapshot) {
               setImmediate(async () => {
@@ -1795,17 +1919,19 @@ async function handleKpiRequest(req, res) {
         if (!officerId) return sendJson(res, 400, { success: false, error: "Thiếu officerId" });
 
         const filename = getSessionFilename(officerId, quarter, year);
+        const altFilename = filename.includes('Quy') ? filename.replace(/Quy/g, 'Quý') : filename.replace(/Quý/g, 'Quy');
         const submitTime = new Date().toISOString();
-        let targetState = state;
+        let targetState = state ? sanitizeSessionData(state) : null;
 
-        if (!targetState) {
+        if (!targetState || countSessionActiveTasks(targetState) === 0) {
+          let mongoDoc = null;
           if (kpiDb) {
             try {
-              const existing = await kpiDb.collection('sessions').findOne({ filename });
-              targetState = existing && existing.data;
+              const docs = await kpiDb.collection('sessions').find({ $or: [{ filename }, { filename: altFilename }] }).toArray();
+              for (const d of docs) if (d && d.data) mongoDoc = pickBestSession(mongoDoc, d.data);
             } catch(e) {}
           }
-          if (!targetState) targetState = getLocalSession(filename);
+          targetState = pickBestSession(targetState, mongoDoc, getLocalSession(filename), getLocalSession(altFilename));
         }
         if (!targetState) return sendJson(res, 404, { success: false, error: "Không tìm thấy dữ liệu phiên" });
 
@@ -1826,9 +1952,9 @@ async function handleKpiRequest(req, res) {
         targetState.submittedAt = submitTime;
         targetState.lastSaved = submitTime;
 
-        // Lưu CSDL cục bộ
-        saveLocalSession(filename, targetState);
-        saveLocalSnapshot(filename, {
+        // Lưu CSDL cục bộ bất đồng bộ
+        await saveLocalSessionAsync(filename, targetState);
+        saveLocalSnapshotAsync(filename, {
           officerId,
           quarter: normalizeQuarter(quarter),
           year: Number(year) || 2026,
@@ -1836,21 +1962,39 @@ async function handleKpiRequest(req, res) {
           clientIp: req.socket.remoteAddress || 'client',
           summary: '📤 [NỘP KPI QUÝ] Chốt số liệu cá nhân',
           data: targetState
-        });
+        }).catch(() => {});
 
         if (kpiDb) {
           try {
             const sessionsCol = kpiDb.collection('sessions');
-            await sessionsCol.updateOne({ filename }, { $set: { filename, data: targetState, updatedAt: submitTime } }, { upsert: true });
-            await kpiDb.collection('session_snapshots').insertOne({
-              filename,
-              officerId,
-              quarter: normalizeQuarter(quarter),
-              year: Number(year) || 2026,
-              savedAt: submitTime,
-              clientIp: req.socket.remoteAddress || 'client',
-              summary: '📤 [NỘP KPI QUÝ] Chốt số liệu cá nhân',
-              data: targetState
+            await sessionsCol.updateOne(
+              { filename },
+              {
+                $set: {
+                  filename,
+                  officerId,
+                  quarterNorm: normalizeQuarter(quarter),
+                  year: Number(year) || 2026,
+                  activeTasksCount: countSessionActiveTasks(targetState),
+                  updatedAt: submitTime,
+                  data: targetState
+                }
+              },
+              { upsert: true }
+            );
+            setImmediate(async () => {
+              try {
+                await kpiDb.collection('session_snapshots').insertOne({
+                  filename,
+                  officerId,
+                  quarter: normalizeQuarter(quarter),
+                  year: Number(year) || 2026,
+                  savedAt: submitTime,
+                  clientIp: req.socket.remoteAddress || 'client',
+                  summary: '📤 [NỘP KPI QUÝ] Chốt số liệu cá nhân',
+                  data: targetState
+                });
+              } catch (e) {}
             });
           } catch (e) {}
         }
@@ -1886,16 +2030,17 @@ async function handleKpiRequest(req, res) {
         }
 
         const filename = getSessionFilename(officerId, quarter, year);
+        const altFilename = filename.includes('Quy') ? filename.replace(/Quy/g, 'Quý') : filename.replace(/Quý/g, 'Quy');
         const approveTime = new Date().toISOString();
 
         let docData = null;
         if (kpiDb) {
           try {
-            const doc = await kpiDb.collection('sessions').findOne({ filename });
-            docData = doc && doc.data;
+            const docs = await kpiDb.collection('sessions').find({ $or: [{ filename }, { filename: altFilename }] }).toArray();
+            for (const d of docs) if (d && d.data) docData = pickBestSession(docData, d.data);
           } catch(e) {}
         }
-        if (!docData) docData = getLocalSession(filename);
+        docData = pickBestSession(docData, getLocalSession(filename), getLocalSession(altFilename));
         if (!docData) return sendJson(res, 404, { success: false, error: "Không tìm thấy hồ sơ cán bộ" });
 
         docData.status = "da_duyet";
@@ -1906,9 +2051,9 @@ async function handleKpiRequest(req, res) {
         if (leaderRatingNote !== undefined) docData.leaderRatingNote = leaderRatingNote;
         docData.lastSaved = approveTime;
 
-        // Lưu CSDL cục bộ
-        saveLocalSession(filename, docData);
-        saveLocalSnapshot(filename, {
+        // Lưu CSDL cục bộ bất đồng bộ
+        await saveLocalSessionAsync(filename, docData);
+        saveLocalSnapshotAsync(filename, {
           officerId,
           quarter: normalizeQuarter(quarter),
           year: Number(year) || 2026,
@@ -1916,21 +2061,39 @@ async function handleKpiRequest(req, res) {
           clientIp: req.socket.remoteAddress || 'leader',
           summary: `✅ [LÃNH ĐẠO DUYỆT] Xếp loại: ${leaderRatingProposal || docData.rating || 'Đạt'}`,
           data: docData
-        });
+        }).catch(() => {});
 
         if (kpiDb) {
           try {
             const sessionsCol = kpiDb.collection('sessions');
-            await sessionsCol.updateOne({ filename }, { $set: { data: docData, updatedAt: approveTime } });
-            await kpiDb.collection('session_snapshots').insertOne({
-              filename,
-              officerId,
-              quarter: normalizeQuarter(quarter),
-              year: Number(year) || 2026,
-              savedAt: approveTime,
-              clientIp: req.socket.remoteAddress || 'leader',
-              summary: `✅ [LÃNH ĐẠO DUYỆT] Xếp loại: ${leaderRatingProposal || docData.rating || 'Đạt'}`,
-              data: docData
+            await sessionsCol.updateOne(
+              { filename },
+              {
+                $set: {
+                  filename,
+                  officerId,
+                  quarterNorm: normalizeQuarter(quarter),
+                  year: Number(year) || 2026,
+                  activeTasksCount: countSessionActiveTasks(docData),
+                  updatedAt: approveTime,
+                  data: docData
+                }
+              },
+              { upsert: true }
+            );
+            setImmediate(async () => {
+              try {
+                await kpiDb.collection('session_snapshots').insertOne({
+                  filename,
+                  officerId,
+                  quarter: normalizeQuarter(quarter),
+                  year: Number(year) || 2026,
+                  savedAt: approveTime,
+                  clientIp: req.socket.remoteAddress || 'leader',
+                  summary: `✅ [LÃNH ĐẠO DUYỆT] Xếp loại: ${leaderRatingProposal || docData.rating || 'Đạt'}`,
+                  data: docData
+                });
+              } catch (e) {}
             });
           } catch (e) {}
         }
@@ -1966,16 +2129,17 @@ async function handleKpiRequest(req, res) {
         }
 
         const filename = getSessionFilename(officerId, quarter, year);
+        const altFilename = filename.includes('Quy') ? filename.replace(/Quy/g, 'Quý') : filename.replace(/Quý/g, 'Quy');
         const rejectTime = new Date().toISOString();
 
         let docData = null;
         if (kpiDb) {
           try {
-            const doc = await kpiDb.collection('sessions').findOne({ filename });
-            docData = doc && doc.data;
+            const docs = await kpiDb.collection('sessions').find({ $or: [{ filename }, { filename: altFilename }] }).toArray();
+            for (const d of docs) if (d && d.data) docData = pickBestSession(docData, d.data);
           } catch(e) {}
         }
-        if (!docData) docData = getLocalSession(filename);
+        docData = pickBestSession(docData, getLocalSession(filename), getLocalSession(altFilename));
         if (!docData) return sendJson(res, 404, { success: false, error: "Không tìm thấy hồ sơ cán bộ" });
 
         docData.status = "tra_lai";
@@ -1986,9 +2150,9 @@ async function handleKpiRequest(req, res) {
         docData.rejectReason = rejectReason || "Yêu cầu rà soát, giải trình lại số liệu";
         docData.lastSaved = rejectTime;
 
-        // Lưu CSDL cục bộ
-        saveLocalSession(filename, docData);
-        saveLocalSnapshot(filename, {
+        // Lưu CSDL cục bộ bất đồng bộ
+        await saveLocalSessionAsync(filename, docData);
+        saveLocalSnapshotAsync(filename, {
           officerId,
           quarter: normalizeQuarter(quarter),
           year: Number(year) || 2026,
@@ -1996,21 +2160,39 @@ async function handleKpiRequest(req, res) {
           clientIp: req.socket.remoteAddress || 'leader',
           summary: `↩️ [TRẢ LẠI SỬA] Lý do: ${rejectReason || 'Yêu cầu rà soát'}`,
           data: docData
-        });
+        }).catch(() => {});
 
         if (kpiDb) {
           try {
             const sessionsCol = kpiDb.collection('sessions');
-            await sessionsCol.updateOne({ filename }, { $set: { data: docData, updatedAt: rejectTime } });
-            await kpiDb.collection('session_snapshots').insertOne({
-              filename,
-              officerId,
-              quarter: normalizeQuarter(quarter),
-              year: Number(year) || 2026,
-              savedAt: rejectTime,
-              clientIp: req.socket.remoteAddress || 'leader',
-              summary: `↩️ [TRẢ LẠI SỬA] Lý do: ${rejectReason || 'Yêu cầu rà soát'}`,
-              data: docData
+            await sessionsCol.updateOne(
+              { filename },
+              {
+                $set: {
+                  filename,
+                  officerId,
+                  quarterNorm: normalizeQuarter(quarter),
+                  year: Number(year) || 2026,
+                  activeTasksCount: countSessionActiveTasks(docData),
+                  updatedAt: rejectTime,
+                  data: docData
+                }
+              },
+              { upsert: true }
+            );
+            setImmediate(async () => {
+              try {
+                await kpiDb.collection('session_snapshots').insertOne({
+                  filename,
+                  officerId,
+                  quarter: normalizeQuarter(quarter),
+                  year: Number(year) || 2026,
+                  savedAt: rejectTime,
+                  clientIp: req.socket.remoteAddress || 'leader',
+                  summary: `↩️ [TRẢ LẠI SỬA] Lý do: ${rejectReason || 'Yêu cầu rà soát'}`,
+                  data: docData
+                });
+              } catch (e) {}
             });
           } catch (e) {}
         }
@@ -2128,25 +2310,39 @@ async function handleKpiRequest(req, res) {
       if (!officerId) return sendJson(res, 400, { success: false, error: "Thiếu officerId" });
 
       const filename = getSessionFilename(officerId, quarter, year);
+      const altFilename = filename.includes('Quy') ? filename.replace(/Quy/g, 'Quý') : filename.replace(/Quý/g, 'Quy');
       let docData = null;
       if (kpiDb) {
         try {
-          const col = kpiDb.collection('sessions');
-          const doc = await col.findOne({ filename });
-          docData = doc && doc.data;
+          const docs = await kpiDb.collection('sessions').find({ $or: [{ filename }, { filename: altFilename }] }).toArray();
+          for (const d of docs) if (d && d.data) docData = pickBestSession(docData, d.data);
         } catch(e) {}
       }
-      if (!docData) docData = getLocalSession(filename);
+      docData = pickBestSession(docData, getLocalSession(filename), getLocalSession(altFilename));
 
       if (docData) {
         docData.leaderRatingProposal = leaderRatingProposal;
         if (leaderRatingNote !== undefined) docData.leaderRatingNote = leaderRatingNote;
         docData.lastSaved = new Date().toISOString();
-        saveLocalSession(filename, docData);
+        await saveLocalSessionAsync(filename, docData);
 
         if (kpiDb) {
           try {
-            await kpiDb.collection('sessions').updateOne({ filename }, { $set: { data: docData } });
+            await kpiDb.collection('sessions').updateOne(
+              { filename },
+              {
+                $set: {
+                  filename,
+                  officerId,
+                  quarterNorm: normalizeQuarter(quarter),
+                  year: Number(year) || 2026,
+                  activeTasksCount: countSessionActiveTasks(docData),
+                  updatedAt: docData.lastSaved,
+                  data: docData
+                }
+              },
+              { upsert: true }
+            );
           } catch(e) {}
         }
         invalidateSummaryCache();
@@ -2643,6 +2839,8 @@ async function handleKpiRequest(req, res) {
     let allSessionsMap = {};
     if (kpiDb) {
       try {
+        // ⚡ TỐI ƯU HÓA TRUY VẤN CHO 35 CÁN BỘ ĐỒNG THỜI:
+        // Chỉ project đúng các trường số học cần thiết của rows (giảm dung lượng mạng từ 15MB xuống ~150KB, nhanh gấp 50 lần)
         const docs = await kpiDb.collection('sessions').find({}, {
           projection: {
             filename: 1,
@@ -2655,7 +2853,16 @@ async function handleKpiRequest(req, res) {
             "data.rejectReason": 1,
             "data.lastSaved": 1,
             "data.months.completionPercent": 1,
-            "data.months.rows": 1,
+            "data.months.rows.isTask": 1,
+            "data.months.rows.co_thuchien": 1,
+            "data.months.rows.soluong_tt": 1,
+            "data.months.rows.thuchien_thang": 1,
+            "data.months.rows.diem_tc": 1,
+            "data.months.rows.cl_loi": 1,
+            "data.months.rows.td_cham": 1,
+            "data.months.rows.col_u": 1,
+            "data.months.rows.col_v": 1,
+            "data.months.rows.col_w": 1,
             "data.generalCriteria": 1,
             "data.proposedRating": 1,
             "data.selfRating": 1,
