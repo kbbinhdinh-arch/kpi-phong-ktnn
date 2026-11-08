@@ -5777,8 +5777,12 @@ function renderMonthTable24() {
   updateMonthIndicator();
 
     // 🔒 KIỂM TRA TRẠNG THÁI KHÓA & HIỂN THỊ BANNER PHÊ DUYỆT
+    const loggedUserNow = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || 'hoang';
     const isOfficerTP = appState.officer && (appState.officer.role === 'TP' || appState.officer.officerId === 'son');
-    const isLocked = (appState.status === 'da_nop' || appState.status === 'da_duyet');
+    const isOfficerHoangAdmin = appState.officer && (appState.officer.officerId === 'hoang');
+    const isSelfHoangAdmin = (loggedUserNow === 'hoang' && isOfficerHoangAdmin);
+    // Riêng Quản trị viên Trần Quốc Hoàng (hoang) được phép tự sửa trực tiếp mọi lúc (không bị khóa ô nhập)
+    const isLocked = !isSelfHoangAdmin && (appState.status === 'da_nop' || appState.status === 'da_duyet');
     const lockBannerContainer = document.getElementById('approvalStatusBannerContainer');
     if (lockBannerContainer) {
       if (isOfficerTP) {
@@ -5792,6 +5796,20 @@ function renderMonthTable24() {
               </div>
             </div>
             <span style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-weight: 800; font-size: 11px; padding: 4px 10px; border-radius: 6px; white-space: nowrap;">⭐ HỒ SƠ CHÍNH THỨC</span>
+          </div>
+        `;
+      } else if (isOfficerHoangAdmin && appState.status === 'da_duyet') {
+        const approveTime = appState.approvedAt ? new Date(appState.approvedAt).toLocaleDateString('vi-VN') : '';
+        lockBannerContainer.innerHTML = `
+          <div style="background: #f0fff4; border: 1px solid #9ae6b4; border-left: 5px solid #2b6cb0; padding: 8px 16px; border-radius: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 18px;">🛡️</span>
+              <div>
+                <strong style="color: #22543d; font-size: 12.5px;">HỒ SƠ CỦA QUẢN TRỊ HỆ THỐNG — ĐÃ PHÊ DUYỆT CHÍNH THỨC (${approveTime})</strong>
+                <div style="font-size: 11px; color: #276749;">Quyền Quản trị (đ/c Trần Quốc Hoàng): Được phép <strong>tự chỉnh sửa trực tiếp mọi lúc</strong> và <strong>tự phê duyệt</strong>, không cần chuyển qua Trưởng phòng.</div>
+              </div>
+            </div>
+            <span style="background: #ebf8ff; color: #2b6cb0; border: 1px solid #bee3f8; font-weight: 700; font-size: 11px; padding: 3px 10px; border-radius: 4px; white-space: nowrap;">🛡️ QUẢN TRỊ: TỰ SỬA &amp; TỰ DUYỆT</span>
           </div>
         `;
       } else if (appState.status === 'da_duyet') {
@@ -5822,10 +5840,10 @@ function renderMonthTable24() {
         lockBannerContainer.innerHTML = `
           <div style="background: #fffaf0; border: 1px solid #fbd38d; border-left: 5px solid #dd6b20; padding: 8px 16px; border-radius: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 18px;">🔒</span>
+              <span style="font-size: 18px;">${isSelfHoangAdmin ? '🛡️' : '🔒'}</span>
               <div>
-                <strong style="color: #7b341e; font-size: 12.5px;">BÁO CÁO ĐÃ NỘP (CHẾ ĐỘ CHỈ XEM) - ĐANG CHỜ LÃNH ĐẠO PHÒNG PHÊ DUYỆT</strong>
-                <div style="font-size: 11px; color: #9c4221;">Thời gian nộp: ${subTime}. Bảng tính đang được bảo vệ chống sửa đổi.</div>
+                <strong style="color: #7b341e; font-size: 12.5px;">${isSelfHoangAdmin ? 'HỒ SƠ CỦA QUẢN TRỊ VIÊN ĐÃ NỘP — CÓ THỂ TỰ SỬA TRỰC TIẾP & TỰ PHÊ DUYỆT NGAY' : 'BÁO CÁO ĐÃ NỘP (CHẾ ĐỘ CHỈ XEM) - ĐANG CHỜ LÃNH ĐẠO PHÒNG PHÊ DUYỆT'}</strong>
+                <div style="font-size: 11px; color: #9c4221;">Thời gian nộp: ${subTime}. ${isSelfHoangAdmin ? 'Bảng tính vẫn mở để đồng chí tự sửa trực tiếp hoặc bấm Phê duyệt KPI ngay bên phải (không cần chuyển qua Trưởng phòng).' : 'Bảng tính đang được bảo vệ chống sửa đổi.'}</div>
               </div>
             </div>
             <div id="leaderActionButtonsContainer" style="display: flex; gap: 6px; align-items: center;">
@@ -5837,20 +5855,20 @@ function renderMonthTable24() {
           const leaderContainer = document.getElementById('leaderActionButtonsContainer');
           if (leaderContainer) {
             const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || 'hoang';
-            const loggedCfg = (window.OFFICERS_ASSIGNMENTS && window.OFFICERS_ASSIGNMENTS[loggedUser]) || {};
-            // PHÂN QUYỀN CHẶT CHẼ: Chỉ có ông Sơn (Trưởng phòng) và ông Hoàng (Phó Trưởng phòng) mới có chức năng duyệt hoặc trả
+            // PHÂN QUYỀN CHẶT CHẼ: Chỉ có ông Sơn (Trưởng phòng) và ông Hoàng (Phó Trưởng phòng / Quản trị) mới có chức năng duyệt hoặc trả.
+            // Riêng ông Hoàng được phép tự duyệt hồ sơ của chính mình!
             const isLdr = (loggedUser === 'son' || loggedUser === 'hoang');
             const curOfficerId = (appState.officer && appState.officer.officerId) || '';
-            const isViewingOwn = (curOfficerId === loggedUser);
+            const canApproveThis = (curOfficerId !== loggedUser || loggedUser === 'hoang');
             const isTargetTP = (curOfficerId === 'son' || (appState.officer && appState.officer.role === 'TP'));
 
-            if (isLdr && !isViewingOwn && !isTargetTP) {
+            if (isLdr && canApproveThis && !isTargetTP) {
               leaderContainer.innerHTML = `
-                <button type="button" class="btn btn-sm" onclick="approveCurrentOfficerKpi()" style="background: #22543d; color: #fff; font-weight: 700; height: 26px; padding: 0 10px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Phê duyệt kết quả đánh giá KPI của cán bộ này">
-                  ✅ Phê duyệt KPI
+                <button type="button" class="btn btn-sm" onclick="approveCurrentOfficerKpi()" style="background: #22543d; color: #fff; font-weight: 700; height: 26px; padding: 0 10px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Phê duyệt chính thức kết quả đánh giá KPI">
+                  ✅ ${curOfficerId === 'hoang' ? 'Tự phê duyệt KPI' : 'Phê duyệt KPI'}
                 </button>
-                <button type="button" class="btn btn-sm" onclick="promptRejectCurrentOfficerKpi()" style="background: #9b2c2c; color: #fff; font-weight: 700; height: 26px; padding: 0 10px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Trả lại hồ sơ cho cán bộ chỉnh sửa">
-                  ↩️ Trả lại để sửa
+                <button type="button" class="btn btn-sm" onclick="promptRejectCurrentOfficerKpi()" style="background: #9b2c2c; color: #fff; font-weight: 700; height: 26px; padding: 0 10px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Trả lại / Mở khóa trạng thái hồ sơ">
+                  ↩️ ${curOfficerId === 'hoang' ? 'Đổi về đang làm' : 'Trả lại để sửa'}
                 </button>
               `;
             } else {
@@ -8299,13 +8317,15 @@ function renderDeptSummaryTable(officersList) {
         <td style="text-align: center; white-space: nowrap; padding: 5px 4px;">
           ${(() => {
             const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || 'hoang';
-            // PHÂN QUYỀN CHẶT CHẼ: Chỉ có ông Sơn (Trưởng phòng) và ông Hoàng (Phó Trưởng phòng) mới có chức năng duyệt hoặc trả
+            // PHÂN QUYỀN CHẶT CHẼ: Chỉ có ông Sơn (Trưởng phòng) và ông Hoàng (Phó Trưởng phòng / Quản trị) mới có chức năng duyệt hoặc trả.
+            // Riêng ông Hoàng là Quản trị nên được phép tự duyệt hồ sơ của chính mình ngay trên bảng tổng hợp!
             const canApproveOrReject = (loggedUser === 'son' || loggedUser === 'hoang');
             const isTargetTP = (o.id === 'son' || o.role === 'TP');
+            const isSelfHoang = (o.id === 'hoang' && loggedUser === 'hoang');
 
             // Trưởng phòng Hoàng Anh Sơn không chịu sự phê duyệt/trả lại của bất kỳ ai trong phòng!
-            if (canApproveOrReject && o.id !== loggedUser && !isTargetTP) {
-              if (o.status === 'da_nop' || (o.isSubmitted && o.status !== 'da_duyet')) {
+            if (canApproveOrReject && (o.id !== loggedUser || isSelfHoang) && !isTargetTP) {
+              if (o.status === 'da_nop' || (o.isSubmitted && o.status !== 'da_duyet') || (isSelfHoang && o.status !== 'da_duyet')) {
                 return `
                   <div style="display: flex; gap: 4px; justify-content: center; align-items: center;">
                     <button type="button" class="btn btn-sm" onclick="quickApproveFromTable('${o.id}')" style="background: #276749; color: #fff; font-weight: 700; height: 24px; padding: 0 8px; font-size: 11px; border-radius: 3px; border: none; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 2px;" title="Phê duyệt kết quả đánh giá KPI của ${escapeHtml(o.name)}">
@@ -8388,7 +8408,7 @@ async function quickApproveFromTable(offId) {
     alert('Không thể thực hiện! Đồng chí Hoàng Anh Sơn là Trưởng phòng KTNN - Cán bộ đứng đầu đơn vị, hồ sơ tự xác nhận chính thức theo thẩm quyền, không chịu sự phê duyệt trong nội bộ phòng.');
     return;
   }
-  if (offId === loggedUser) {
+  if (offId === loggedUser && loggedUser !== 'hoang') {
     alert('Lãnh đạo không được tự phê duyệt hồ sơ cá nhân của mình.');
     return;
   }
@@ -8447,7 +8467,7 @@ async function quickRejectFromTable(offId) {
     alert('Không thể thực hiện! Đồng chí Hoàng Anh Sơn là Trưởng phòng KTNN - Cán bộ đứng đầu đơn vị, không thể trả lại hồ sơ của Trưởng phòng.');
     return;
   }
-  if (offId === loggedUser) {
+  if (offId === loggedUser && loggedUser !== 'hoang') {
     alert('Lãnh đạo không được tự trả lại hồ sơ cá nhân của mình.');
     return;
   }
@@ -8668,16 +8688,18 @@ async function viewOfficerQuarterSummary(officerId) {
 
   const leaderModalContainer = document.getElementById('modalLeaderApprovalContainer');
   if (leaderModalContainer) {
-    // PHÂN QUYỀN CHẶT CHẼ: Chỉ có ông Sơn và ông Hoàng mới có chức năng duyệt hoặc trả
+    // PHÂN QUYỀN CHẶT CHẼ: Chỉ có ông Sơn và ông Hoàng mới có chức năng duyệt hoặc trả.
+    // Riêng ông Hoàng (Quản trị) được phép tự duyệt hồ sơ của chính mình!
     const canApproveOrReject = (curLogged === 'son' || curLogged === 'hoang');
-    const isViewingOther = (officerId !== curLogged);
+    const canTargetBeApproved = (officerId !== curLogged || curLogged === 'hoang');
+    const isTargetTP = (officerId === 'son');
     const sessStatus = (sess && sess.status);
 
-    if (canApproveOrReject && isViewingOther) {
-      if (sessStatus === 'da_nop') {
+    if (canApproveOrReject && canTargetBeApproved && !isTargetTP) {
+      if (sessStatus === 'da_nop' || (officerId === 'hoang' && curLogged === 'hoang' && sessStatus !== 'da_duyet')) {
         leaderModalContainer.innerHTML = `
           <button type="button" class="btn btn-sm" onclick="approveOfficerFromModal('${officerId}')" style="background: #38a169; color: #fff; font-weight: 700; height: 30px; padding: 0 12px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);" title="Phê duyệt kết quả đánh giá KPI của cán bộ này">
-            ✅ Phê duyệt KPI
+            ✅ ${officerId === 'hoang' ? 'Tự phê duyệt KPI' : 'Phê duyệt KPI'}
           </button>
           <button type="button" class="btn btn-sm" onclick="rejectOfficerFromModal('${officerId}')" style="background: #e53e3e; color: #fff; font-weight: 700; height: 30px; padding: 0 12px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);" title="Trả lại hồ sơ để cán bộ rà soát, giải trình">
             ↩️ Trả lại để sửa
@@ -10163,6 +10185,7 @@ async function submitKpiForQuarter() {
   const q = appState.officer.quarter || 'Quý III';
   const y = appState.officer.year || 2026;
   const isTP = (offId === 'son' || appState.officer.role === 'TP');
+  const isHoangAdmin = (offId === 'hoang');
 
   if (isTP) {
     if (!confirm(`XÁC NHẬN CHỐT KẾT QUẢ KPI QUÝ:\n\nĐồng chí Hoàng Anh Sơn - Trưởng phòng KTNN có chắc chắn muốn chốt số liệu đánh giá KPI ${q}/${y}?\n\nHồ sơ của Trưởng phòng là hồ sơ chính thức, tự xác nhận theo thẩm quyền và gửi lên Lãnh đạo KBNN Khu vực.`)) return;
@@ -10170,6 +10193,14 @@ async function submitKpiForQuarter() {
     appState.isApproved = true;
     appState.status = "da_duyet";
     appState.approvedBy = "Hoàng Anh Sơn (Trưởng phòng)";
+    appState.approvedAt = new Date().toISOString();
+    appState.submittedAt = new Date().toISOString();
+  } else if (isHoangAdmin) {
+    if (!confirm(`XÁC NHẬN CHỐT & TỰ PHÊ DUYỆT KPI QUÝ (QUYỀN QUẢN TRỊ):\n\nĐồng chí Trần Quốc Hoàng có chắc chắn muốn chốt và tự phê duyệt chính thức kết quả KPI ${q}/${y}?\n\nHồ sơ của Quản trị hệ thống sẽ được tự phê duyệt trực tiếp (không cần chuyển qua Trưởng phòng) và vẫn cho phép đồng chí tự chỉnh sửa bất cứ lúc nào.`)) return;
+    appState.isSubmitted = true;
+    appState.isApproved = true;
+    appState.status = "da_duyet";
+    appState.approvedBy = "Trần Quốc Hoàng (Quản trị hệ thống)";
     appState.approvedAt = new Date().toISOString();
     appState.submittedAt = new Date().toISOString();
   } else {
@@ -11049,7 +11080,9 @@ function renderQuarterResultsTable() {
 }
 
 function renderGeneralCriteriaForm() {
-  const isLocked = (appState.status === 'da_nop' || appState.status === 'da_duyet');
+  const loggedUserNow = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || 'hoang';
+  const isSelfHoangAdmin = (loggedUserNow === 'hoang' && appState.officer && appState.officer.officerId === 'hoang');
+  const isLocked = !isSelfHoangAdmin && (appState.status === 'da_nop' || appState.status === 'da_duyet');
   for (let i = 1; i <= 10; i++) {
     const input = document.getElementById('crit_' + i);
     if (input) {

@@ -1936,6 +1936,7 @@ async function handleKpiRequest(req, res) {
         if (!targetState) return sendJson(res, 404, { success: false, error: "Không tìm thấy dữ liệu phiên" });
 
         const isTP = (officerId === 'son' || (targetState.officer && targetState.officer.role === 'TP'));
+        const isHoangAdmin = (officerId === 'hoang');
         if (isTP) {
           // Trưởng phòng là người đứng đầu đơn vị: Tự xác nhận chính thức, không cần người khác duyệt
           targetState.status = "da_duyet";
@@ -1943,6 +1944,14 @@ async function handleKpiRequest(req, res) {
           targetState.isApproved = true;
           targetState.approvedAt = submitTime;
           targetState.approvedBy = "Hoàng Anh Sơn (Trưởng phòng)";
+          targetState.rejectReason = null;
+        } else if (isHoangAdmin) {
+          // Quản trị hệ thống (đ/c Trần Quốc Hoàng): Tự sửa, tự duyệt trực tiếp không cần chuyển qua Trưởng phòng
+          targetState.status = "da_duyet";
+          targetState.isSubmitted = true;
+          targetState.isApproved = true;
+          targetState.approvedAt = submitTime;
+          targetState.approvedBy = "Trần Quốc Hoàng (Quản trị hệ thống)";
           targetState.rejectReason = null;
         } else {
           targetState.status = "da_nop";
@@ -2025,7 +2034,8 @@ async function handleKpiRequest(req, res) {
         if (officerId === 'son') {
           return sendJson(res, 400, { success: false, error: "Đồng chí Hoàng Anh Sơn là Trưởng phòng KTNN - Cán bộ đứng đầu đơn vị, hồ sơ tự xác nhận chính thức, không chịu sự phê duyệt trong nội bộ phòng." });
         }
-        if (officerId === leaderOfficerId) {
+        // Riêng Quản trị viên Trần Quốc Hoàng (hoang) được phép tự duyệt hồ sơ của mình không cần chuyển Trưởng phòng
+        if (officerId === leaderOfficerId && leaderOfficerId !== 'hoang') {
           return sendJson(res, 400, { success: false, error: "Lãnh đạo không được tự phê duyệt hồ sơ cá nhân của mình." });
         }
 
@@ -2044,9 +2054,12 @@ async function handleKpiRequest(req, res) {
         if (!docData) return sendJson(res, 404, { success: false, error: "Không tìm thấy hồ sơ cán bộ" });
 
         docData.status = "da_duyet";
+        docData.isSubmitted = true;
         docData.isApproved = true;
         docData.approvedAt = approveTime;
-        docData.approvedBy = leaderOfficerId || "Lãnh đạo phòng";
+        docData.approvedBy = (leaderOfficerId === 'hoang' && officerId === 'hoang')
+          ? "Trần Quốc Hoàng (Quản trị hệ thống)"
+          : (leaderOfficerId || "Lãnh đạo phòng");
         if (leaderRatingProposal) docData.leaderRatingProposal = leaderRatingProposal;
         if (leaderRatingNote !== undefined) docData.leaderRatingNote = leaderRatingNote;
         docData.lastSaved = approveTime;
@@ -2124,7 +2137,7 @@ async function handleKpiRequest(req, res) {
         if (officerId === 'son') {
           return sendJson(res, 400, { success: false, error: "Đồng chí Hoàng Anh Sơn là Trưởng phòng KTNN - Cán bộ đứng đầu đơn vị, không thể trả lại hồ sơ của Trưởng phòng." });
         }
-        if (officerId === leaderOfficerId) {
+        if (officerId === leaderOfficerId && leaderOfficerId !== 'hoang') {
           return sendJson(res, 400, { success: false, error: "Lãnh đạo không được tự trả lại hồ sơ cá nhân của mình." });
         }
 
