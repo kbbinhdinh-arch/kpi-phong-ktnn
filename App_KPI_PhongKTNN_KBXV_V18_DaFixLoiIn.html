@@ -9514,7 +9514,7 @@ async function verifyOfficerPassword(officerId, password) {
   const localMap = getLocalAuthMap();
   const userAuth = localMap[officerId];
   if (!userAuth || !userAuth.hash) {
-    return { success: false, error: "Tài khoản chưa thiết lập mật khẩu", notSet: true };
+    return { success: false, error: "Tài khoản chưa thiết lập mật khẩu hoặc đã được đặt lại", notSet: true };
   }
   let matched = false;
   if (userAuth.salt) {
@@ -9524,6 +9524,10 @@ async function verifyOfficerPassword(officerId, password) {
   if (!matched) {
     const plainHash = await hashPasswordBrowser(password);
     if (plainHash === userAuth.hash) matched = true;
+  }
+  if (!matched && String(password).trim() === '123456') {
+    const defaultHash = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92';
+    if (userAuth.hash === defaultHash) matched = true;
   }
   if (matched) {
     return { success: true };
@@ -9685,7 +9689,10 @@ async function adminDirectSetPasswordPrompt(targetOfficerId, officerName) {
     return;
   }
 
+  let serverOk = false;
+  let errMsg = '';
   try {
+    showToast('⏳ Đang cập nhật mật khẩu lên máy chủ Cloud...', 3000);
     const res = await fetch(`${CURRENT_SERVER_HOST}/api/auth/admin-set-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -9695,15 +9702,14 @@ async function adminDirectSetPasswordPrompt(targetOfficerId, officerName) {
         adminOfficerId: 'hoang'
       })
     });
-    if (!res.ok) {
-      await fetch(`${CURRENT_SERVER_HOST}/api/auth/set-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ officerId: targetOfficerId, password: trimmed })
-      });
+    const json = await res.json();
+    if (res.ok && json.success) {
+      serverOk = true;
+    } else {
+      errMsg = json.error || 'Máy chủ phản hồi thất bại';
     }
   } catch(e) {
-    console.warn('Lỗi gọi API server, lưu local:', e);
+    errMsg = e.message;
   }
 
   const hash = await hashPasswordBrowser(trimmed);
@@ -9711,7 +9717,11 @@ async function adminDirectSetPasswordPrompt(targetOfficerId, officerName) {
   localMap[targetOfficerId] = { hash, updatedAt: new Date().toISOString() };
   saveLocalAuthMap(localMap);
 
-  alert(`✅ ĐÃ CẬP NHẬT MẬT KHẨU THÀNH CÔNG CHO:\n👉 ${officerName} (${targetOfficerId})\n\nMật khẩu mới là: ${trimmed}`);
+  if (serverOk) {
+    alert(`✅ ĐÃ CẬP NHẬT MẬT KHẨU THÀNH CÔNG CHO:\n👉 ${officerName} (${targetOfficerId})\n\nMật khẩu mới là: ${trimmed}`);
+  } else {
+    alert(`⚠️ Đã lưu mật khẩu cục bộ, nhưng máy chủ Cloud báo: ${errMsg}\n\nVui lòng kiểm tra lại kết nối.`);
+  }
   await renderAdminPasswordTable();
 }
 
@@ -9897,31 +9907,63 @@ async function openQuickAdminResetPrompt() {
 
   if (resetMode) {
     // 1. Đặt về 123456
+    let serverOk = false;
+    let errMsg = '';
     try {
-      await fetch(`${CURRENT_SERVER_HOST}/api/auth/admin-set-password`, {
+      showToast('⏳ Đang cập nhật mật khẩu về 123456 lên máy chủ Cloud...', 3000);
+      const res = await fetch(`${CURRENT_SERVER_HOST}/api/auth/admin-set-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ targetOfficerId: targetId, newPassword: '123456', adminOfficerId: 'hoang' })
       });
-    } catch(e) {}
+      const json = await res.json();
+      if (res.ok && json.success) {
+        serverOk = true;
+      } else {
+        errMsg = json.error || 'Máy chủ phản hồi không thành công';
+      }
+    } catch(e) {
+      errMsg = e.message;
+    }
     const hash = await hashPasswordBrowser('123456');
     const localMap = getLocalAuthMap();
     localMap[targetId] = { hash, updatedAt: new Date().toISOString() };
     saveLocalAuthMap(localMap);
-    alert(`✅ ĐÃ ĐẶT LẠI MẬT KHẨU VỀ '123456' THÀNH CÔNG CHO CÁN BỘ:\n👉 ${officerName} (${targetId})\n\nCán bộ này có thể đăng nhập ngay với mật khẩu: 123456`);
+    
+    if (serverOk) {
+      alert(`✅ ĐÃ ĐẶT LẠI MẬT KHẨU VỀ '123456' THÀNH CÔNG CHO CÁN BỘ:\n👉 ${officerName} (${targetId})\n\nCán bộ này có thể đăng nhập ngay với mật khẩu: 123456`);
+    } else {
+      alert(`⚠️ Đã lưu mật khẩu 123456 cục bộ, máy chủ Cloud báo: ${errMsg}\n\nVui lòng kiểm tra lại kết nối.`);
+    }
   } else {
     // 2. Xóa mật khẩu để cán bộ tự đặt
+    let serverOk = false;
+    let errMsg = '';
     try {
-      await fetch(`${CURRENT_SERVER_HOST}/api/auth/reset`, {
+      showToast('⏳ Đang xóa mật khẩu trên máy chủ Cloud...', 3000);
+      const res = await fetch(`${CURRENT_SERVER_HOST}/api/auth/reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ targetOfficerId: targetId, adminOfficerId: 'hoang' })
       });
-    } catch(e) {}
+      const json = await res.json();
+      if (res.ok && json.success) {
+        serverOk = true;
+      } else {
+        errMsg = json.error || 'Máy chủ phản hồi không thành công';
+      }
+    } catch(e) {
+      errMsg = e.message;
+    }
     const localMap = getLocalAuthMap();
     delete localMap[targetId];
     saveLocalAuthMap(localMap);
-    alert(`✅ ĐÃ XÓA MẬT KHẨU CHO CÁN BỘ: ${officerName}!\n\nCán bộ sẽ được yêu cầu thiết lập mật khẩu mới ngay khi đăng nhập.`);
+
+    if (serverOk) {
+      alert(`✅ ĐÃ XÓA MẬT KHẨU CHO CÁN BỘ: ${officerName}!\n\nCán bộ sẽ được yêu cầu thiết lập mật khẩu mới ngay khi đăng nhập.`);
+    } else {
+      alert(`⚠️ Đã xóa mật khẩu cục bộ, máy chủ Cloud báo: ${errMsg}`);
+    }
   }
 
   await onLoginSelectOfficerChange(targetId);
@@ -10271,8 +10313,18 @@ async function submitLogin() {
 
     const verifyRes = await verifyOfficerPassword(officerId, pwd);
     if (!verifyRes.success) {
+      if (verifyRes.notSet) {
+        // Tài khoản chưa có mật khẩu hoặc đã được đặt lại (reset)
+        await onLoginSelectOfficerChange(officerId);
+        const firstErr = document.getElementById('firstTimeErrorMsg');
+        if (firstErr) {
+          firstErr.innerText = 'ℹ️ Mật khẩu của đồng chí đã được Quản trị viên đặt lại (reset). Vui lòng thiết lập mật khẩu mới (hoặc nhập 123456 vào cả 2 ô) để đăng nhập!';
+          firstErr.style.display = 'block';
+        }
+        return;
+      }
       if (errEl) {
-        errEl.innerText = '❌ Mật khẩu không chính xác. Vui lòng kiểm tra lại!';
+        errEl.innerText = '❌ ' + (verifyRes.error || 'Mật khẩu không chính xác. Vui lòng kiểm tra lại!');
         errEl.style.display = 'block';
       }
       const pwdInput = document.getElementById('loginPassword');

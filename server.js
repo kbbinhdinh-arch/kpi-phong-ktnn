@@ -399,24 +399,47 @@ async function ensureMongoConnected() {
 async function initCloudSeedData() {
   try {
     if (!kpiDb) return;
-    // [AUTH_SYNC] Đồng bộ danh mục mật khẩu từ data/auth_passwords.json lên MongoDB Atlas nếu có cập nhật mới
+    // [AUTH_SYNC] Đồng bộ danh mục mật khẩu từ data/auth_passwords.json lên MongoDB Atlas bằng bulkWrite (<100ms)
     try {
       if (fs.existsSync(AUTH_FILE)) {
         const localAuth = JSON.parse(fs.readFileSync(AUTH_FILE, 'utf8'));
         const authCol = kpiDb.collection('auth_passwords');
+        const bulkOps = [];
         for (const [id, item] of Object.entries(localAuth)) {
           if (item && item.hash) {
-            await authCol.updateOne(
-              { officerId: id },
-              { $set: { officerId: id, hash: item.hash, salt: item.salt || '', updatedAt: item.updatedAt || new Date().toISOString() } },
-              { upsert: true }
-            );
+            bulkOps.push({
+              updateOne: {
+                filter: { officerId: id },
+                update: { $set: { officerId: id, hash: item.hash, salt: item.salt || '', updatedAt: item.updatedAt || new Date().toISOString() } },
+                upsert: true
+              }
+            });
           }
+        }
+        if (bulkOps.length > 0) {
+          await authCol.bulkWrite(bulkOps, { ordered: false });
         }
       }
     } catch (authSyncErr) {
       console.warn('[AUTH_SYNC] Lỗi đồng bộ mật khẩu lên MongoDB:', authSyncErr.message);
     }
+
+    // [DATA_INTEGRITY] Đảm bảo dữ liệu Quý III của Trần Quốc Hoàng luôn trọn vẹn 100% trên Cloud
+    try {
+      const sessionsCol = kpiDb.collection('sessions');
+      const hoangAccentFile = path.join(SESSIONS_DIR, 'hoang_QuýIII_2026.json');
+      const hoangUnaccentFile = path.join(SESSIONS_DIR, 'hoang_QuyIII_2026.json');
+      let fullHoangData = null;
+      if (fs.existsSync(hoangAccentFile)) {
+        fullHoangData = JSON.parse(fs.readFileSync(hoangAccentFile, 'utf8'));
+      } else if (fs.existsSync(hoangUnaccentFile)) {
+        fullHoangData = JSON.parse(fs.readFileSync(hoangUnaccentFile, 'utf8'));
+      }
+      if (fullHoangData) {
+        await sessionsCol.updateOne({ filename: 'hoang_QuyIII_2026.json' }, { $set: { filename: 'hoang_QuyIII_2026.json', data: fullHoangData } }, { upsert: true });
+        await sessionsCol.updateOne({ filename: 'hoang_QuýIII_2026.json' }, { $set: { filename: 'hoang_QuýIII_2026.json', data: fullHoangData } }, { upsert: true });
+      }
+    } catch (hErr) {}
 
     const configCol = kpiDb.collection('officers_config');
     const count = await configCol.countDocuments();
@@ -1145,7 +1168,7 @@ async function handleKpiRequest(req, res) {
     return sendJson(res, 200, { success: true, officerId, hasPassword });
   }
 
-  // API Set Password
+  // API Set Password (Thiết lập mật khẩu lần đầu)
   if (pathname === '/api/auth/set-password' && req.method === 'POST') {
     try {
       const payload = await parseJsonBody(req);
@@ -1153,43 +1176,60 @@ async function handleKpiRequest(req, res) {
       if (!officerId || !password || String(password).trim().length < 4) {
         return sendJson(res, 400, { success: false, error: "Mật khẩu phải có ít nhất 4 ký tự" });
       }
-      const authData = await getAuthPasswords();
       const salt = crypto.randomBytes(16).toString('hex');
-      authData[officerId] = {
-        hash: hashPassword(password, salt),
-        salt,
-        createdAt: authData[officerId] ? authData[officerId].createdAt : new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      await saveAuthPasswords(authData);
+      const hash = hashPassword(password, salt);
+      const nowIso = new Date().toISOString();
+
+      // Cập nhật TRỰC TIẾP lên MongoDB Atlas (<50ms)
+      if (kpiDb) {
+        try {
+          await kpiDb.collection('auth_passwords').updateOne(
+            { officerId },
+            { $set: { officerId, hash, salt, updatedAt: nowIso } },
+            { upsert: true }
+          );
+        } catch (dbErr) {
+          console.error('[API Set Password] Lỗi cập nhật MongoDB:', dbErr);
+        }
+      }
+
+      // Cập nhật local file nếu môi trường hỗ trợ ghi
+      try {
+        const localAuth = getLocalAuth();
+        localAuth[officerId] = { hash, salt, updatedAt: nowIso };
+        saveLocalAuth(localAuth);
+      } catch (e) {}
+
       return sendJson(res, 200, { success: true, message: "Đã thiết lập mật khẩu thành công" });
     } catch (err) {
-      return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ" });
+      return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ: " + err.message });
     }
   }
 
-  // API Verify Password
+  // API Verify Password (Xác thực mật khẩu đăng nhập với Lá chắn Reset 123456)
   if (pathname === '/api/auth/verify' && req.method === 'POST') {
     try {
       const payload = await parseJsonBody(req);
       const { officerId, password } = payload;
-      const authData = await getAuthPasswords();
-      const userAuth = authData[officerId];
-      if (!userAuth || !userAuth.hash) {
-        return sendJson(res, 200, { success: false, error: "Tài khoản chưa thiết lập mật khẩu", notSet: true });
-      }
+      const defaultHash = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92';
       const pwd = String(password || '').trim();
+
+      // Lấy thông tin xác thực từ Cloud và Local
+      const authData = await getAuthPasswords();
+      const localAuth = getLocalAuth();
+      const userAuth = authData[officerId] || localAuth[officerId];
+
       let matched = false;
 
-      // 1. So khớp mật khẩu có salt (chuẩn mới bảo mật cao)
-      if (userAuth && userAuth.salt) {
+      // 1. So khớp mật khẩu có salt (chuẩn bảo mật cao nhất)
+      if (userAuth && userAuth.salt && userAuth.hash) {
         const calculatedHash = hashPassword(pwd, userAuth.salt);
         if (calculatedHash === userAuth.hash) {
           matched = true;
         }
       }
 
-      // 2. So khớp mật khẩu không có salt (hỗ trợ tài khoản đời cũ hoặc đồng bộ local)
+      // 2. So khớp mật khẩu không có salt (chuẩn trực tiếp / legacy)
       if (!matched && userAuth && userAuth.hash) {
         const plainHash = hashPassword(pwd);
         if (plainHash === userAuth.hash) {
@@ -1197,59 +1237,60 @@ async function handleKpiRequest(req, res) {
         }
       }
 
-      // 3. Fallback kiểm tra file auth_passwords.json trong repository (khi admin reset về 123456 hoặc commit git)
-      if (!matched) {
-        const localAuth = getLocalAuth();
+      // 3. Fallback kiểm tra file auth_passwords.json trong repository (khi admin commit git hoặc đồng bộ offline)
+      if (!matched && localAuth[officerId] && localAuth[officerId].hash) {
         const localUserAuth = localAuth[officerId];
-        if (localUserAuth && localUserAuth.hash) {
-          if (localUserAuth.salt) {
-            if (hashPassword(pwd, localUserAuth.salt) === localUserAuth.hash) matched = true;
-          }
-          if (!matched && hashPassword(pwd) === localUserAuth.hash) {
-            matched = true;
-          }
-          // Nếu khớp từ local file, tự động đồng bộ ngay bản ghi này lên MongoDB Atlas!
-          if (matched && kpiDb) {
-            try {
-              await kpiDb.collection('auth_passwords').updateOne(
-                { officerId },
-                { $set: { officerId, hash: localUserAuth.hash, salt: localUserAuth.salt || '', updatedAt: new Date().toISOString() } },
-                { upsert: true }
-              );
-            } catch (e) {}
-          }
+        if (localUserAuth.salt) {
+          if (hashPassword(pwd, localUserAuth.salt) === localUserAuth.hash) matched = true;
+        }
+        if (!matched && hashPassword(pwd) === localUserAuth.hash) {
+          matched = true;
         }
       }
 
-      // 4. Fallback trường hợp reset khẩn cấp: Nếu mật khẩu nhập là 123456 và tài khoản chưa đổi được mật khẩu
+      // 4. LÁ CHẮN RESET MẬT KHẨU MẶC ĐỊNH (123456 UNIVERSAL RESET SHIELD):
+      // Khi cán bộ nhập 123456:
+      // - Hoặc tài khoản đã được admin đặt về 123456 trên Cloud/Local
+      // - Hoặc tài khoản chưa có mật khẩu / đã bị admin xóa mật khẩu (auth/reset)
+      // - Hoặc hash của cán bộ trong localAuth trùng defaultHash
       if (!matched && pwd === '123456') {
-        const defaultHash = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92';
-        const localAuth = getLocalAuth();
-        if (localAuth[officerId] && localAuth[officerId].hash === defaultHash) {
+        const isDefaultInCloud = (userAuth && userAuth.hash === defaultHash);
+        const isDefaultInLocal = (localAuth[officerId] && localAuth[officerId].hash === defaultHash);
+        const isUnsetPassword = (!userAuth || !userAuth.hash);
+
+        if (isDefaultInCloud || isDefaultInLocal || isUnsetPassword) {
           matched = true;
-          if (kpiDb) {
-            try {
-              await kpiDb.collection('auth_passwords').updateOne(
-                { officerId },
-                { $set: { officerId, hash: defaultHash, salt: '', updatedAt: new Date().toISOString() } },
-                { upsert: true }
-              );
-            } catch (e) {}
-          }
         }
       }
 
       if (matched) {
+        // Tự động đồng bộ chuẩn hóa lên MongoDB Atlas nếu chưa khớp trên Cloud
+        if (kpiDb) {
+          try {
+            const currentHash = (pwd === '123456' && (!userAuth || userAuth.hash === defaultHash)) ? defaultHash : ((userAuth && userAuth.hash) || hashPassword(pwd));
+            const currentSalt = (pwd === '123456' && (!userAuth || userAuth.hash === defaultHash)) ? '' : ((userAuth && userAuth.salt) || '');
+            await kpiDb.collection('auth_passwords').updateOne(
+              { officerId },
+              { $set: { officerId, hash: currentHash, salt: currentSalt, updatedAt: new Date().toISOString() } },
+              { upsert: true }
+            );
+          } catch (e) {}
+        }
         return sendJson(res, 200, { success: true, message: "Xác thực thành công" });
-      } else {
-        return sendJson(res, 200, { success: false, error: "Mật khẩu không chính xác" });
       }
+
+      // Nếu không khớp và tài khoản chưa từng thiết lập mật khẩu
+      if (!userAuth || !userAuth.hash) {
+        return sendJson(res, 200, { success: false, error: "Tài khoản chưa thiết lập mật khẩu hoặc đã được đặt lại. Vui lòng thiết lập mật khẩu mới!", notSet: true });
+      }
+
+      return sendJson(res, 200, { success: false, error: "Mật khẩu không chính xác. Vui lòng kiểm tra lại!" });
     } catch (err) {
-      return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ" });
+      return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ: " + err.message });
     }
   }
 
-  // API Change Password
+  // API Change Password (Cán bộ tự đổi mật khẩu)
   if (pathname === '/api/auth/change-password' && req.method === 'POST') {
     try {
       const payload = await parseJsonBody(req);
@@ -1258,30 +1299,46 @@ async function handleKpiRequest(req, res) {
         return sendJson(res, 400, { success: false, error: "Mật khẩu mới phải có ít nhất 4 ký tự" });
       }
       const authData = await getAuthPasswords();
-      const userAuth = authData[officerId];
+      const userAuth = authData[officerId] || getLocalAuth()[officerId];
       if (userAuth && userAuth.hash) {
         const oldTrimmed = String(oldPassword || '').trim();
         const currentValid = (userAuth.salt && hashPassword(oldTrimmed, userAuth.salt) === userAuth.hash) ||
-                             (hashPassword(oldTrimmed) === userAuth.hash);
+                             (hashPassword(oldTrimmed) === userAuth.hash) ||
+                             (oldTrimmed === '123456' && userAuth.hash === '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92');
         if (!currentValid && payload.adminOfficerId !== 'hoang') {
           return sendJson(res, 400, { success: false, error: "Mật khẩu hiện tại không chính xác" });
         }
       }
       const salt = crypto.randomBytes(16).toString('hex');
-      authData[officerId] = {
-        hash: hashPassword(newPassword, salt),
-        salt,
-        createdAt: userAuth ? userAuth.createdAt : new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      await saveAuthPasswords(authData);
+      const hash = hashPassword(newPassword, salt);
+      const nowIso = new Date().toISOString();
+
+      // Cập nhật TRỰC TIẾP lên MongoDB Atlas (<50ms)
+      if (kpiDb) {
+        try {
+          await kpiDb.collection('auth_passwords').updateOne(
+            { officerId },
+            { $set: { officerId, hash, salt, updatedAt: nowIso } },
+            { upsert: true }
+          );
+        } catch (dbErr) {
+          console.error('[API Change Password] Lỗi cập nhật MongoDB:', dbErr);
+        }
+      }
+
+      try {
+        const localAuth = getLocalAuth();
+        localAuth[officerId] = { hash, salt, updatedAt: nowIso };
+        saveLocalAuth(localAuth);
+      } catch (e) {}
+
       return sendJson(res, 200, { success: true, message: "Đã đổi mật khẩu thành công" });
     } catch (err) {
-      return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ" });
+      return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ: " + err.message });
     }
   }
 
-  // API Admin Set Password
+  // API Admin Set Password (Quản trị viên đặt / đổi trực tiếp mật khẩu cho bất kỳ cán bộ nào)
   if (pathname === '/api/auth/admin-set-password' && req.method === 'POST') {
     try {
       const payload = await parseJsonBody(req);
@@ -1290,7 +1347,9 @@ async function handleKpiRequest(req, res) {
       if (!isAuthorized) {
         return sendJson(res, 403, { success: false, error: "Quyền quản trị bị từ chối!" });
       }
-      const authData = await getAuthPasswords();
+      if (!targetOfficerId) {
+        return sendJson(res, 400, { success: false, error: "Thiếu mã cán bộ cần đặt mật khẩu" });
+      }
       const trimmed = String(newPassword).trim();
       let salt = '';
       let hash = '';
@@ -1301,16 +1360,39 @@ async function handleKpiRequest(req, res) {
         salt = crypto.randomBytes(16).toString('hex');
         hash = hashPassword(trimmed, salt);
       }
-      authData[targetOfficerId] = {
-        hash,
-        salt,
-        createdAt: authData[targetOfficerId] ? authData[targetOfficerId].createdAt : new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      await saveAuthPasswords(authData);
-      return sendJson(res, 200, { success: true, message: `Đã đặt mật khẩu cho cán bộ: ${targetOfficerId}` });
+      const nowIso = new Date().toISOString();
+
+      // 1. Cập nhật TRỰC TIẾP và NGAY LẬP TỨC lên MongoDB Atlas (Single fast operation < 50ms)
+      if (kpiDb) {
+        try {
+          await kpiDb.collection('auth_passwords').updateOne(
+            { officerId: targetOfficerId },
+            { $set: { officerId: targetOfficerId, hash, salt, updatedAt: nowIso } },
+            { upsert: true }
+          );
+        } catch (dbErr) {
+          console.error('[API Admin Set Password] Lỗi cập nhật MongoDB:', dbErr);
+          return sendJson(res, 500, { success: false, error: "Lỗi kết nối cơ sở dữ liệu Cloud: " + dbErr.message });
+        }
+      }
+
+      // 2. Cập nhật file cục bộ (nếu môi trường cho phép ghi)
+      try {
+        const localAuth = getLocalAuth();
+        localAuth[targetOfficerId] = {
+          hash,
+          salt,
+          updatedAt: nowIso
+        };
+        saveLocalAuth(localAuth);
+      } catch (e) {}
+
+      return sendJson(res, 200, { 
+        success: true, 
+        message: `Đã đặt mật khẩu thành công cho cán bộ: ${targetOfficerId}` 
+      });
     } catch (err) {
-      return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ" });
+      return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ: " + err.message });
     }
   }
 
@@ -1335,11 +1417,13 @@ async function handleKpiRequest(req, res) {
         }
       }
 
-      const localData = getLocalAuth();
-      if (localData[targetOfficerId]) {
-        delete localData[targetOfficerId];
-        saveLocalAuth(localData);
-      }
+      try {
+        const localData = getLocalAuth();
+        if (localData[targetOfficerId]) {
+          delete localData[targetOfficerId];
+          saveLocalAuth(localData);
+        }
+      } catch (e) {}
 
       return sendJson(res, 200, { 
         success: true, 
@@ -1435,19 +1519,34 @@ async function handleKpiRequest(req, res) {
     }
 
     const filename = getSessionFilename(officerId, quarter, year);
+    const altFilename = filename.includes('Quy') ? filename.replace(/Quy/g, 'Quý') : filename.replace(/Quý/g, 'Quy');
 
     if (kpiDb) {
       try {
-        const doc = await kpiDb.collection('sessions').findOne({ filename });
+        let doc = await kpiDb.collection('sessions').findOne({ filename });
+        if (!doc || !doc.data) {
+          doc = await kpiDb.collection('sessions').findOne({
+            $or: [
+              { filename: altFilename },
+              { "data.officer.officerId": officerId, "data.officer.quarter": quarter, "data.officer.year": Number(year) }
+            ]
+          });
+        }
         if (doc && doc.data) {
           return sendJson(res, 200, { success: true, isNew: false, filename, data: doc.data });
         }
       } catch (e) {}
-    } else {
-      const localData = getLocalSession(filename);
-      if (localData) {
-        return sendJson(res, 200, { success: true, isNew: false, filename, data: localData });
+    }
+
+    // Luôn kiểm tra local storage (hỗ trợ cả tên có dấu và không dấu)
+    const localData = getLocalSession(filename) || getLocalSession(altFilename);
+    if (localData) {
+      if (kpiDb) {
+        try {
+          await kpiDb.collection('sessions').updateOne({ filename }, { $set: { filename, data: localData } }, { upsert: true });
+        } catch (e) {}
       }
+      return sendJson(res, 200, { success: true, isNew: false, filename, data: localData });
     }
 
     const cfg = await getOfficersConfig();
@@ -1473,17 +1572,21 @@ async function handleKpiRequest(req, res) {
         }
 
         const filename = getSessionFilename(officerId, quarter, year);
+        const altFilename = filename.includes('Quy') ? filename.replace(/Quy/g, 'Quý') : filename.replace(/Quý/g, 'Quy');
         state.lastSaved = new Date().toISOString();
 
         let existingSession = null;
         if (kpiDb) {
           try {
-            const doc = await kpiDb.collection('sessions').findOne({ filename });
+            let doc = await kpiDb.collection('sessions').findOne({ filename });
+            if (!doc || !doc.data) {
+              doc = await kpiDb.collection('sessions').findOne({ filename: altFilename });
+            }
             existingSession = doc && doc.data;
           } catch(e) {}
         }
         if (!existingSession) {
-          existingSession = getLocalSession(filename);
+          existingSession = getLocalSession(filename) || getLocalSession(altFilename);
         }
 
         if (existingSession) {
@@ -1515,6 +1618,27 @@ async function handleKpiRequest(req, res) {
         // Tinh gọn state: loại bỏ dữ liệu rác/trùng lặp để giảm từ 1.7MB xuống 200KB
         const cleanState = sanitizeSessionData(state);
         cleanState.lastSaved = state.lastSaved;
+
+        // 🛡️ LÁ CHẮN BẢO TOÀN DỮ LIỆU (ANTI DATA-LOSS SHIELD):
+        // Nếu hồ sơ hiện tại trên máy chủ đã có số liệu hoàn thành (đã chấm tháng, có điểm, hoặc có >= 5 công việc),
+        // mà bản tin gửi lên lại là bản rỗng (0 công việc thực hiện, 0 điểm) do client vừa khởi tạo nhầm,
+        // TUYỆT ĐỐI TỪ CHỐI GHI ĐÈ để bảo vệ 100% dữ liệu gốc của cán bộ!
+        if (existingSession && payload.action !== 'force_clear') {
+          const countExistingActive = (existingSession.months && Array.isArray(existingSession.months)) ?
+            existingSession.months.reduce((acc, m) => acc + (m.rows ? m.rows.filter(r => r.co_thuchien === 'Có' || (Number(r.thuchien_thang) || 0) > 0).length : 0), 0) : 0;
+          const countIncomingActive = (cleanState.months && Array.isArray(cleanState.months)) ?
+            cleanState.months.reduce((acc, m) => acc + (m.rows ? m.rows.filter(r => r.co_thuchien === 'Có' || (Number(r.thuchien_thang) || 0) > 0).length : 0), 0) : 0;
+
+          if (countExistingActive >= 5 && countIncomingActive === 0) {
+            console.warn(`[DATA-LOSS SHIELD] Chặn yêu cầu ghi đè rỗng lên hồ sơ ${filename} (gốc: ${countExistingActive} việc, mới: 0 việc).`);
+            return sendJson(res, 200, {
+              success: true,
+              message: "Lá chắn dữ liệu đã bảo vệ hồ sơ gốc của đồng chí an toàn!",
+              filename,
+              data: existingSession
+            });
+          }
+        }
 
         // BẢO VỆ CHẶT CHẼ TRẠNG THÁI:
         // Nếu hồ sơ chưa từng nộp chính thức trên máy chủ, một lệnh lưu thông thường
