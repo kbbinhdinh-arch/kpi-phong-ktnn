@@ -4111,6 +4111,7 @@
 
                 <!-- THANH BỘ LỌC CHUYÊN MÔN & TÌM KIẾM NHIỆM VỤ THÁNG -->
         <div id="approvalStatusBannerContainer"></div>
+        <div id="leaderGdvAggregateToolbar"></div>
       <div id="monthlyFilterToolbar" style="display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 8px; background: #edf2f7; border: 1px solid #cbd5e0; border-radius: 4px; margin-bottom: 4px; flex-wrap: wrap;">
           <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
             <label style="font-size: 11.5px; font-weight: 700; color: #2d3748; display: inline-flex; align-items: center; gap: 3px; margin: 0;">
@@ -5773,8 +5774,386 @@ function resetMonthlyFilters() {
 }
 
 
+// ============================================================================
+// CHỨC NĂNG CỘNG GỘP SỐ LƯỢNG CÔNG VIỆC CHI TIẾT TỪ GDV PHỤ TRÁCH CHO LÃNH ĐẠO
+// ============================================================================
+const DEFAULT_LEADER_GDV_MAP = {
+  son: ['my', 'mai'],
+  hoang: ['thao_t', 'trung', 'huong', 'nam', 'vui'],
+  tuan: ['truc', 'thao_p', 'thu', 'thuy'],
+  anh: ['huyet', 'tu', 'thy', 'quynh'],
+  qn_trung: ['qn_hung', 'qn_phuong_lan', 'qn_minh', 'qn_anh', 'qn_trang', 'qn_tam', 'qn_lien', 'qn_thuy_bich', 'qn_thuy_le'],
+  qn_phuong_tp: ['qn_nghia', 'qn_quyen', 'qn_tuyen', 'qn_nga', 'qn_thao']
+};
+
+let _leaderGdvAggCache = {
+  key: '',
+  loading: false,
+  data: null
+};
+
+function getLeaderSubordinateGdvIds(leaderId) {
+  const lid = leaderId || (appState.officer && appState.officer.officerId) || 'hoang';
+  try {
+    const customRaw = localStorage.getItem('KBXV_LEADER_CUSTOM_GDVS_' + lid);
+    if (customRaw) {
+      const parsed = JSON.parse(customRaw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {}
+  return DEFAULT_LEADER_GDV_MAP[lid] ? [...DEFAULT_LEADER_GDV_MAP[lid]] : [];
+}
+
+function setLeaderSubordinateGdvIds(leaderId, gdvIds) {
+  const lid = leaderId || (appState.officer && appState.officer.officerId) || 'hoang';
+  try {
+    localStorage.setItem('KBXV_LEADER_CUSTOM_GDVS_' + lid, JSON.stringify(gdvIds));
+  } catch (e) {}
+  _leaderGdvAggCache.key = '';
+  ensureLeaderGdvAggregateLoaded(true);
+}
+
+async function ensureLeaderGdvAggregateLoaded(forceRefresh = false) {
+  const offId = (appState.officer && appState.officer.officerId) || 'hoang';
+  const role = (appState.officer && appState.officer.role) || 'GDV';
+  const isLeaderRole = (role === 'TP' || role === 'PTP' || (appState.officer && appState.officer.isLeader));
+  if (!isLeaderRole) return null;
+
+  const curQ = (appState.officer && appState.officer.quarter) || 'Quý III';
+  const curY = (appState.officer && appState.officer.year) || 2026;
+  const gdvIds = getLeaderSubordinateGdvIds(offId);
+  const cacheKey = `${offId}__${normalizeQuarter(curQ)}__${curY}__${gdvIds.join(',')}`;
+
+  if (!forceRefresh && _leaderGdvAggCache.key === cacheKey && _leaderGdvAggCache.data) {
+    return _leaderGdvAggCache.data;
+  }
+  if (_leaderGdvAggCache.loading && !forceRefresh) return _leaderGdvAggCache.data;
+
+  _leaderGdvAggCache.loading = true;
+  try {
+    const url = `${CURRENT_SERVER_HOST}/api/leader-aggregate?leaderId=${encodeURIComponent(offId)}&quarter=${encodeURIComponent(curQ)}&year=${encodeURIComponent(curY)}&gdvIds=${encodeURIComponent(gdvIds.join(','))}`;
+    const res = await fetch(url, { cache: 'no-cache' });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.success) {
+        _leaderGdvAggCache = {
+          key: cacheKey,
+          loading: false,
+          data: json
+        };
+        renderMonthTable24();
+        return json;
+      }
+    }
+  } catch (e) {
+    console.warn('Lỗi tải dữ liệu cộng gộp GDV:', e);
+  } finally {
+    _leaderGdvAggCache.loading = false;
+  }
+  return _leaderGdvAggCache.data;
+}
+
+function getLeaderGdvRowAgg(mIdx, rIdx, rowObj) {
+  if (!_leaderGdvAggCache.data || !_leaderGdvAggCache.data.months) return null;
+  const mAgg = _leaderGdvAggCache.data.months[mIdx];
+  if (!mAgg) return null;
+  if (mAgg.rowsByIdx && mAgg.rowsByIdx[rIdx]) return mAgg.rowsByIdx[rIdx];
+  if (rowObj && rowObj.stt && mAgg.rowsByStt) {
+    const workKey = `${String(rowObj.stt || '').trim()}||${String(rowObj.congviec || '').trim()}`;
+    if (mAgg.rowsByStt[workKey]) return mAgg.rowsByStt[workKey];
+  }
+  return null;
+}
+
+async function aggregateSingleRowFromGdv(event, rIdx) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  const addMode = !!(event && event.shiftKey);
+  const mIdx = appState.activeMonthIdx;
+  if (mIdx === 3) return;
+
+  let aggData = _leaderGdvAggCache.data;
+  if (!aggData) {
+    showToast('⏳ Đang tải số liệu từ các GDV phụ trách...', 1500);
+    aggData = await ensureLeaderGdvAggregateLoaded(true);
+  }
+  if (!aggData || !aggData.months) {
+    alert('Chưa kết nối được dữ liệu của các GDV phụ trách.');
+    return;
+  }
+
+  const month = appState.months[mIdx];
+  if (!month || !month.rows || !month.rows[rIdx]) return;
+  const row = month.rows[rIdx];
+  const rowAgg = getLeaderGdvRowAgg(mIdx, rIdx, row);
+
+  if (!rowAgg || !rowAgg.totalQty || rowAgg.totalQty <= 0) {
+    // Thử làm mới lại từ server 1 lần phòng trường hợp GDV vừa mới lưu
+    aggData = await ensureLeaderGdvAggregateLoaded(true);
+    const freshRowAgg = getLeaderGdvRowAgg(mIdx, rIdx, row);
+    if (!freshRowAgg || !freshRowAgg.totalQty || freshRowAgg.totalQty <= 0) {
+      const gdvNames = (aggData && aggData.gdvList) ? aggData.gdvList.map(g => g.shortName).join(', ') : 'các GDV phụ trách';
+      showToast(`ℹ️ Mục [${row.stt}]: Các GDV phụ trách (${gdvNames}) chưa phát sinh số lượng ở tháng này.`, 3500);
+      return;
+    }
+    return applyRowGdvAggregation(mIdx, rIdx, freshRowAgg, addMode);
+  }
+
+  applyRowGdvAggregation(mIdx, rIdx, rowAgg, addMode);
+}
+
+function applyRowGdvAggregation(mIdx, rIdx, rowAgg, addMode = false) {
+  const month = appState.months[mIdx];
+  if (!month || !month.rows || !month.rows[rIdx]) return;
+  const row = month.rows[rIdx];
+
+  const oldQty = Number(row.soluong_tt) || 0;
+  const newQty = addMode ? (oldQty + rowAgg.totalQty) : rowAgg.totalQty;
+  const breakdownStr = (rowAgg.breakdown || []).map(b => `${b.shortName}: ${b.qty}`).join(', ');
+  const noteStr = `Cộng gộp GDV phụ trách (${rowAgg.totalQty}): ${breakdownStr}`;
+
+  row.soluong_tt = newQty;
+  row.co_thuchien = newQty > 0 ? 'Có' : 'Không';
+  row.note_sl = noteStr;
+  updateRowOutputDetail(row);
+
+  if (mIdx === 0) {
+    // Khi cộng gộp ở Tháng thứ nhất, đồng thời tự động cộng gộp số liệu thực tế tương ứng của Tháng 2 và Tháng 3 từ GDV nếu dòng đó chưa tùy chỉnh riêng!
+    [1, 2].forEach(otherMIdx => {
+      const targetMonth = appState.months[otherMIdx];
+      if (targetMonth && targetMonth.rows && targetMonth.rows[rIdx]) {
+        const targetRow = targetMonth.rows[rIdx];
+        if (!targetRow._isCustomized) {
+          const otherAgg = getLeaderGdvRowAgg(otherMIdx, rIdx, targetRow) || rowAgg;
+          const otherQty = otherAgg && otherAgg.totalQty > 0 ? otherAgg.totalQty : newQty;
+          const otherBd = (otherAgg && otherAgg.breakdown ? otherAgg.breakdown : (rowAgg.breakdown || [])).map(b => `${b.shortName}: ${b.qty}`).join(', ');
+          targetRow.soluong_tt = otherQty;
+          targetRow.co_thuchien = otherQty > 0 ? 'Có' : 'Không';
+          targetRow.note_sl = `Cộng gộp GDV phụ trách (${otherQty}): ${otherBd}`;
+          updateRowOutputDetail(targetRow);
+        }
+      }
+    });
+  } else {
+    row._isCustomized = true;
+  }
+
+  saveState();
+  if (typeof triggerLocalDraftAutosave === 'function') triggerLocalDraftAutosave();
+  renderMonthTable24();
+  renderDashboard();
+  renderPrintForms();
+
+  showToast(`✅ Mục [${row.stt}]: Đã cộng gộp ${newQty} ${row.sp_daura || 'SP'} (${breakdownStr})!`, 3500);
+}
+
+async function aggregateAllRowsFromGdv(allThreeMonths = false) {
+  showToast('⏳ Đang tải và cộng gộp số liệu mới nhất từ các GDV phụ trách...', 2000);
+  const aggData = await ensureLeaderGdvAggregateLoaded(true);
+  if (!aggData || !aggData.months) {
+    alert('Không tải được dữ liệu của các GDV phụ trách.');
+    return;
+  }
+
+  const gdvNames = (aggData.gdvList || []).map(g => g.name).join(', ');
+  const mIdx = appState.activeMonthIdx;
+  const scopeLabel = allThreeMonths
+    ? `cả 3 tháng trong ${appState.officer.quarter}/${appState.officer.year}`
+    : `${appState.months[mIdx] ? appState.months[mIdx].name : 'tháng hiện tại'}`;
+
+  if (!confirm(`⚡ CỘNG GỘP TỰ ĐỘNG TỪ GDV PHỤ TRÁCH:\n\n• Lãnh đạo: ${appState.officer.name}\n• Nhóm GDV phụ trách (${(aggData.gdvList || []).length}): ${gdvNames}\n• Phạm vi cộng gộp: Toàn bộ công việc chuyên môn (Mục II) của ${scopeLabel}\n\nHệ thống sẽ tự động cộng tổng số lượng thực tế từ các GDV phụ trách vào từng dòng công việc tương ứng và ghi chú chi tiết từng GDV.\n\nBấm [OK] để thực hiện ngay.`)) {
+    return;
+  }
+
+  const targetMonths = allThreeMonths ? [0, 1, 2] : [mIdx];
+  let updatedRowsCount = 0;
+  const tmpl = window.MAU02A_TEMPLATE_ROWS || [];
+
+  targetMonths.forEach(tmIdx => {
+    const monthObj = appState.months[tmIdx];
+    if (!monthObj || !monthObj.rows) return;
+    monthObj.rows.forEach((r, rIdx) => {
+      if (!r || !r.isTask) return;
+      const isSec1 = (r.stt === 'I' || (r.parent_level1 && r.parent_level1.includes('VỊ TRÍ LÃNH ĐẠO')) || (tmpl[rIdx] && tmpl[rIdx].parent_level1 && tmpl[rIdx].parent_level1.includes('VỊ TRÍ LÃNH ĐẠO')) || rIdx <= 6);
+      if (isSec1) return; // Chỉ cộng gộp đối với Mục II (công việc do GDV trực tiếp thực hiện)
+
+      const rowAgg = getLeaderGdvRowAgg(tmIdx, rIdx, r);
+      if (rowAgg && rowAgg.totalQty > 0) {
+        const breakdownStr = (rowAgg.breakdown || []).map(b => `${b.shortName}: ${b.qty}`).join(', ');
+        r.soluong_tt = rowAgg.totalQty;
+        r.co_thuchien = 'Có';
+        r.note_sl = `Cộng gộp GDV phụ trách (${rowAgg.totalQty}): ${breakdownStr}`;
+        if (tmIdx > 0) r._isCustomized = true;
+        updateRowOutputDetail(r);
+        updatedRowsCount++;
+      }
+    });
+  });
+
+  saveState();
+  await saveActiveSession(false);
+  renderMonthTable24();
+  renderDashboard();
+  renderPrintForms();
+
+  showToast(`🎉 Đã cộng gộp thành công ${updatedRowsCount} lượt chỉ tiêu từ ${(aggData.gdvList || []).length} GDV phụ trách và lưu vào CSDL!`, 4500);
+}
+
+function openSelectSubordinateGdvModal() {
+  const offId = (appState.officer && appState.officer.officerId) || 'hoang';
+  const currentSelected = new Set(getLeaderSubordinateGdvIds(offId));
+  const allOfficers = window.OFFICERS_ASSIGNMENTS || {};
+  const gdvEntries = Object.entries(allOfficers).filter(([id, o]) => o && o.role === 'GDV');
+
+  let modal = document.getElementById('leaderSelectGdvModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'leaderSelectGdvModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:99998;display:flex;align-items:center;justify-content:center;padding:16px;';
+    document.body.appendChild(modal);
+  }
+
+  const trungTamGdvs = gdvEntries.filter(([id]) => !id.startsWith('qn_'));
+  const quangNgaiGdvs = gdvEntries.filter(([id]) => id.startsWith('qn_'));
+
+  const renderCheckList = (list) => list.map(([id, o]) => {
+    const checked = currentSelected.has(id) ? 'checked' : '';
+    return `
+      <label style="display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid #e2e8f0;border-radius:5px;background:${checked ? '#ebf8ff' : '#fff'};cursor:pointer;font-size:12px;">
+        <input type="checkbox" class="chk-leader-gdv-item" value="${id}" ${checked} style="margin:0;">
+        <span style="font-weight:600;color:#1e293b;">${escapeHtml(o.name || id)}</span>
+      </label>
+    `;
+  }).join('');
+
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:8px;max-width:680px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 10px 25px rgba(0,0,0,0.25);overflow:hidden;">
+      <div style="background:#1a365d;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <strong style="font-size:14px;">⚙️ CẤU HÌNH DANH SÁCH GDV PHỤ TRÁCH ĐỂ CỘNG GỘP SỐ LƯỢNG</strong>
+          <div style="font-size:11.5px;color:#cbd5e0;margin-top:2px;">Lãnh đạo: ${escapeHtml(appState.officer.name)} — Chọn các Giao dịch viên thuộc luồng phụ trách/ký duyệt</div>
+        </div>
+        <button type="button" onclick="document.getElementById('leaderSelectGdvModal').style.display='none'" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;">✕</button>
+      </div>
+      <div style="padding:12px 16px;overflow-y:auto;flex:1;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+          <button type="button" class="btn btn-sm" onclick="applyLeaderGdvPreset('default')" style="background:#2b6cb0;color:#fff;font-size:11px;padding:3px 8px;border-radius:4px;border:none;cursor:pointer;font-weight:700;">📌 Mặc định theo Bảng phân công</button>
+          <button type="button" class="btn btn-sm" onclick="applyLeaderGdvPreset('trungtam')" style="background:#edf2f7;color:#2d3748;font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid #cbd5e0;cursor:pointer;font-weight:600;">🏢 Toàn bộ 15 GDV Trung tâm</button>
+          <button type="button" class="btn btn-sm" onclick="applyLeaderGdvPreset('quangngai')" style="background:#edf2f7;color:#2d3748;font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid #cbd5e0;cursor:pointer;font-weight:600;">🏛️ Toàn bộ 14 GDV Quảng Ngãi</button>
+          <button type="button" class="btn btn-sm" onclick="applyLeaderGdvPreset('all')" style="background:#edf2f7;color:#2d3748;font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid #cbd5e0;cursor:pointer;font-weight:600;">✅ Tất cả 29 GDV toàn phòng</button>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:#2b6cb0;margin:8px 0 6px;">1. Giao dịch viên tại Trung tâm (${trungTamGdvs.length} GDV):</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:6px;">
+          ${renderCheckList(trungTamGdvs)}
+        </div>
+        <div style="font-size:12px;font-weight:700;color:#2b6cb0;margin:12px 0 6px;">2. Giao dịch viên tại Quảng Ngãi (${quangNgaiGdvs.length} GDV):</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:6px;">
+          ${renderCheckList(quangNgaiGdvs)}
+        </div>
+      </div>
+      <div style="padding:10px 16px;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:8px;">
+        <button type="button" class="btn btn-sm" onclick="document.getElementById('leaderSelectGdvModal').style.display='none'" style="background:#fff;border:1px solid #cbd5e0;padding:5px 12px;border-radius:4px;cursor:pointer;">Đóng</button>
+        <button type="button" class="btn btn-sm" onclick="saveSelectedSubordinateGdvsFromModal()" style="background:#276749;color:#fff;font-weight:700;border:none;padding:5px 14px;border-radius:4px;cursor:pointer;">💾 Áp dụng &amp; Tải số liệu cộng gộp</button>
+      </div>
+    </div>
+  `;
+  modal.style.display = 'flex';
+}
+
+function applyLeaderGdvPreset(preset) {
+  const offId = (appState.officer && appState.officer.officerId) || 'hoang';
+  const defSet = new Set(DEFAULT_LEADER_GDV_MAP[offId] || []);
+  document.querySelectorAll('.chk-leader-gdv-item').forEach(chk => {
+    const id = chk.value;
+    if (preset === 'default') chk.checked = defSet.has(id);
+    else if (preset === 'trungtam') chk.checked = !id.startsWith('qn_');
+    else if (preset === 'quangngai') chk.checked = id.startsWith('qn_');
+    else if (preset === 'all') chk.checked = true;
+  });
+}
+
+function saveSelectedSubordinateGdvsFromModal() {
+  const offId = (appState.officer && appState.officer.officerId) || 'hoang';
+  const selected = [];
+  document.querySelectorAll('.chk-leader-gdv-item:checked').forEach(chk => selected.push(chk.value));
+  if (selected.length === 0) {
+    alert('Vui lòng chọn ít nhất 1 Giao dịch viên!');
+    return;
+  }
+  const modal = document.getElementById('leaderSelectGdvModal');
+  if (modal) modal.style.display = 'none';
+  setLeaderSubordinateGdvIds(offId, selected);
+  showToast(`✅ Đã cập nhật danh sách ${selected.length} GDV phụ trách!`, 3000);
+}
+
+function renderLeaderGdvAggregateToolbar() {
+  const container = document.getElementById('leaderGdvAggregateToolbar');
+  if (!container) return;
+
+  const offId = (appState.officer && appState.officer.officerId) || 'hoang';
+  const role = (appState.officer && appState.officer.role) || 'GDV';
+  const isLeaderRole = (role === 'TP' || role === 'PTP' || (appState.officer && appState.officer.isLeader));
+  if (!isLeaderRole || appState.activeMonthIdx === 3) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const gdvIds = getLeaderSubordinateGdvIds(offId);
+  const allOfficers = window.OFFICERS_ASSIGNMENTS || {};
+  const aggData = _leaderGdvAggCache.data;
+  const gdvBadgesHtml = gdvIds.map(gid => {
+    const meta = (aggData && aggData.gdvList) ? aggData.gdvList.find(x => x.id === gid) : null;
+    const fullName = (meta && meta.name) || (allOfficers[gid] && allOfficers[gid].name) || gid;
+    const parts = fullName.trim().split(/\s+/);
+    const shortName = parts.length >= 2 ? parts.slice(-2).join(' ') : fullName;
+    const hasData = meta ? meta.hasData : false;
+    return `<span style="display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:3px;font-size:11px;font-weight:600;background:${hasData ? '#f0fff4' : '#f7fafc'};color:${hasData ? '#22543d' : '#4a5568'};border:1px solid ${hasData ? '#9ae6b4' : '#cbd5e0'};" title="${escapeHtml(fullName)}${meta ? ' (' + meta.activeTasksCount + ' việc)' : ''}">${hasData ? '🟢' : '⚪'} ${escapeHtml(shortName)}</span>`;
+  }).join(' ');
+
+  // Đếm số dòng Mục II có phát sinh số lượng từ GDV trong tháng đang chọn
+  const mIdx = appState.activeMonthIdx || 0;
+  const mAgg = (aggData && aggData.months && aggData.months[mIdx]) ? aggData.months[mIdx] : null;
+  const gdvActiveRowCount = mAgg && mAgg.rowsByIdx ? Object.keys(mAgg.rowsByIdx).filter(k => Number(k) > 6 && mAgg.rowsByIdx[k].totalQty > 0).length : 0;
+
+  container.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 10px;background:linear-gradient(90deg,#f0f9ff,#e0f2fe);border:1px solid #bae6fd;border-left:4px solid #0284c7;border-radius:5px;margin-bottom:5px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <span style="font-size:11.5px;font-weight:800;color:#0369a1;white-space:nowrap;">∑ Cộng gộp từ GDV phụ trách (${gdvIds.length}):</span>
+        <div style="display:inline-flex;gap:4px;flex-wrap:wrap;align-items:center;">${gdvBadgesHtml}</div>
+        <button type="button" onclick="openSelectSubordinateGdvModal()" style="background:#fff;color:#0369a1;border:1px solid #7dd3fc;border-radius:3px;padding:1px 6px;font-size:10.5px;font-weight:700;cursor:pointer;" title="Thay đổi hoặc chọn thêm GDV phụ trách (khi duyệt thay LĐP khác)">⚙️ Chọn GDV</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+        <span style="font-size:11px;color:#0c4a6e;">Phát sinh GDV tháng này: <strong>${gdvActiveRowCount} việc</strong> (bấm nút <strong>+∑</strong> ở Cột 11 từng dòng hoặc cộng gộp nhanh):</span>
+        <button type="button" onclick="aggregateAllRowsFromGdv(false)" style="background:#0284c7;color:#fff;border:none;border-radius:4px;padding:3px 9px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:3px;box-shadow:0 1px 2px rgba(0,0,0,0.12);" title="Tự động điền tổng số lượng của các GDV phụ trách vào toàn bộ các dòng Mục II trong tháng đang mở">
+          ⚡ Cộng gộp Tháng này
+        </button>
+        <button type="button" onclick="aggregateAllRowsFromGdv(true)" style="background:#0f766e;color:#fff;border:none;border-radius:4px;padding:3px 9px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:3px;box-shadow:0 1px 2px rgba(0,0,0,0.12);" title="Tự động cộng gộp số lượng từ các GDV phụ trách cho cả 3 Tháng trong Quý">
+          ⚡ Cộng gộp cả Quý (3 tháng)
+        </button>
+        <button type="button" onclick="ensureLeaderGdvAggregateLoaded(true)" style="background:#fff;color:#0369a1;border:1px solid #7dd3fc;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;cursor:pointer;" title="Tải lại số liệu mới nhất từ các GDV phụ trách">
+          🔄
+        </button>
+      </div>
+    </div>
+  `;
+}
+
 function renderMonthTable24() {
   updateMonthIndicator();
+  const _curRoleCheck = (appState.officer && appState.officer.role) || 'GDV';
+  if (_curRoleCheck === 'TP' || _curRoleCheck === 'PTP' || (appState.officer && appState.officer.isLeader)) {
+    const _curOffId = (appState.officer && appState.officer.officerId) || 'hoang';
+    const _curQ = (appState.officer && appState.officer.quarter) || 'Quý III';
+    const _curY = (appState.officer && appState.officer.year) || 2026;
+    const _gdvIds = getLeaderSubordinateGdvIds(_curOffId);
+    const _expectedKey = `${_curOffId}__${normalizeQuarter(_curQ)}__${_curY}__${_gdvIds.join(',')}`;
+    if (_leaderGdvAggCache.key !== _expectedKey && !_leaderGdvAggCache.loading) {
+      ensureLeaderGdvAggregateLoaded(false);
+    }
+  }
+  renderLeaderGdvAggregateToolbar();
 
     // 🔒 KIỂM TRA TRẠNG THÁI KHÓA & HIỂN THỊ BANNER PHÊ DUYỆT
     const loggedUserNow = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || 'hoang';
@@ -5965,7 +6344,7 @@ function renderMonthTable24() {
       <th rowspan="2" style="width: 65px;">(8)<br>Điểm tháng (đã HS)</th>
       <th rowspan="2" style="width: 45px;">(9)<br>Hệ số</th>
       <th rowspan="2" class="th-input-yellow" style="width: 75px;">(10)<br>Thực hiện?</th>
-      <th rowspan="2" class="th-input-yellow" style="width: 95px;">(11)<br>Số lượng thực tế</th>
+      <th rowspan="2" class="th-input-yellow" style="width: ${(role === 'TP' || role === 'PTP') ? '128px' : '95px'};">(11)<br>Số lượng thực tế${(role === 'TP' || role === 'PTP') ? '<br><span style="font-size:9.5px;font-weight:700;color:#0369a1;">(∑ Gộp GDV)</span>' : ''}</th>
       <th colspan="3">(12 - 14) Chấm điểm số lượng</th>
       <th colspan="3">(15 - 17) Chấm điểm chất lượng (-25%/lỗi)</th>
       <th colspan="3">(18 - 20) Chấm điểm tiến độ (-25%/chậm)</th>
@@ -6159,10 +6538,21 @@ function renderMonthTable24() {
           </select>
         </td>
 
-        <!-- Cột (11) [Bôi vàng khi Có]: Số lượng thực tế kèm Ghi chú Tooltip Excel -->
+        <!-- Cột (11) [Bôi vàng khi Có]: Số lượng thực tế kèm Nút Cộng gộp GDV (dành cho Lãnh đạo ở Mục II) & Ghi chú Tooltip Excel -->
         <td style="text-align: center;">
-          <div class="cell-note-wrapper ${r.note_sl ? 'has-note' : ''}">
-            <input ${isLocked ? 'disabled' : ''} type="number" min="0" value="${r.soluong_tt || 0}" class="${isCo ? 'input-yellow' : 'input-neutral'}" onchange="updateRow24(${rIdx}, 'soluong_tt', Number(this.value))" style="width: 58px; text-align: center; ${!isCo ? 'color: #a0aec0;' : ''}">
+          <div class="cell-note-wrapper ${r.note_sl ? 'has-note' : ''}" style="display: inline-flex; align-items: center; justify-content: center; gap: 2px;">
+            <input ${isLocked ? 'disabled' : ''} type="number" min="0" value="${r.soluong_tt || 0}" class="${isCo ? 'input-yellow' : 'input-neutral'}" onchange="updateRow24(${rIdx}, 'soluong_tt', Number(this.value))" style="width: ${(role === 'TP' || role === 'PTP') && !isSec1 ? '52px' : '58px'}; text-align: center; ${!isCo ? 'color: #a0aec0;' : ''}">
+            ${(() => {
+              if ((role !== 'TP' && role !== 'PTP') || isSec1) return '';
+              const gdvAgg = getLeaderGdvRowAgg(mIdx, rIdx, r);
+              if (gdvAgg && gdvAgg.totalQty > 0) {
+                const isSynced = (Number(r.soluong_tt) === gdvAgg.totalQty && isCo);
+                const bdText = (gdvAgg.breakdown || []).map(b => `${b.fullName}: ${b.qty}`).join(' | ');
+                const tip = `📥 Cộng gộp từ GDV phụ trách: Tổng = ${gdvAgg.totalQty} (${bdText}).\n👉 Bấm chuột trái để điền ${gdvAgg.totalQty} vào ô Số lượng.\n👉 Giữ phím Shift + Bấm để cộng dồn (+${gdvAgg.totalQty}) vào số hiện có.`;
+                return `<button type="button" ${isLocked ? 'disabled' : ''} onclick="aggregateSingleRowFromGdv(event, ${rIdx})" style="height: 22px; padding: 0 5px; font-size: 10px; font-weight: 800; border-radius: 3px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; border: 1px solid ${isSynced ? '#68d391' : '#38bdf8'}; background: ${isSynced ? '#dcfce7' : '#e0f2fe'}; color: ${isSynced ? '#166534' : '#0369a1'}; box-shadow: 0 1px 2px rgba(0,0,0,0.06);" title="${escapeHtml(tip)}">${isSynced ? '✓∑' : '+∑'}${gdvAgg.totalQty}</button>`;
+              }
+              return `<button type="button" ${isLocked ? 'disabled' : ''} onclick="aggregateSingleRowFromGdv(event, ${rIdx})" style="height: 22px; padding: 0 4px; font-size: 10px; font-weight: 700; border-radius: 3px; cursor: pointer; border: 1px solid #cbd5e0; background: #f8fafc; color: #64748b;" title="Bấm để kiểm tra & cộng gộp số lượng từ các GDV phụ trách cho công việc này">∑GDV</button>`;
+            })()}
             <button type="button" class="btn-note-trigger ${r.note_sl ? 'active' : ''}" onclick="openExcelNotePopover(event, ${rIdx}, 'note_sl', 'Số lượng TT (Mục ${escapeHtml(r.stt)})')" title="${r.note_sl ? escapeHtml(r.note_sl) : 'Thêm ghi chú ô tính'}">💬</button>
             ${r.note_sl ? `<div class="excel-note-tooltip"><strong>📌 Ghi chú:</strong><br>${escapeHtml(r.note_sl)}</div>` : ''}
           </div>
@@ -6509,10 +6899,12 @@ function selectMonthTab(mIdx) {
   const monthlyContainer = document.getElementById('monthlyTableContainer');
   const quarterPane = document.getElementById('quarterSummaryPane');
   const filterToolbar = document.getElementById('monthlyFilterToolbar');
+  const leaderGdvToolbar = document.getElementById('leaderGdvAggregateToolbar');
 
   if (mIdx === 3) {
     if (monthlyContainer) monthlyContainer.style.display = 'none';
     if (filterToolbar) filterToolbar.style.display = 'none';
+    if (leaderGdvToolbar) leaderGdvToolbar.style.display = 'none';
     if (quarterPane) {
       quarterPane.style.display = 'block';
       renderQuarterSummarySheet();
@@ -6520,6 +6912,7 @@ function selectMonthTab(mIdx) {
   } else {
     if (monthlyContainer) monthlyContainer.style.display = 'block';
     if (filterToolbar) filterToolbar.style.display = 'flex';
+    if (leaderGdvToolbar) leaderGdvToolbar.style.display = 'block';
     if (quarterPane) quarterPane.style.display = 'none';
     appState.activeMonthIdx = mIdx;
     updateMonthIndicator();

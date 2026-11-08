@@ -2221,6 +2221,148 @@ async function handleKpiRequest(req, res) {
       }
   }
 
+  // --- API CỘNG GỘP SỐ LƯỢNG CÔNG VIỆC CHI TIẾT TỪ GDV PHỤ TRÁCH CHO LÃNH ĐẠO PHÒNG ---
+  if (pathname === '/api/leader-aggregate' && req.method === 'GET') {
+    try {
+      const leaderId = (searchParams.get('leaderId') || 'hoang').trim();
+      const qRaw = searchParams.get('quarter') || 'Quý III';
+      const yNum = Number(searchParams.get('year')) || 2026;
+      const gdvIdsParam = (searchParams.get('gdvIds') || '').trim();
+
+      const DEFAULT_LEADER_SUBORDINATE_GDVS = {
+        son: ['my', 'mai'],
+        hoang: ['thao_t', 'trung', 'huong', 'nam', 'vui'],
+        tuan: ['truc', 'thao_p', 'thu', 'thuy'],
+        anh: ['huyet', 'tu', 'thy', 'quynh'],
+        qn_trung: ['qn_hung', 'qn_phuong_lan', 'qn_minh', 'qn_anh', 'qn_trang', 'qn_tam', 'qn_lien', 'qn_thuy_bich', 'qn_thuy_le'],
+        qn_phuong_tp: ['qn_nghia', 'qn_quyen', 'qn_tuyen', 'qn_nga', 'qn_thao']
+      };
+
+      const targetGdvIds = gdvIdsParam
+        ? gdvIdsParam.split(',').map(s => s.trim()).filter(Boolean)
+        : (DEFAULT_LEADER_SUBORDINATE_GDVS[leaderId] || []);
+
+      const officersCfg = getLocalOfficers() || {};
+      const qNorm = normalizeQuarter(qRaw);
+
+      // Truy xuất nhanh các phiên của nhóm GDV mục tiêu từ MongoDB (nếu có) + RAM Cache
+      const filenamesToFetch = [];
+      for (const gid of targetGdvIds) {
+        const fn1 = getSessionFilename(gid, qRaw, yNum);
+        const fn2 = fn1.includes('Quy') ? fn1.replace(/Quy/g, 'Quý') : fn1.replace(/Quý/g, 'Quy');
+        filenamesToFetch.push(fn1, fn2);
+      }
+
+      const mongoMap = {};
+      if (kpiDb && filenamesToFetch.length > 0) {
+        try {
+          const docs = await kpiDb.collection('sessions')
+            .find({ filename: { $in: filenamesToFetch } })
+            .toArray();
+          for (const d of docs) {
+            if (d && d.officerId && d.data) {
+              mongoMap[d.officerId] = pickBestSession(mongoMap[d.officerId], d.data);
+            }
+          }
+        } catch (e) {}
+      }
+
+      const monthsAgg = [
+        { monthIdx: 0, rowsByIdx: {}, rowsByStt: {} },
+        { monthIdx: 1, rowsByIdx: {}, rowsByStt: {} },
+        { monthIdx: 2, rowsByIdx: {}, rowsByStt: {} }
+      ];
+      const gdvMetaList = [];
+
+      for (const gid of targetGdvIds) {
+        const fn1 = getSessionFilename(gid, qRaw, yNum);
+        const fn2 = fn1.includes('Quy') ? fn1.replace(/Quy/g, 'Quý') : fn1.replace(/Quý/g, 'Quy');
+        const sess = pickBestSession(mongoMap[gid], getLocalSession(fn1), getLocalSession(fn2));
+        const cfg = officersCfg[gid] || {};
+        const fullName = cfg.name || (sess && sess.officer && sess.officer.name) || gid;
+        const nameParts = fullName.trim().split(/\s+/);
+        const shortName = nameParts.length >= 2 ? nameParts.slice(-2).join(' ') : fullName;
+        const activeCount = countSessionActiveTasks(sess);
+
+        gdvMetaList.push({
+          id: gid,
+          name: fullName,
+          shortName,
+          hasData: activeCount > 0,
+          activeTasksCount: activeCount,
+          status: (sess && sess.status) || 'chua_nop'
+        });
+
+        if (!sess || !sess.months) continue;
+        const mArr = Array.isArray(sess.months) ? sess.months : Object.values(sess.months);
+
+        for (let mIdx = 0; mIdx < 3; mIdx++) {
+          const mObj = mArr[mIdx];
+          if (!mObj) continue;
+          const rows = (Array.isArray(mObj.rows) && mObj.rows.length > 0)
+            ? mObj.rows
+            : (Array.isArray(mObj.deltaRows) ? mObj.deltaRows : []);
+
+          rows.forEach((r, idx) => {
+            if (!r) return;
+            const rIdx = (r.rowIndex !== undefined && Array.isArray(mObj.deltaRows)) ? r.rowIndex : idx;
+            const qty = Number(r.soluong_tt) || 0;
+            if (r.co_thuchien === 'Có' && qty > 0) {
+              const err = Number(r.cl_loi) || 0;
+              const dly = Number(r.td_cham) || 0;
+              const sttKey = String(r.stt || '').trim();
+              const workKey = `${sttKey}||${String(r.congviec || '').trim()}`;
+
+              if (!monthsAgg[mIdx].rowsByIdx[rIdx]) {
+                monthsAgg[mIdx].rowsByIdx[rIdx] = { totalQty: 0, totalErrors: 0, totalDelays: 0, breakdown: [] };
+              }
+              monthsAgg[mIdx].rowsByIdx[rIdx].totalQty += qty;
+              monthsAgg[mIdx].rowsByIdx[rIdx].totalErrors += err;
+              monthsAgg[mIdx].rowsByIdx[rIdx].totalDelays += dly;
+              monthsAgg[mIdx].rowsByIdx[rIdx].breakdown.push({
+                id: gid,
+                shortName,
+                fullName,
+                qty,
+                errors: err,
+                delays: dly
+              });
+
+              if (sttKey) {
+                if (!monthsAgg[mIdx].rowsByStt[workKey]) {
+                  monthsAgg[mIdx].rowsByStt[workKey] = { totalQty: 0, totalErrors: 0, totalDelays: 0, breakdown: [] };
+                }
+                monthsAgg[mIdx].rowsByStt[workKey].totalQty += qty;
+                monthsAgg[mIdx].rowsByStt[workKey].totalErrors += err;
+                monthsAgg[mIdx].rowsByStt[workKey].totalDelays += dly;
+                monthsAgg[mIdx].rowsByStt[workKey].breakdown.push({
+                  id: gid,
+                  shortName,
+                  fullName,
+                  qty,
+                  errors: err,
+                  delays: dly
+                });
+              }
+            }
+          });
+        }
+      }
+
+      return sendJson(res, 200, {
+        success: true,
+        leaderId,
+        quarter: qRaw,
+        quarterNorm: qNorm,
+        year: yNum,
+        gdvList: gdvMetaList,
+        months: monthsAgg
+      });
+    } catch (err) {
+      return sendJson(res, 500, { success: false, error: err.message });
+    }
+  }
+
   // --- API LẤY LỊCH SỬ CÁC BẢN SAO LƯU (SNAPSHOT HISTORY) ---
   if (pathname === '/api/session/history' && req.method === 'GET') {
     const officerId = searchParams.get('officerId');
