@@ -5813,10 +5813,72 @@ function setLeaderSubordinateGdvIds(leaderId, gdvIds) {
   ensureLeaderGdvAggregateLoaded(true);
 }
 
+function computeOfflineLocalLeaderGdvAggregate(offId, curQ, curY, gdvIds) {
+  const allOfficers = window.OFFICERS_ASSIGNMENTS || {};
+  const monthsAgg = [
+    { rowsByIdx: {}, rowsByStt: {} },
+    { rowsByIdx: {}, rowsByStt: {} },
+    { rowsByIdx: {}, rowsByStt: {} }
+  ];
+  const gdvList = [];
+  for (const gid of gdvIds) {
+    const oMeta = allOfficers[gid] || { name: gid, role: 'GDV' };
+    let st = null;
+    try {
+      const k = typeof getSessionStorageKey === 'function' ? getSessionStorageKey(gid, curQ, curY) : `KPI_KTNN_KBXV_V18_STATE_${gid}_${normalizeQuarter(curQ)}_${curY}`;
+      const raw = localStorage.getItem(k);
+      if (raw) st = JSON.parse(raw);
+    } catch (e) {}
+    const fullName = (st && st.officer && st.officer.name) || oMeta.name || gid;
+    const parts = fullName.trim().split(/\s+/);
+    const shortName = parts.length >= 2 ? parts.slice(-2).join(' ') : fullName;
+    let hasData = false;
+    let activeTasksCount = 0;
+    if (st && Array.isArray(st.months)) {
+      for (let mIdx = 0; mIdx < 3; mIdx++) {
+        const mObj = st.months[mIdx];
+        if (!mObj || !Array.isArray(mObj.rows)) continue;
+        mObj.rows.forEach((r, rIdx) => {
+          if (!r || !r.isTask) return;
+          const isCo = (r.co_thuchien === 'Có');
+          const qty = Number(r.soluong_tt) || 0;
+          if (!isCo || qty <= 0) return;
+          hasData = true;
+          if (mIdx === 0) activeTasksCount++;
+          if (!monthsAgg[mIdx].rowsByIdx[rIdx]) {
+            monthsAgg[mIdx].rowsByIdx[rIdx] = { totalQty: 0, stt: r.stt || '', breakdown: [] };
+          }
+          monthsAgg[mIdx].rowsByIdx[rIdx].totalQty += qty;
+          monthsAgg[mIdx].rowsByIdx[rIdx].breakdown.push({ gdvId: gid, shortName, fullName, qty });
+          const sttKey = String(r.stt || '').trim();
+          const workKey = `${sttKey}||${String(r.congviec || '').trim()}`;
+          if (sttKey) {
+            if (!monthsAgg[mIdx].rowsByStt[workKey]) {
+              monthsAgg[mIdx].rowsByStt[workKey] = { totalQty: 0, stt: sttKey, breakdown: [] };
+            }
+            monthsAgg[mIdx].rowsByStt[workKey].totalQty += qty;
+            monthsAgg[mIdx].rowsByStt[workKey].breakdown.push({ gdvId: gid, shortName, fullName, qty });
+          }
+        });
+      }
+    }
+    gdvList.push({ id: gid, name: fullName, shortName, hasData, activeTasksCount });
+  }
+  return {
+    success: true,
+    leaderId: offId,
+    quarter: curQ,
+    year: Number(curY) || 2026,
+    gdvIds,
+    gdvList,
+    months: monthsAgg
+  };
+}
+
 async function ensureLeaderGdvAggregateLoaded(forceRefresh = false) {
   const offId = (appState.officer && appState.officer.officerId) || 'hoang';
   const role = (appState.officer && appState.officer.role) || 'GDV';
-  const isLeaderRole = (role === 'TP' || role === 'PTP' || (appState.officer && appState.officer.isLeader));
+  const isLeaderRole = (role === 'TP' || role === 'PTP' || role === 'TRUONG_PGD' || role === 'PHO_PGD' || (appState.officer && appState.officer.isLeader));
   if (!isLeaderRole) return null;
 
   const curQ = (appState.officer && appState.officer.quarter) || 'Quý III';
@@ -5846,11 +5908,18 @@ async function ensureLeaderGdvAggregateLoaded(forceRefresh = false) {
       }
     }
   } catch (e) {
-    console.warn('Lỗi tải dữ liệu cộng gộp GDV:', e);
+    console.warn('Chế độ Offline — tính cộng gộp GDV từ bộ nhớ trình duyệt (localStorage):', e);
   } finally {
     _leaderGdvAggCache.loading = false;
   }
-  return _leaderGdvAggCache.data;
+  const fallbackJson = computeOfflineLocalLeaderGdvAggregate(offId, curQ, curY, gdvIds);
+  _leaderGdvAggCache = {
+    key: cacheKey,
+    loading: false,
+    data: fallbackJson
+  };
+  renderMonthTable24();
+  return fallbackJson;
 }
 
 function getLeaderGdvRowAgg(mIdx, rIdx, rowObj) {
