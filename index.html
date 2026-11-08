@@ -4893,38 +4893,25 @@ function hasAnyMonthlyData(state) {
 
 async function switchQuarter(newQuarter) {
   const oldQuarter = appState.officer.quarter || "Quý III";
-  const defaultTemplate = window.MAU02A_TEMPLATE_ROWS || [];
   const curY = (appState.officer && appState.officer.year) || 2026;
   const offId = (appState.officer && appState.officer.officerId) || 'hoang';
 
   if (!appState.quartersData) appState.quartersData = {};
 
-  // 1. Lưu số liệu của quý hiện tại vào bộ nhớ quý và lưu phiên nếu thực sự có dữ liệu
-  if (appState.months && appState.months.length === 3) {
-    appState.quartersData[oldQuarter] = JSON.parse(JSON.stringify(appState.months));
-  }
+  // 1. Chỉ lưu phiên của quý cũ nếu thực sự có dữ liệu công việc thực hiện
   if (hasAnyMonthlyData(appState)) {
+    if (appState.months && appState.months.length === 3) {
+      appState.quartersData[oldQuarter] = JSON.parse(JSON.stringify(appState.months));
+    }
     await saveActiveSession(false);
   }
 
-  // 2. Gán quý mới
+  // 2. Gán quý mới và lưu vào sessionStorage
   appState.officer.quarter = newQuarter;
+  try { sessionStorage.setItem('KBXV_CURRENT_QUARTER', newQuarter); } catch (e) {}
 
-  // 3. Nếu trong quartersData đã có quý mới và có rows thực tế
-  const qMonths = getQuarterMonthsInfo(newQuarter, curY);
-  if (appState.quartersData[newQuarter] && appState.quartersData[newQuarter].length === 3 && appState.quartersData[newQuarter][0].rows && appState.quartersData[newQuarter][0].rows.length > 0) {
-    appState.months = appState.quartersData[newQuarter];
-    appState.months.forEach((m, idx) => {
-      m.monthNum = qMonths[idx].monthNum;
-      m.name = qMonths[idx].name;
-    });
-    appState.activeMonthIdx = 0;
-    saveState();
-    renderAll();
-    return;
-  }
-
-  // 4. Nếu chưa có trong quartersData, tải phiên từ Server/LocalStorage cho quý mới
+  // 3. LUÔN tải phiên làm việc chuẩn xác của quý mới từ Server / LocalStorage riêng của từng quý
+  // Tuyệt đối không lấy mảng rỗng từ quartersData ghi đè lên dữ liệu đã chấm của cán bộ!
   await loadSessionForOfficer(offId, newQuarter, curY);
 
   // Lưu ý: Không tự ý kế thừa ngầm khi chuyển quý - để người dùng chủ động bấm nút "Kế thừa từ quý trước" nếu muốn
@@ -4949,28 +4936,33 @@ function initMonthsDataIfEmpty() {
     appState.quartersData = {};
   }
 
-  // Tự động chuyển đổi nếu state cũ có monthNum 7 (Quý III) nhưng officer.quarter đang chọn quý khác
-  if (appState.months && appState.months.length === 3 && appState.months[0].monthNum === 7 && curQ !== "Quý III") {
-    if (!appState.quartersData["Quý III"]) {
-      appState.quartersData["Quý III"] = JSON.parse(JSON.stringify(appState.months));
-    }
-    if (appState.quartersData[curQ] && appState.quartersData[curQ].length === 3) {
-      appState.months = appState.quartersData[curQ];
-    } else {
-      appState.months = createFreshQuarterMonths(curQ, curY, defaultTemplate);
-      appState.quartersData[curQ] = JSON.parse(JSON.stringify(appState.months));
-    }
-  } else if (!appState.months || appState.months.length < 3 || !appState.months[0].rows || appState.months[0].rows.length === 0) {
-    if (appState.quartersData[curQ] && appState.quartersData[curQ].length === 3) {
-      appState.months = appState.quartersData[curQ];
-    } else {
-      appState.months = createFreshQuarterMonths(curQ, curY, defaultTemplate);
-      appState.quartersData[curQ] = JSON.parse(JSON.stringify(appState.months));
-    }
+  // Nếu tháng có deltaRows (nén Delta) mà chưa có rows đầy đủ, giải nén ngay từ defaultTemplate
+  if (appState.months && Array.isArray(appState.months)) {
+    appState.months.forEach(m => {
+      if (m && Array.isArray(m.deltaRows) && (!m.rows || m.rows.length === 0)) {
+        const fullRows = JSON.parse(JSON.stringify(defaultTemplate));
+        const deltaMap = {};
+        const customRows = [];
+        m.deltaRows.forEach(dr => {
+          if (dr.isCustom) customRows.push(dr);
+          else deltaMap[dr.rowIndex] = dr;
+        });
+        fullRows.forEach((r, rIdx) => {
+          const idxKey = (r.rowIndex !== undefined) ? r.rowIndex : rIdx;
+          if (deltaMap[idxKey]) Object.assign(r, deltaMap[idxKey]);
+        });
+        customRows.forEach(cr => fullRows.push(cr));
+        m.rows = fullRows;
+        delete m.deltaRows;
+      }
+    });
+  }
+
+  if (!appState.months || appState.months.length < 3 || !appState.months[0].rows || appState.months[0].rows.length === 0) {
+    appState.months = createFreshQuarterMonths(curQ, curY, defaultTemplate);
+    appState.quartersData[curQ] = JSON.parse(JSON.stringify(appState.months));
   } else {
-    if (!appState.quartersData[curQ]) {
-      appState.quartersData[curQ] = JSON.parse(JSON.stringify(appState.months));
-    }
+    appState.quartersData[curQ] = JSON.parse(JSON.stringify(appState.months));
   }
 
   // Luôn đảm bảo tên tháng và số tháng khớp với quý hiện tại
@@ -5093,6 +5085,9 @@ function loadSavedState() {
 
 function saveState() {
   try {
+    if (typeof countClientSessionActiveTasks === 'function' && countClientSessionActiveTasks(appState) === 0) {
+      return;
+    }
     const offId = (appState.officer && appState.officer.officerId) || 'hoang';
     const q = (appState.officer && appState.officer.quarter) || 'Quý III';
     const y = (appState.officer && appState.officer.year) || 2026;
@@ -5237,10 +5232,12 @@ function calculateMonth24(monthObj, customMult) {
 
   // isLeader already declared above
   let finalMonthPct = 0;
-  if (isLeader) {
-    finalMonthPct = Math.round(((quantityPct + qualityPct + progressPct + colU + colV + colW) / 6) * 10) / 10;
-  } else {
-    finalMonthPct = Math.round(((quantityPct + qualityPct + progressPct) / 3) * 10) / 10;
+  if (totalAllocated > 0 && activeTaskCount > 0) {
+    if (isLeader) {
+      finalMonthPct = Math.round(((quantityPct + qualityPct + progressPct + colU + colV + colW) / 6) * 10) / 10;
+    } else {
+      finalMonthPct = Math.round(((quantityPct + qualityPct + progressPct) / 3) * 10) / 10;
+    }
   }
 
   return {
@@ -7213,23 +7210,43 @@ function updateLastSavedTime(isoString, isLocalOnly = false) {
   }
 }
 
-// Tai phien lam viec (CACHE-FIRST ĐỂ HIỂN THỊ TỨC THỜI TRONG 0MS)
+// Đếm tổng số công việc có thực hiện ("Có") trong phiên làm việc trên Client
+function countClientSessionActiveTasks(sess) {
+  if (!sess || !sess.months) return 0;
+  const ms = Array.isArray(sess.months) ? sess.months : Object.values(sess.months);
+  let c = 0;
+  ms.forEach(m => {
+    if (!m) return;
+    const rows = (Array.isArray(m.rows) && m.rows.length > 0) ? m.rows : (Array.isArray(m.deltaRows) ? m.deltaRows : []);
+    rows.forEach(r => {
+      if (r && (r.co_thuchien === 'Có' || Number(r.soluong_tt) > 0 || Number(r.thuchien_thang) > 0)) c++;
+    });
+  });
+  return c;
+}
+
+// Tai phien lam viec (CACHE-FIRST ĐỂ HIỂN THỊ TỨC THỜI TRONG 0MS, KÈM TỰ PHỤC HỒI NẾU CACHE RỖNG)
 async function loadSessionForOfficer(officerId, quarter, year) {
   const offId = officerId || (appState.officer && appState.officer.officerId) || 'hoang';
   const q = quarter || (appState.officer && appState.officer.quarter) || 'Quý III';
   const y = year || (appState.officer && appState.officer.year) || 2026;
   const storageKey = getSessionStorageKey(offId, q, y);
 
-  // 1. CACHE-FIRST: Áp dụng ngay lập tức bản lưu đệm trên máy tính nếu có (0ms, không chờ server)
+  // 1. CACHE-FIRST: Chỉ áp dụng bản lưu đệm trên máy tính nếu thực sự có dữ liệu công việc (> 0 việc)
+  // Nếu cache cục bộ bị dính bản trắng 0 công việc (50% ảo), tự động xóa bỏ để nạp bản chính thức từ Server!
   let hadLocalCache = false;
+  let localTaskCount = 0;
   try {
     const cached = localStorage.getItem(storageKey);
     if (cached) {
       let parsed = JSON.parse(cached);
-      if (parsed && parsed.officer) {
+      localTaskCount = countClientSessionActiveTasks(parsed);
+      if (parsed && parsed.officer && localTaskCount > 0) {
         applyLoadedSession(parsed, offId, q, y);
         updateLastSavedTime(parsed.lastSaved || new Date().toISOString(), true);
         hadLocalCache = true;
+      } else if (localTaskCount === 0) {
+        localStorage.removeItem(storageKey);
       }
     }
   } catch (err) {}
@@ -7247,9 +7264,9 @@ async function loadSessionForOfficer(officerId, quarter, year) {
     if (res.ok) {
       const json = await res.json();
       if (json.success && json.data) {
-        if (json.isNew) {
-          // Máy chủ chưa có bản ghi cho kỳ này.
-          // NẾU TRÊN MÁY TÍNH ĐÃ CÓ BẢN LƯU (hadLocalCache = true): BẢO VỆ TUYỆT ĐỐI BẢN LƯU CỦA NGƯỜI DÙNG!
+        const serverTaskCount = countClientSessionActiveTasks(json.data);
+        if (json.isNew || (serverTaskCount === 0 && hadLocalCache)) {
+          // Máy chủ chưa có bản ghi cho kỳ này (hoặc bản trên máy trạm có dữ liệu nhiều hơn)
           if (hadLocalCache) {
             console.log('[CACHE-PROTECT] Bảo vệ an toàn bản lưu cục bộ của người dùng trên máy trạm:', storageKey);
             return;
@@ -7282,7 +7299,14 @@ function applyLoadedSession(data, offId, q, y) {
   const isApprovedClean = !!(data && (data.isApproved || data.status === 'da_duyet'));
   const statusClean = (data && data.status) ? data.status : (isSubmittedClean ? 'da_nop' : 'draft');
 
+  // Xóa đệm quartersData cũ trước khi nạp phiên mới để tránh rò rỉ dữ liệu giữa các quý
+  if (appState && appState.quartersData) {
+    delete appState.quartersData[q];
+  }
   appState = Object.assign({}, appState, data);
+  if (data && !data.months) {
+    appState.months = [];
+  }
 
   // Ghi đè tường minh các trường trạng thái nộp bài
   appState.status = statusClean;
@@ -7312,9 +7336,9 @@ function applyLoadedSession(data, offId, q, y) {
     appState.officer.leaderName = "Hoàng Anh Sơn";
   }
 
+  initMonthsDataIfEmpty();
   syncTemplateStructureToMonths();
   cleanCorruptedTasksFromPlan();
-  initMonthsDataIfEmpty();
   initPlanDataIfEmpty();
   renderAll();
 }
@@ -7365,6 +7389,9 @@ function initializeFreshOfficerSession(offId, q, y) {
     c7: 2.5, c8: 2.5, c9: 2.5, c10: 2.5
   };
 
+  if (appState.quartersData) {
+    delete appState.quartersData[q];
+  }
   appState.months = [];
   appState.status = 'draft';
   appState.isSubmitted = false;
@@ -7375,8 +7402,8 @@ function initializeFreshOfficerSession(offId, q, y) {
   appState.rejectReason = null;
   appState.lastSaved = null;
 
-  syncTemplateStructureToMonths();
   initMonthsDataIfEmpty();
+  syncTemplateStructureToMonths();
   renderAll();
   updateLastSavedTime(null);
 }
@@ -7771,7 +7798,8 @@ async function loadDepartmentSummary(showNotification = false, forceRefresh = fa
           const myIdx = officersList.findIndex(o => o.id === activeOffId);
           if (myIdx >= 0) {
             const serverItem = officersList[myIdx];
-            if (!serverItem.isSubmitted && (appState.status === 'da_luu' || appState.lastSaved)) {
+            const activeTasksInState = countClientSessionActiveTasks(appState);
+            if (!serverItem.isSubmitted && activeTasksInState > 0 && (appState.status === 'da_luu' || appState.lastSaved)) {
               let sM = 0, cM = 0;
               if (appState.months && Array.isArray(appState.months)) {
                 appState.months.forEach((m, idx) => {

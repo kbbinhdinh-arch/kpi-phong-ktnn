@@ -183,6 +183,51 @@ function sanitizeSessionData(state) {
   return clean;
 }
 
+// Đếm tổng số công việc có thực hiện ("Có") trong toàn bộ các tháng của phiên làm việc
+function countSessionActiveTasks(sess) {
+  if (!sess || !sess.months) return 0;
+  const monthsArr = Array.isArray(sess.months) ? sess.months : Object.values(sess.months);
+  let count = 0;
+  monthsArr.forEach(m => {
+    if (!m) return;
+    const rows = (Array.isArray(m.rows) && m.rows.length > 0) ? m.rows : (Array.isArray(m.deltaRows) ? m.deltaRows : []);
+    rows.forEach(r => {
+      if (r && (r.co_thuchien === 'Có' || Number(r.soluong_tt) > 0 || Number(r.thuchien_thang) > 0)) {
+        count++;
+      }
+    });
+  });
+  return count;
+}
+
+// Chọn phiên làm việc đầy đủ dữ liệu nhất giữa các nguồn (MongoDB không dấu, MongoDB có dấu, File gốc trên đĩa)
+// Tuyệt đối không để bản ghi rỗng (0 công việc) che khuất bản ghi chính thức đã chấm điểm của cán bộ!
+function pickBestSession(...candidates) {
+  let best = null;
+  let bestTasks = -1;
+  let bestSubmitted = -1;
+  let bestTime = -1;
+
+  for (const cand of candidates) {
+    if (!cand || typeof cand !== 'object' || (!cand.officer && !cand.months && !cand.status)) continue;
+    const tasks = countSessionActiveTasks(cand);
+    const isSub = (cand.isSubmitted || cand.status === 'da_nop' || cand.status === 'da_duyet') ? 1 : 0;
+    const savedTime = cand.lastSaved ? (new Date(cand.lastSaved).getTime() || 0) : 0;
+
+    if (
+      tasks > bestTasks ||
+      (tasks === bestTasks && isSub > bestSubmitted) ||
+      (tasks === bestTasks && isSub === bestSubmitted && savedTime > bestTime)
+    ) {
+      best = cand;
+      bestTasks = tasks;
+      bestSubmitted = isSub;
+      bestTime = savedTime;
+    }
+  }
+  return best;
+}
+
 function getLocalOfficers() {
   try {
     if (fs.existsSync(OFFICERS_FILE)) {
@@ -1521,32 +1566,43 @@ async function handleKpiRequest(req, res) {
     const filename = getSessionFilename(officerId, quarter, year);
     const altFilename = filename.includes('Quy') ? filename.replace(/Quy/g, 'Quý') : filename.replace(/Quý/g, 'Quy');
 
+    let mongoPrimary = null;
+    let mongoAlt = null;
     if (kpiDb) {
       try {
-        let doc = await kpiDb.collection('sessions').findOne({ filename });
-        if (!doc || !doc.data) {
-          doc = await kpiDb.collection('sessions').findOne({
-            $or: [
-              { filename: altFilename },
-              { "data.officer.officerId": officerId, "data.officer.quarter": quarter, "data.officer.year": Number(year) }
-            ]
-          });
-        }
-        if (doc && doc.data) {
-          return sendJson(res, 200, { success: true, isNew: false, filename, data: doc.data });
+        const docs = await kpiDb.collection('sessions').find({
+          $or: [
+            { filename },
+            { filename: altFilename },
+            { "data.officer.officerId": officerId, "data.officer.quarter": quarter, "data.officer.year": Number(year) }
+          ]
+        }).toArray();
+        for (const d of docs) {
+          if (d && d.data) {
+            if (d.filename === filename) mongoPrimary = d.data;
+            else mongoAlt = pickBestSession(mongoAlt, d.data);
+          }
         }
       } catch (e) {}
     }
 
-    // Luôn kiểm tra local storage (hỗ trợ cả tên có dấu và không dấu)
-    const localData = getLocalSession(filename) || getLocalSession(altFilename);
-    if (localData) {
-      if (kpiDb) {
+    // Luôn kiểm tra cả file local (có dấu & không dấu) và chọn bản ghi có nhiều công việc hoàn thành nhất
+    // Chống tuyệt đối trường hợp bản ghi rỗng (0 công việc, 50%) trên Cloud che khuất bản ghi gốc đã chấm của cán bộ!
+    const localPrimary = getLocalSession(filename);
+    const localAlt = getLocalSession(altFilename);
+    const bestData = pickBestSession(mongoPrimary, mongoAlt, localPrimary, localAlt);
+
+    if (bestData) {
+      if (kpiDb && countSessionActiveTasks(bestData) > countSessionActiveTasks(mongoPrimary)) {
         try {
-          await kpiDb.collection('sessions').updateOne({ filename }, { $set: { filename, data: localData } }, { upsert: true });
+          await kpiDb.collection('sessions').updateOne(
+            { filename },
+            { $set: { filename, data: sanitizeSessionData(bestData) } },
+            { upsert: true }
+          );
         } catch (e) {}
       }
-      return sendJson(res, 200, { success: true, isNew: false, filename, data: localData });
+      return sendJson(res, 200, { success: true, isNew: false, filename, data: bestData });
     }
 
     const cfg = await getOfficersConfig();
@@ -1578,16 +1634,15 @@ async function handleKpiRequest(req, res) {
         let existingSession = null;
         if (kpiDb) {
           try {
-            let doc = await kpiDb.collection('sessions').findOne({ filename });
-            if (!doc || !doc.data) {
-              doc = await kpiDb.collection('sessions').findOne({ filename: altFilename });
+            const docs = await kpiDb.collection('sessions').find({
+              $or: [{ filename }, { filename: altFilename }]
+            }).toArray();
+            for (const d of docs) {
+              if (d && d.data) existingSession = pickBestSession(existingSession, d.data);
             }
-            existingSession = doc && doc.data;
           } catch(e) {}
         }
-        if (!existingSession) {
-          existingSession = getLocalSession(filename) || getLocalSession(altFilename);
-        }
+        existingSession = pickBestSession(existingSession, getLocalSession(filename), getLocalSession(altFilename));
 
         if (existingSession) {
           const currentStatus = existingSession.status;
@@ -2591,6 +2646,7 @@ async function handleKpiRequest(req, res) {
         const docs = await kpiDb.collection('sessions').find({}, {
           projection: {
             filename: 1,
+            "data.officer": 1,
             "data.status": 1,
             "data.isSubmitted": 1,
             "data.submittedAt": 1,
@@ -2608,17 +2664,17 @@ async function handleKpiRequest(req, res) {
             "data.leaderRatingNote": 1
           }
         }).toArray();
-        docs.forEach(d => { allSessionsMap[d.filename] = d.data; });
+        docs.forEach(d => {
+          allSessionsMap[d.filename] = pickBestSession(allSessionsMap[d.filename], d.data);
+        });
       } catch (e) {
         allSessionsMap = getAllLocalSessions();
       }
     }
-    // HỢP NHẤT THÔNG MINH: Luôn nạp thêm các file local session nếu MongoDB chưa có đủ
+    // HỢP NHẤT THÔNG MINH: Luôn chọn phiên có nhiều công việc hoàn thành nhất giữa MongoDB và Local
     const localSessions = getAllLocalSessions();
     for (const [fn, lData] of Object.entries(localSessions)) {
-      if (!allSessionsMap[fn]) {
-        allSessionsMap[fn] = lData;
-      }
+      allSessionsMap[fn] = pickBestSession(allSessionsMap[fn], lData);
     }
 
     for (const off of officersList) {
@@ -2627,18 +2683,17 @@ async function handleKpiRequest(req, res) {
       const altFilename = `${off.id}_${safeQNoSpace}_${year}.json`;
       const altFilename2 = `${off.id}_${normalizeQuarter(quarter)}_${year}.json`;
 
-      let sess = allSessionsMap[filename] || allSessionsMap[altFilename] || allSessionsMap[altFilename2];
+      let sess = pickBestSession(allSessionsMap[filename], allSessionsMap[altFilename], allSessionsMap[altFilename2]);
 
-      // Fallback: Tìm theo metadata bên trong session nếu filename không khớp chính xác
-      if (!sess) {
+      // Fallback: Tìm theo metadata bên trong session nếu filename không khớp hoặc bản ghi rỗng
+      if (countSessionActiveTasks(sess) === 0) {
         const normQ = normalizeQuarter(quarter);
         for (const [fn, sData] of Object.entries(allSessionsMap)) {
           if (fn.startsWith(off.id + '_') && sData && sData.officer) {
             const sQ = normalizeQuarter(sData.officer.quarter);
             const sY = String(sData.officer.year || 2026);
             if (sQ === normQ && sY === String(year)) {
-              sess = sData;
-              break;
+              sess = pickBestSession(sess, sData);
             }
           }
         }
@@ -2662,8 +2717,11 @@ async function handleKpiRequest(req, res) {
         lastSaved: null
       };
 
-      if (sess) {
-        item.isSubmitted = !!(sess.isSubmitted || sess.status === 'da_nop' || sess.status === 'da_duyet');
+      const activeTaskCountInSess = sess ? countSessionActiveTasks(sess) : 0;
+      const isSessSubmitted = !!(sess && (sess.isSubmitted || sess.status === 'da_nop' || sess.status === 'da_duyet'));
+
+      if (sess && (activeTaskCountInSess > 0 || isSessSubmitted)) {
+        item.isSubmitted = isSessSubmitted;
         item.submittedAt = sess.submittedAt || null;
         item.approvedAt = sess.approvedAt || null;
         item.approvedBy = sess.approvedBy || null;
@@ -2677,7 +2735,7 @@ async function handleKpiRequest(req, res) {
           item.approvedBy = "Trưởng phòng (Chính thức)";
           item.rejectReason = null;
         } else {
-          item.status = sess.status || (item.isSubmitted ? "da_nop" : ((item.avgPct > 0 || item.totalScore > 0 || sess.lastSaved) ? "da_luu" : "chua_nop"));
+          item.status = sess.status || (item.isSubmitted ? "da_nop" : "da_luu");
         }
         item.lastSaved = sess.lastSaved || null;
 
@@ -2692,8 +2750,12 @@ async function handleKpiRequest(req, res) {
           let sumPct = 0;
           let mCount = 0;
           monthsArr.forEach((m, idx) => {
-            let pct = Number(m.completionPercent);
-            if (isNaN(pct) || pct === 0) {
+            const hasRows = m && Array.isArray(m.rows) && m.rows.length > 0;
+            const monthHasActive = hasRows
+              ? m.rows.some(r => r && (r.co_thuchien === 'Có' || Number(r.soluong_tt) > 0 || Number(r.thuchien_thang) > 0))
+              : true;
+            let pct = monthHasActive ? Number(m.completionPercent) : 0;
+            if (monthHasActive && (isNaN(pct) || pct === 0)) {
               pct = calculateMonthPctFromRows(m, off.role);
             }
             if (idx === 0) item.m1Pct = pct;
