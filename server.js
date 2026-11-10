@@ -183,7 +183,7 @@ function sanitizeSessionData(state) {
   return clean;
 }
 
-// Đếm tổng số công việc có thực hiện ("Có") trong toàn bộ các tháng của phiên làm việc
+// Đếm tổng số công việc có thực hiện thực chất trong toàn bộ các tháng của phiên làm việc
 function countSessionActiveTasks(sess) {
   if (!sess || !sess.months) return 0;
   const monthsArr = Array.isArray(sess.months) ? sess.months : Object.values(sess.months);
@@ -192,7 +192,7 @@ function countSessionActiveTasks(sess) {
     if (!m) return;
     const rows = (Array.isArray(m.rows) && m.rows.length > 0) ? m.rows : (Array.isArray(m.deltaRows) ? m.deltaRows : []);
     rows.forEach(r => {
-      if (r && (r.co_thuchien === 'Có' || Number(r.soluong_tt) > 0 || Number(r.thuchien_thang) > 0)) {
+      if (r && (Number(r.soluong_tt) > 0 || Number(r.hoanthanh) > 0 || Number(r.thuchien_thang) > 0 || (r.co_thuchien === 'Có' && Number(r.soluong_tt) > 0))) {
         count++;
       }
     });
@@ -200,12 +200,29 @@ function countSessionActiveTasks(sess) {
   return count;
 }
 
+// Tổng số điểm hoàn thành thực chất trong toàn bộ các tháng của phiên làm việc
+function getSessionTotalDonePoints(sess) {
+  if (!sess || !sess.months) return 0;
+  const monthsArr = Array.isArray(sess.months) ? sess.months : Object.values(sess.months);
+  let total = 0;
+  monthsArr.forEach(m => {
+    if (!m) return;
+    const rows = (Array.isArray(m.rows) && m.rows.length > 0) ? m.rows : (Array.isArray(m.deltaRows) ? m.deltaRows : []);
+    rows.forEach(r => {
+      if (r) {
+        const ht = Number(r.hoanthanh) || Number(r.diem_thang_da_hs) || 0;
+        if (ht > 0 && r.co_thuchien === 'Có') total += ht;
+      }
+    });
+  });
+  return total;
+}
+
 // Chọn phiên làm việc đầy đủ và mới nhất giữa các nguồn (MongoDB không dấu, MongoDB có dấu, File gốc trên đĩa)
 // Quy tắc Bảo toàn Dữ liệu Tuyệt đối:
 // 1. Bản có công việc thực hiện (tasks > 0) LUÔN thắng bản rỗng (tasks === 0), bất kể thời gian lưu của bản rỗng.
-// 2. Bản đã chấm đầy đủ (tasks >= 5) LUÔN thắng bản nháp sơ suất (0 < tasks < 5).
-// 3. Khi cả 2 bản đều có dữ liệu thực chất (cùng >= 5 việc), ưu tiên bản có thời gian lưu (lastSaved) MỚI HƠN trên Cloud
-//    để không bao giờ lấy file tĩnh cũ ghi đè lùi dữ liệu mới của cán bộ!
+// 2. Bản đã chấm đầy đủ / cộng gộp khối lượng lớn (totalDone >= 1000 điểm) LUÔN thắng bản chưa chấm.
+// 3. Khi cả 2 bản đều có dữ liệu thực chất, ưu tiên bản có thời gian lưu (lastSaved) MỚI HƠN trên Cloud
 function getSessionActionTime(cand) {
   if (!cand || typeof cand !== 'object') return 0;
   const tSaved = cand.lastSaved ? (new Date(cand.lastSaved).getTime() || 0) : 0;
@@ -218,18 +235,21 @@ function getSessionActionTime(cand) {
 function pickBestSession(...candidates) {
   let best = null;
   let bestTasks = -1;
+  let bestPoints = 0;
   let bestActionTime = -1;
   let bestStatus = null;
 
   for (const cand of candidates) {
     if (!cand || typeof cand !== 'object' || (!cand.officer && !cand.months && !cand.status)) continue;
     const tasks = countSessionActiveTasks(cand);
+    const candPoints = getSessionTotalDonePoints(cand);
     const candStatus = cand.status || (cand.isSubmitted ? 'da_nop' : 'da_luu');
     const candActionTime = getSessionActionTime(cand);
 
     if (!best) {
       best = cand;
       bestTasks = tasks;
+      bestPoints = candPoints;
       bestActionTime = candActionTime;
       bestStatus = candStatus;
       continue;
@@ -255,6 +275,11 @@ function pickBestSession(...candidates) {
         bestActionTime = candActionTime;
         bestStatus = candStatus;
       }
+      shouldReplace = false;
+    } else if (candPoints >= 1000 && bestPoints < 1000) {
+      // Bản có số điểm hoàn thành lớn (đã cộng gộp >1000 điểm) thắng bản chưa cộng gộp
+      shouldReplace = true;
+    } else if (bestPoints >= 1000 && candPoints < 1000) {
       shouldReplace = false;
     } else {
       // Cả 2 cùng mức dữ liệu công việc (cùng có hoặc cùng rỗng)
@@ -1877,13 +1902,15 @@ async function handleKpiRequest(req, res) {
 
         const countExistingActive = countSessionActiveTasks(existingSession);
         const countIncomingActive = countSessionActiveTasks(cleanState);
+        const pointsExisting = getSessionTotalDonePoints(existingSession);
+        const pointsIncoming = getSessionTotalDonePoints(cleanState);
 
         // 🛡️ LÁ CHẮN BẢO TOÀN DỮ LIỆU (ANTI DATA-LOSS SHIELD):
-        // 1. Nếu hồ sơ trên máy chủ đã có công việc thực hiện (>= 1 việc) mà bản gửi lên lại rỗng (0 việc),
+        // 1. Nếu hồ sơ trên máy chủ đã có công việc thực hiện (>= 1 việc hoặc >= 1000 điểm) mà bản gửi lên lại rỗng (0 việc và 0 điểm),
         //    TUYỆT ĐỐI TỪ CHỐI GHI ĐÈ và trả lại bản gốc cho Client tự phục hồi!
         if (existingSession && payload.action !== 'force_clear') {
-          if (countExistingActive >= 1 && countIncomingActive === 0) {
-            console.warn(`[DATA-LOSS SHIELD] Chặn yêu cầu ghi đè rỗng lên hồ sơ ${filename} (gốc: ${countExistingActive} việc, mới: 0 việc).`);
+          if ((countExistingActive >= 1 || pointsExisting >= 1000) && countIncomingActive === 0 && pointsIncoming === 0) {
+            console.warn(`[DATA-LOSS SHIELD] Chặn yêu cầu ghi đè rỗng lên hồ sơ ${filename} (gốc: ${countExistingActive} việc / ${pointsExisting} điểm, mới: 0 việc).`);
             return sendJson(res, 200, {
               success: true,
               restoredOriginal: true,

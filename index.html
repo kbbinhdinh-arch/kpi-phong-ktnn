@@ -4913,11 +4913,11 @@ async function switchQuarter(newQuarter) {
   if (oldQuarter === newQuarter) return;
   if (!appState.quartersData) appState.quartersData = {};
 
-  // 1. Chỉ lưu phiên của quý cũ nếu thực sự có dữ liệu công việc thực hiện
+  // 1. Lưu an toàn tuyệt đối dữ liệu của quý cũ vào RAM quartersData và LocalStorage
+  if (appState.months && appState.months.length === 3) {
+    appState.quartersData[oldQuarter] = JSON.parse(JSON.stringify(appState.months));
+  }
   if (hasAnyMonthlyData(appState)) {
-    if (appState.months && appState.months.length === 3) {
-      appState.quartersData[oldQuarter] = JSON.parse(JSON.stringify(appState.months));
-    }
     await saveActiveSession(false);
   }
 
@@ -4925,9 +4925,12 @@ async function switchQuarter(newQuarter) {
   appState.officer.quarter = newQuarter;
   try { sessionStorage.setItem('KBXV_CURRENT_QUARTER', newQuarter); } catch (e) {}
 
-  // 3. LUÔN tải phiên làm việc chuẩn xác của quý mới từ Server / LocalStorage riêng của từng quý
-  // Tuyệt đối không lấy mảng rỗng từ quartersData ghi đè lên dữ liệu đã chấm của cán bộ!
-  await loadSessionForOfficer(offId, newQuarter, curY);
+  // 3. Tải phiên làm việc của quý mới (Ưu tiên chọn bản có dữ liệu thực tế cao nhất giữa RAM, LocalStorage và Server)
+  const ramCandidate = (appState.quartersData && appState.quartersData[newQuarter] && Array.isArray(appState.quartersData[newQuarter])) 
+    ? { ...appState, months: JSON.parse(JSON.stringify(appState.quartersData[newQuarter])), officer: { ...appState.officer, quarter: newQuarter } }
+    : null;
+
+  await loadSessionForOfficer(offId, newQuarter, curY, ramCandidate);
 
   // Lưu ý: Không tự ý kế thừa ngầm khi chuyển quý - để người dùng chủ động bấm nút "Kế thừa từ quý trước" nếu muốn
   appState.activeMonthIdx = 0;
@@ -6068,10 +6071,32 @@ async function aggregateAllRowsFromGdv(allThreeMonths = false) {
         r.note_sl = `Cộng gộp GDV phụ trách (${rowAgg.totalQty}): ${breakdownStr}`;
         if (tmIdx > 0) r._isCustomized = true;
         updateRowOutputDetail(r);
+
+        // GẮN TRỰC TIẾP ĐIỂM SỐ VÀO DÒNG ĐỂ BẢO ĐẢM DỮ LIỆU ĐƯỢC LƯU VĨNH VIỄN
+        const mult = getRoleMultiplier();
+        const c = calculateRow24(r, mult);
+        r.diem_thang_chua_hs = c.diem_thang_chua_hs;
+        r.he_so = c.he_so;
+        r.diem_thang_da_hs = c.diem_thang_da_hs;
+        r.hoanthanh = c.hoanthanh;
+        r.diem_pct = c.diem_pct;
+        r.cl_diem = c.cl_diem;
+        r.td_diem = c.td_diem;
         updatedRowsCount++;
       }
     });
+
+    // Cập nhật lại chỉ số hoàn thành của tháng ngay sau khi cộng gộp
+    const mult = getRoleMultiplier();
+    const mc = calculateMonth24(monthObj, mult);
+    monthObj.completionPercent = mc.finalMonthPct;
+    monthObj.quantityPct = mc.quantityPct;
+    monthObj.qualityPct = mc.qualityPct;
+    monthObj.progressPct = mc.progressPct;
   });
+
+  if (!appState.quartersData) appState.quartersData = {};
+  appState.quartersData[appState.officer.quarter] = JSON.parse(JSON.stringify(appState.months));
 
   saveState();
   await saveActiveSession(false);
@@ -7779,46 +7804,106 @@ function updateLastSavedTime(isoString, isLocalOnly = false) {
   }
 }
 
-// Đếm tổng số công việc có thực hiện ("Có") trong phiên làm việc trên Client
-function countClientSessionActiveTasks(sess) {
+// Đếm số lượng công việc có thực hiện thực chất (phát sinh số lượng thực tế > 0 hoặc đã hoàn thành > 0 điểm)
+function countClientSessionRealWorkTasks(sess) {
   if (!sess || !sess.months) return 0;
   const ms = Array.isArray(sess.months) ? sess.months : Object.values(sess.months);
-  let c = 0;
+  let count = 0;
   ms.forEach(m => {
     if (!m) return;
     const rows = (Array.isArray(m.rows) && m.rows.length > 0) ? m.rows : (Array.isArray(m.deltaRows) ? m.deltaRows : []);
     rows.forEach(r => {
-      if (r && (r.co_thuchien === 'Có' || Number(r.soluong_tt) > 0 || Number(r.thuchien_thang) > 0)) c++;
+      if (r && (Number(r.soluong_tt) > 0 || Number(r.hoanthanh) > 0 || Number(r.thuchien_thang) > 0)) {
+        count++;
+      }
     });
   });
-  return c;
+  return count;
 }
 
-// Tai phien lam viec (CACHE-FIRST ĐỂ HIỂN THỊ TỨC THỜI TRONG 0MS, KÈM TỰ PHỤC HỒI NẾU CACHE RỖNG)
-async function loadSessionForOfficer(officerId, quarter, year) {
+// Tổng hợp các chỉ số thực chất của phiên (Số lượng thực tế, Tổng điểm hoàn thành, Số công việc thực tế)
+function getClientSessionScoreMetrics(sess) {
+  if (!sess || !sess.months) return { totalQty: 0, totalDone: 0, realTasks: 0 };
+  const ms = Array.isArray(sess.months) ? sess.months : Object.values(sess.months);
+  let totalQty = 0;
+  let totalDone = 0;
+  let realTasks = 0;
+  ms.forEach(m => {
+    if (!m) return;
+    const rows = (Array.isArray(m.rows) && m.rows.length > 0) ? m.rows : (Array.isArray(m.deltaRows) ? m.deltaRows : []);
+    rows.forEach(r => {
+      if (r) {
+        const sl = Number(r.soluong_tt) || 0;
+        const ht = Number(r.hoanthanh) || Number(r.diem_thang_da_hs) || 0;
+        if (sl > 0) totalQty += sl;
+        if (ht > 0 && r.co_thuchien === 'Có') totalDone += ht;
+        if (sl > 0 || ht > 0 || Number(r.thuchien_thang) > 0) realTasks++;
+      }
+    });
+  });
+  return { totalQty, totalDone, realTasks };
+}
+
+// Đếm tổng số công việc có thực hiện trong phiên làm việc trên Client (chuẩn hóa kiểm tra thực chất)
+function countClientSessionActiveTasks(sess) {
+  return countClientSessionRealWorkTasks(sess);
+}
+
+// Thuật toán chọn phiên tối ưu nhất trên Client: Bảo vệ tuyệt đối không bao giờ để bản rỗng/cũ đè lên dữ liệu đã chấm
+function pickBestClientSession(candA, candB) {
+  if (!candA && !candB) return null;
+  if (!candA) return candB;
+  if (!candB) return candA;
+
+  const metricsA = getClientSessionScoreMetrics(candA);
+  const metricsB = getClientSessionScoreMetrics(candB);
+
+  // Quy tắc 1: Bản có công việc thực chất LUÔN THẮNG bản rỗng (0 công việc thực chất)
+  if (metricsA.realTasks > 0 && metricsB.realTasks === 0) return candA;
+  if (metricsB.realTasks > 0 && metricsA.realTasks === 0) return candB;
+
+  // Quy tắc 2: Bản có khối lượng hoàn thành lớn hơn vượt trội (ví dụ đã cộng gộp 60k điểm vs bảng chưa cộng gộp)
+  if (metricsA.totalDone >= 1000 && metricsB.totalDone < 1000) return candA;
+  if (metricsB.totalDone >= 1000 && metricsA.totalDone < 1000) return candB;
+
+  // Quy tắc 3: Ưu tiên bản có nhiều nhiệm vụ thực tế hơn đáng kể (>= 3 việc)
+  if (metricsA.realTasks >= metricsB.realTasks + 3) return candA;
+  if (metricsB.realTasks >= metricsA.realTasks + 3) return candB;
+
+  // Quy tắc 4: So sánh thời gian lưu (lastSaved)
+  const timeA = candA.lastSaved ? (new Date(candA.lastSaved).getTime() || 0) : 0;
+  const timeB = candB.lastSaved ? (new Date(candB.lastSaved).getTime() || 0) : 0;
+  if (timeA >= timeB) return candA;
+  return candB;
+}
+
+// Tai phien lam viec (CACHE-FIRST ĐỂ HIỂN THỊ TỨC THỜI TRONG 0MS, KÈM BẢO VỆ CHỐNG GHI ĐÈ BẢN RỖNG)
+async function loadSessionForOfficer(officerId, quarter, year, ramCandidate = null) {
   const offId = officerId || (appState.officer && appState.officer.officerId) || 'hoang';
   const q = quarter || (appState.officer && appState.officer.quarter) || 'Quý III';
   const y = year || (appState.officer && appState.officer.year) || 2026;
   const storageKey = getSessionStorageKey(offId, q, y);
 
-  // 1. CACHE-FIRST: Chỉ áp dụng bản lưu đệm trên máy tính nếu thực sự có dữ liệu công việc (> 0 việc)
-  // Nếu cache cục bộ bị dính bản trắng 0 công việc (50% ảo), tự động xóa bỏ để nạp bản chính thức từ Server!
-  let hadLocalCache = false;
-  let localTaskCount = 0;
+  // 1. CACHE-FIRST: Đọc bản đệm từ LocalStorage máy trạm
+  let localCandidate = null;
   try {
     const cached = localStorage.getItem(storageKey);
     if (cached) {
-      let parsed = JSON.parse(cached);
-      localTaskCount = countClientSessionActiveTasks(parsed);
-      if (parsed && parsed.officer && localTaskCount > 0) {
-        applyLoadedSession(parsed, offId, q, y);
-        updateLastSavedTime(parsed.lastSaved || new Date().toISOString(), true);
-        hadLocalCache = true;
-      } else if (localTaskCount === 0) {
-        localStorage.removeItem(storageKey);
+      const parsed = JSON.parse(cached);
+      if (parsed && parsed.officer) {
+        localCandidate = parsed;
       }
     }
   } catch (err) {}
+
+  // Chọn bản tốt nhất giữa RAM đệm và LocalStorage để hiển thị ngay tức thì (0ms)
+  let bestLocal = pickBestClientSession(ramCandidate, localCandidate);
+  let hadLocalCache = false;
+  if (bestLocal && countClientSessionRealWorkTasks(bestLocal) > 0) {
+    applyLoadedSession(bestLocal, offId, q, y);
+    updateLastSavedTime(bestLocal.lastSaved || new Date().toISOString(), true);
+    hadLocalCache = true;
+  }
 
   // 2. Tải bản mới nhất từ Server API chạy nền (Background Revalidation)
   try {
@@ -7833,30 +7918,37 @@ async function loadSessionForOfficer(officerId, quarter, year) {
     if (res.ok) {
       const json = await res.json();
       if (json.success && json.data) {
-        const serverTaskCount = countClientSessionActiveTasks(json.data);
-        if (json.isNew || (serverTaskCount === 0 && hadLocalCache)) {
-          // Máy chủ chưa có bản ghi cho kỳ này (hoặc bản trên máy trạm có dữ liệu nhiều hơn)
-          if (hadLocalCache) {
-            console.log('[CACHE-PROTECT] Bảo vệ an toàn bản lưu cục bộ của người dùng trên máy trạm:', storageKey);
-            return;
+        const serverCandidate = json.data;
+        const winner = pickBestClientSession(bestLocal, serverCandidate);
+
+        if (winner === serverCandidate && !json.isNew && countClientSessionRealWorkTasks(serverCandidate) > 0) {
+          // Server thực sự có bản mới hơn hoặc đầy đủ hơn -> Áp dụng bản Server
+          applyLoadedSession(serverCandidate, offId, q, y);
+          try { localStorage.setItem(storageKey, JSON.stringify(appState)); } catch(e){}
+          updateLastSavedTime(serverCandidate.lastSaved || new Date().toISOString(), false);
+          return;
+        } else if (hadLocalCache) {
+          // Bản local máy trạm có dữ liệu đầy đủ hơn Server (ví dụ local có 60k điểm, server trả bản cũ hoặc bảng trắng)
+          // -> BẢO VỆ TUYỆT ĐỐI BẢN LOCAL, KHÔNG GHI ĐÈ, và đồng bộ ngược lên Server!
+          console.log('[CACHE-PROTECT] Bản máy trạm đầy đủ hơn Server, bảo vệ và đồng bộ ngược lên Server:', storageKey);
+          if (typeof saveActiveSession === 'function') {
+            saveActiveSession(false);
           }
-          // Nếu trên máy cũng chưa từng có dữ liệu, khởi tạo phiên mới
-          initializeFreshOfficerSession(offId, q, y);
           return;
         }
-        applyLoadedSession(json.data, offId, q, y);
-        try { localStorage.setItem(storageKey, JSON.stringify(appState)); } catch(e){}
-        updateLastSavedTime(json.data.lastSaved || new Date().toISOString(), false);
-        return;
       }
     }
   } catch (err) {
-    // Server loi hoac offline -> đã có local cache phục vụ
+    // Server lỗi hoặc offline -> đã có local cache phục vụ
   }
 
-  // 3. Neu chua co du lieu ca tren Server va May tinh, khoi tao phien moi
+  // 3. Nếu chưa có dữ liệu cả trên Server và Máy tính, nạp bản tốt nhất hoặc khởi tạo phiên mới
   if (!hadLocalCache) {
-    initializeFreshOfficerSession(offId, q, y);
+    if (bestLocal && countClientSessionRealWorkTasks(bestLocal) > 0) {
+      applyLoadedSession(bestLocal, offId, q, y);
+    } else {
+      initializeFreshOfficerSession(offId, q, y);
+    }
   }
 }
 
@@ -7868,9 +7960,10 @@ function applyLoadedSession(data, offId, q, y) {
   const isApprovedClean = !!(data && (data.isApproved || data.status === 'da_duyet'));
   const statusClean = (data && data.status) ? data.status : (isSubmittedClean ? 'da_nop' : 'draft');
 
-  // Xóa đệm quartersData cũ trước khi nạp phiên mới để tránh rò rỉ dữ liệu giữa các quý
-  if (appState && appState.quartersData) {
-    delete appState.quartersData[q];
+  // Lưu đệm an toàn vào quartersData thay vì xóa bỏ
+  if (!appState.quartersData) appState.quartersData = {};
+  if (data && data.months && data.months.length === 3) {
+    appState.quartersData[q] = JSON.parse(JSON.stringify(data.months));
   }
   appState = Object.assign({}, appState, data);
   if (data && !data.months) {
