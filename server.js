@@ -1762,9 +1762,24 @@ async function handleKpiRequest(req, res) {
     });
   }
 
-  // API Officers
+  // API Officers (hỗ trợ ?lite=1 bỏ defaultPlan 270KB để load <250ms)
   if (pathname === '/api/officers' && req.method === 'GET') {
+    const isLite = searchParams.get('lite') === '1';
     const cfg = await getOfficersConfig();
+    if (isLite) {
+      const liteCfg = {};
+      for (const [k, v] of Object.entries(cfg)) {
+        if (!v) continue;
+        const { defaultPlan, ...rest } = v;
+        liteCfg[k] = rest;
+      }
+      return sendJson(res, 200, {
+        success: true,
+        lite: true,
+        officers: liteCfg,
+        officersList: Object.values(liteCfg)
+      });
+    }
     return sendJson(res, 200, {
       success: true,
       officers: cfg,
@@ -1882,37 +1897,146 @@ async function handleKpiRequest(req, res) {
       return sendJson(res, 400, { success: false, error: "Thiếu thông số officerId" });
     }
 
+    const isDeltaMode = (searchParams.get('delta') === '1');
     const filename = getSessionFilename(officerId, quarter, year);
     const altFilename = filename.includes('Quy') ? filename.replace(/Quy/g, 'Quý') : filename.replace(/Quý/g, 'Quy');
     const normQ = normalizeQuarter(quarter);
     const yNum = Number(year) || 2026;
+
+    const buildSessionDeltaPipeline = (matchQuery) => ([
+      { $match: matchQuery },
+      {
+        $project: {
+          _id: 1,
+          filename: 1,
+          officerId: 1,
+          activeTasksCount: 1,
+          updatedAt: 1,
+          "data.officer": 1,
+          "data.quarterPlan": 1,
+          "data.generalCriteria": 1,
+          "data.status": 1,
+          "data.isSubmitted": 1,
+          "data.isApproved": 1,
+          "data.submittedAt": 1,
+          "data.approvedAt": 1,
+          "data.approvedBy": 1,
+          "data.rejectedAt": 1,
+          "data.rejectedBy": 1,
+          "data.rejectReason": 1,
+          "data.leaderRatingProposal": 1,
+          "data.leaderRatingNote": 1,
+          "data.proposedRating": 1,
+          "data.selfRating": 1,
+          "data.lastSaved": 1,
+          "data.months": {
+            $cond: {
+              if: { $eq: [{ $ifNull: ["$data.months", null] }, null] },
+              then: null,
+              else: {
+                $map: {
+                  input: {
+                    $cond: {
+                      if: { $isArray: "$data.months" },
+                      then: "$data.months",
+                      else: {
+                        $map: {
+                          input: { $objectToArray: { $ifNull: ["$data.months", {}] } },
+                          as: "kv",
+                          in: "$$kv.v"
+                        }
+                      }
+                    }
+                  },
+                  as: "m",
+                  in: {
+                    monthNum: "$$m.monthNum",
+                    name: "$$m.name",
+                    completionPercent: "$$m.completionPercent",
+                    quantityPct: "$$m.quantityPct",
+                    qualityPct: "$$m.qualityPct",
+                    progressPct: "$$m.progressPct",
+                    deltaRows: {
+                      $cond: {
+                        if: { $gt: [{ $size: { $cond: { if: { $isArray: "$$m.rows" }, then: "$$m.rows", else: [] } } }, 0] },
+                        then: {
+                          $filter: {
+                            input: {
+                              $map: {
+                                input: { $range: [0, { $size: "$$m.rows" }] },
+                                as: "idx",
+                                in: {
+                                  $mergeObjects: [
+                                    { $arrayElemAt: ["$$m.rows", "$$idx"] },
+                                    { arrIdx: "$$idx" }
+                                  ]
+                                }
+                              }
+                            },
+                            as: "r",
+                            cond: {
+                              $or: [
+                                { $eq: ["$$r.co_thuchien", "Có"] },
+                                { $eq: ["$$r.isCustom", true] },
+                                { $eq: ["$$r._isCustomized", true] },
+                                { $gte: ["$$r.arrIdx", 235] },
+                                { $gt: [{ $convert: { input: "$$r.soluong_tt", to: "double", onError: 0, onNull: 0 } }, 0] },
+                                { $gt: [{ $convert: { input: "$$r.cl_loi", to: "double", onError: 0, onNull: 0 } }, 0] },
+                                { $gt: [{ $convert: { input: "$$r.td_cham", to: "double", onError: 0, onNull: 0 } }, 0] },
+                                { $ne: [{ $ifNull: ["$$r.ghichu", ""] }, ""] },
+                                { $ne: [{ $ifNull: ["$$r.note_sl", ""] }, ""] },
+                                { $ne: [{ $ifNull: ["$$r.note_cl", ""] }, ""] },
+                                { $ne: [{ $ifNull: ["$$r.note_td", ""] }, ""] },
+                                { $ne: [{ $ifNull: ["$$r.note_ghichu", ""] }, ""] },
+                                { $in: ["$$r.col_u", ["50", 50]] },
+                                { $in: ["$$r.col_v", ["50", 50]] },
+                                { $in: ["$$r.col_w", ["50", 50]] }
+                              ]
+                            }
+                          }
+                        },
+                        else: { $cond: { if: { $isArray: "$$m.deltaRows" }, then: "$$m.deltaRows", else: [] } }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]);
+
+    const querySessionDocs = async (matchQuery) => {
+      if (isDeltaMode) {
+        return await kpiDb.collection('sessions').aggregate(buildSessionDeltaPipeline(matchQuery)).toArray();
+      }
+      return await kpiDb.collection('sessions').find(matchQuery).toArray();
+    };
 
     let mongoPrimary = null;
     let mongoAlt = null;
     if (kpiDb) {
       try {
         // 1. Truy vấn chuẩn theo Index { filename: 1 } (tránh COLLSCAN 80MB của nhánh $or không index)
-        let docs = await kpiDb.collection('sessions').find({
-          filename: { $in: [filename, altFilename] }
-        }).toArray();
+        let docs = await querySessionDocs({ filename: { $in: [filename, altFilename] } });
         // 2. Fallback theo Compound Index { officerId: 1, quarterNorm: 1, year: 1 }
         if (!docs || docs.length === 0) {
-          docs = await kpiDb.collection('sessions').find({
-            officerId,
-            quarterNorm: normQ,
-            year: yNum
-          }).toArray();
+          docs = await querySessionDocs({ officerId, quarterNorm: normQ, year: yNum });
         }
         // 3. Fallback cuối cùng theo metadata lồng sâu (chỉ chạy nếu dữ liệu cũ chưa có trường gốc)
         if (!docs || docs.length === 0) {
-          docs = await kpiDb.collection('sessions').find({
+          docs = await querySessionDocs({
             "data.officer.officerId": officerId,
             "data.officer.quarter": quarter,
             "data.officer.year": yNum
-          }).toArray();
+          });
         }
         for (const d of docs) {
           if (d && d.data) {
+            if (typeof d.activeTasksCount === 'number' && !d.data.activeTasksCount) {
+              d.data.activeTasksCount = d.activeTasksCount;
+            }
             if (d.filename === filename) mongoPrimary = d.data;
             else mongoAlt = pickBestSession(mongoAlt, d.data);
           }
@@ -1926,7 +2050,7 @@ async function handleKpiRequest(req, res) {
     const bestData = pickBestSession(mongoPrimary, mongoAlt, localPrimary, localAlt);
 
     if (bestData) {
-      if (kpiDb && countSessionActiveTasks(bestData) > countSessionActiveTasks(mongoPrimary)) {
+      if (!isDeltaMode && kpiDb && countSessionActiveTasks(bestData) > countSessionActiveTasks(mongoPrimary)) {
         try {
           await kpiDb.collection('sessions').updateOne(
             { filename },
@@ -1935,7 +2059,7 @@ async function handleKpiRequest(req, res) {
           );
         } catch (e) {}
       }
-      return sendJson(res, 200, { success: true, isNew: false, filename, data: bestData });
+      return sendJson(res, 200, { success: true, isNew: false, delta: isDeltaMode, filename, data: bestData });
     }
 
     const cfg = await getOfficersConfig();

@@ -4579,13 +4579,17 @@ async function loadServerOfficersConfig() {
       } catch (e) {}
     }
 
-    const res = await fetch(`${CURRENT_SERVER_HOST}/api/officers`, { cache: 'no-cache' });
+    const res = await fetch(`${CURRENT_SERVER_HOST}/api/officers?lite=1`, { cache: 'no-cache' });
     if (res.ok) {
       const data = await res.json();
       if (data.success && data.officers && Object.keys(data.officers).length > 0) {
-        window.OFFICERS_ASSIGNMENTS = data.officers;
+        const merged = Object.assign({}, window.OFFICERS_ASSIGNMENTS || {});
+        for (const [oid, srvObj] of Object.entries(data.officers)) {
+          merged[oid] = Object.assign({}, merged[oid] || {}, srvObj);
+        }
+        window.OFFICERS_ASSIGNMENTS = merged;
         try { localStorage.setItem('KBXV_OFFICERS_CUSTOM', JSON.stringify(data.officers)); } catch(e){}
-        renderOfficerSelectDropdowns(data.officers);
+        renderOfficerSelectDropdowns(merged);
       }
     }
   } catch(e) {
@@ -8531,7 +8535,7 @@ async function loadSessionForOfficer(officerId, quarter, year, ramCandidate = nu
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 9000);
-    const res = await fetch(`${CURRENT_SERVER_HOST}/api/session?officerId=${encodeURIComponent(offId)}&quarter=${encodeURIComponent(q)}&year=${encodeURIComponent(y)}`, { 
+    const res = await fetch(`${CURRENT_SERVER_HOST}/api/session?officerId=${encodeURIComponent(offId)}&quarter=${encodeURIComponent(q)}&year=${encodeURIComponent(y)}&delta=1`, { 
       cache: 'no-cache',
       signal: controller.signal
     });
@@ -10095,7 +10099,7 @@ async function viewOfficerQuarterSummary(officerId) {
   // 1. Tải phiên của cán bộ từ Server API hoặc LocalStorage
   let sess = null;
   try {
-    const res = await fetch(`${CURRENT_SERVER_HOST}/api/session?officerId=${encodeURIComponent(officerId)}&quarter=${encodeURIComponent(curQ)}&year=${encodeURIComponent(curY)}`, { cache: 'no-cache' });
+    const res = await fetch(`${CURRENT_SERVER_HOST}/api/session?officerId=${encodeURIComponent(officerId)}&quarter=${encodeURIComponent(curQ)}&year=${encodeURIComponent(curY)}&delta=1`, { cache: 'no-cache' });
     if (res.ok) {
       const json = await res.json();
       if (json.success && json.data) sess = json.data;
