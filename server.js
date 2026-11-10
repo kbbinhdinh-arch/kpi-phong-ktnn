@@ -77,7 +77,7 @@ const AUTHOR_INFO = {
 };
 
 function isAuthorAuthorizedMachine() {
-  if (process.env.AUTHOR_SERVER === 'true' || process.env.AUTHOR_SERVER === '1' || process.env.VERCEL === '1') return true;
+  if (process.env.VERCEL === '1') return false;
   const currentHost = (os.hostname() || '').toLowerCase().trim();
   const currentUser = (os.userInfo ? (os.userInfo().username || '') : '').toLowerCase().trim();
   const isHostMatch = (currentHost === AUTHOR_INFO.authorizedHostname.toLowerCase());
@@ -261,7 +261,7 @@ function pickBestSession(...candidates) {
     const candActionTime = getSessionActionTime(cand);
 
     if (!best) {
-      best = cand;
+      best = { ...cand };
       bestTasks = tasks;
       bestPoints = candPoints;
       bestActionTime = candActionTime;
@@ -275,17 +275,20 @@ function pickBestSession(...candidates) {
     if (tasks > 0 && bestTasks === 0) {
       shouldReplace = true;
     } else if (tasks === 0 && bestTasks > 0) {
-      // Giữ bản có công việc, nhưng nếu cand có hành động trả lại hoặc duyệt mới hơn hẳn -> hợp nhất trạng thái
+      // Giữ bản có công việc, nhưng nếu cand có hành động trả lại hoặc duyệt mới hơn hẳn -> hợp nhất trạng thái trên bản sao
       if ((candStatus === 'tra_lai' || candStatus === 'da_duyet') && candActionTime > bestActionTime + 2000) {
-        best.status = candStatus;
-        best.isSubmitted = !!cand.isSubmitted;
-        best.isApproved = !!cand.isApproved;
-        best.rejectedAt = cand.rejectedAt || best.rejectedAt;
-        best.rejectedBy = cand.rejectedBy || best.rejectedBy;
-        best.rejectReason = cand.rejectReason || best.rejectReason;
-        best.approvedAt = cand.approvedAt || best.approvedAt;
-        best.approvedBy = cand.approvedBy || best.approvedBy;
-        best.lastSaved = cand.lastSaved || best.lastSaved;
+        best = {
+          ...best,
+          status: candStatus,
+          isSubmitted: !!cand.isSubmitted,
+          isApproved: !!cand.isApproved,
+          rejectedAt: cand.rejectedAt || best.rejectedAt,
+          rejectedBy: cand.rejectedBy || best.rejectedBy,
+          rejectReason: cand.rejectReason || best.rejectReason,
+          approvedAt: cand.approvedAt || best.approvedAt,
+          approvedBy: cand.approvedBy || best.approvedBy,
+          lastSaved: cand.lastSaved || best.lastSaved
+        };
         bestActionTime = candActionTime;
         bestStatus = candStatus;
       }
@@ -506,13 +509,18 @@ function getLocalSnapshots(filename) {
   return list;
 }
 
-function getLocalSnapshotById(snapshotId) {
+function getLocalSnapshotById(snapshotId, expectedFilename) {
+  if (!snapshotId || typeof snapshotId !== 'string') return null;
+  const cleanId = snapshotId.replace(/[^a-zA-Z0-9_-]/g, '');
+  if (!cleanId) return null;
   try {
     if (fs.existsSync(SNAPSHOTS_DIR)) {
       const files = fs.readdirSync(SNAPSHOTS_DIR);
       for (const f of files) {
-        if (f.includes(snapshotId)) {
-          return JSON.parse(fs.readFileSync(path.join(SNAPSHOTS_DIR, f), 'utf8'));
+        if (expectedFilename && !f.startsWith(expectedFilename + '__')) continue;
+        if (f.endsWith('__' + cleanId + '.json')) {
+          const parsed = JSON.parse(fs.readFileSync(path.join(SNAPSHOTS_DIR, f), 'utf8'));
+          if (parsed && String(parsed._id) === cleanId) return parsed;
         }
       }
     }
@@ -526,13 +534,36 @@ function getLocalSnapshotById(snapshotId) {
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://kbbinhdinh_db_user:ZvCQmfp24YwNudJS@kpi-ktnn-db.olx4piw.mongodb.net/?appName=kpi-ktnn-db";
 let dbClient = null;
 let kpiDb = null;
+let indexesEnsured = false;
 
+async function ensureMongoIndexes() {
+  if (!kpiDb || indexesEnsured) return;
+  indexesEnsured = true;
+  try {
+    await Promise.all([
+      kpiDb.collection('sessions').createIndex({ filename: 1 }, { background: true }),
+      kpiDb.collection('sessions').createIndex({ officerId: 1, quarterNorm: 1, year: 1 }, { background: true }),
+      kpiDb.collection('sessions').createIndex({ quarterNorm: 1, year: 1 }, { background: true }),
+      kpiDb.collection('session_snapshots').createIndex({ filename: 1, savedAt: -1 }, { background: true }),
+      kpiDb.collection('session_snapshots').createIndex({ officerId: 1, savedAt: -1 }, { background: true }),
+      kpiDb.collection('officers_config').createIndex({ id: 1 }, { background: true }),
+      kpiDb.collection('auth_passwords').createIndex({ officerId: 1 }, { background: true })
+    ]);
+  } catch (idxErr) {
+    indexesEnsured = false;
+  }
+}
+
+let _localModeBannerLogged = false;
 async function connectMongo() {
   if (process.env.STORAGE_MODE === 'local') {
-    console.log("============================================================================");
-    console.log(" [CHẾ ĐỘ MÁY CHỦ NỘI BỘ] Đang chạy CSDL TỆP TIN CỤC BỘ (Offline Local Mode).");
-    console.log(" [+] Không kết nối Internet/MongoDB Cloud - Toàn bộ dữ liệu lưu tại data/");
-    console.log("============================================================================");
+    if (!_localModeBannerLogged) {
+      _localModeBannerLogged = true;
+      console.log("============================================================================");
+      console.log(" [CHẾ ĐỘ MÁY CHỦ NỘI BỘ] Đang chạy CSDL TỆP TIN CỤC BỘ (Offline Local Mode).");
+      console.log(" [+] Không kết nối Internet/MongoDB Cloud - Toàn bộ dữ liệu lưu tại data/");
+      console.log("============================================================================");
+    }
     return;
   }
   if (!MongoClient) {
@@ -558,13 +589,11 @@ async function connectMongo() {
     kpiDb = dbClient.db('kpi_ktnn_db');
     console.log("[MongoDB] Đã kết nối thành công tới MongoDB Atlas Cloud Database!");
 
-    // Trên Vercel Serverless: tránh quét regex/seed toàn DB mỗi lần Lambda cold start gây nghẽn Atlas M0
+    // Đảm bảo chỉ mục 1 lần cho mỗi container (bao gồm cả Vercel để tránh COLLSCAN)
+    await ensureMongoIndexes();
     setImmediate(async () => {
       try {
         if (!process.env.VERCEL) {
-          await kpiDb.collection('sessions').createIndex({ filename: 1 });
-          await kpiDb.collection('sessions').createIndex({ officerId: 1, quarterNorm: 1, year: 1 });
-          await kpiDb.collection('session_snapshots').createIndex({ filename: 1, savedAt: -1 });
           await initCloudSeedData();
           await syncOfficerRolesMigration();
         } else {
@@ -588,9 +617,33 @@ async function connectMongo() {
 }
 
 // ============================================================================
-// GIẢI PHÁP TỰ ĐỘNG GIẢI PHÓNG BỘ NHỚ CLOUD (MONGODB ATLAS FREE TIER QUOTA SHIELD)
-// Tự động thu gọn, dọn sạch session_snapshots khi dung lượng chạm 512MB
+// GIẢI PHÁP TỰ ĐỘNG THU GỌN BẢN SAO LƯU CŨ AN TOÀN (ZERO DATA-LOSS QUOTA SHIELD)
+// Chỉ cắt tỉa các snapshot vượt ngưỡng (> maxKeep/hồ sơ), TUYỆT ĐỐI KHÔNG drop()
 // ============================================================================
+async function pruneOldSnapshotsSafe(maxKeep = 2) {
+  if (!kpiDb) return 0;
+  try {
+    const snapCol = kpiDb.collection('session_snapshots');
+    const grouped = await snapCol.aggregate([
+      { $sort: { savedAt: -1 } },
+      { $group: { _id: '$filename', ids: { $push: '$_id' } } }
+    ]).toArray();
+    const overflowIds = [];
+    for (const g of grouped) {
+      if (Array.isArray(g.ids) && g.ids.length > maxKeep) {
+        overflowIds.push(...g.ids.slice(maxKeep));
+      }
+    }
+    if (overflowIds.length > 0) {
+      const delRes = await snapCol.deleteMany({ _id: { $in: overflowIds } });
+      return delRes.deletedCount || 0;
+    }
+  } catch (e) {
+    console.warn('[PRUNE SNAPSHOTS] Cảnh báo thu gọn snapshot:', e.message);
+  }
+  return 0;
+}
+
 async function autoHealMongoStorageQuota() {
   if (!kpiDb) return;
   try {
@@ -604,29 +657,9 @@ async function autoHealMongoStorageQuota() {
       }
     } catch (e) {}
 
-    if (!needsHeal) {
-      try {
-        const testCol = kpiDb.collection('_test_quota');
-        await testCol.insertOne({ test: 1, at: new Date() });
-        await testCol.deleteOne({ test: 1 });
-      } catch (wErr) {
-        const msg = String(wErr && wErr.message ? wErr.message : wErr);
-        if (msg.includes('space quota') || msg.includes('Writes are blocked') || msg.includes('quota')) {
-          needsHeal = true;
-        }
-      }
-    }
-
     if (needsHeal) {
-      console.warn('[STORAGE AUTO-HEAL] Tiến hành giải phóng bộ nhớ MongoDB Atlas...');
-      try {
-        await kpiDb.collection('session_snapshots').drop();
-        console.log('[STORAGE AUTO-HEAL] Đã drop collection session_snapshots thành công, thu hồi ~500MB!');
-        const newSnap = kpiDb.collection('session_snapshots');
-        await newSnap.createIndex({ filename: 1, savedAt: -1 }).catch(() => {});
-      } catch (dropErr) {
-        console.error('[STORAGE AUTO-HEAL] Lỗi drop session_snapshots:', dropErr.message);
-      }
+      const pruned = await pruneOldSnapshotsSafe(2);
+      console.log(`[STORAGE AUTO-HEAL] Đã cắt tỉa an toàn ${pruned} snapshot cũ dư thừa (giữ lại 2 bản mới nhất/hồ sơ).`);
     }
   } catch (err) {
     console.error('[STORAGE AUTO-HEAL] Lỗi tổng quát:', err.message);
@@ -639,39 +672,41 @@ async function executeMongoWriteWithQuotaShield(writeFn) {
   } catch (err) {
     const msg = String(err && err.message ? err.message : err);
     if (msg.includes('space quota') || msg.includes('Writes are blocked') || msg.includes('quota')) {
-      console.warn('[QUOTA SHIELD] Lỗi ghi do vượt 512MB! Giải phóng session_snapshots và thử lại...');
-      try {
-        if (kpiDb) {
-          await kpiDb.collection('session_snapshots').drop();
-          console.log('[QUOTA SHIELD] Đã giải phóng hoàn toàn session_snapshots!');
-          const newSnap = kpiDb.collection('session_snapshots');
-          await newSnap.createIndex({ filename: 1, savedAt: -1 }).catch(() => {});
-        }
-      } catch (dropErr) {
-        console.error('[QUOTA SHIELD] Lỗi drop:', dropErr.message);
-      }
-      await new Promise(r => setTimeout(r, 800));
+      console.warn('[QUOTA SHIELD] Cảnh báo vượt dung lượng 512MB! Tiến hành cắt tỉa an toàn snapshot cũ (không drop)...');
+      await pruneOldSnapshotsSafe(1);
+      await new Promise(r => setTimeout(r, 400));
       return await writeFn();
     }
     throw err;
   }
 }
 
-// ⚡ Đảm bảo kết nối MongoDB trong môi trường Serverless (Vercel) trước khi xử lý request (<150ms Cold Start)
+// ⚡ Đảm bảo kết nối MongoDB trong môi trường Serverless (Vercel) theo single-flight promise (<150ms Cold Start)
 let mongoConnectingPromise = null;
+let _lastMongoFailAt = 0;
 async function ensureMongoConnected() {
+  if (process.env.STORAGE_MODE === 'local') return null;
   if (kpiDb) {
     return kpiDb;
   }
+  if (_lastMongoFailAt && (Date.now() - _lastMongoFailAt < 10000)) {
+    return null;
+  }
   if (!mongoConnectingPromise) {
-    mongoConnectingPromise = connectMongo().then(() => {
-      mongoConnectingPromise = null;
-      return kpiDb;
-    }).catch(err => {
-      mongoConnectingPromise = null;
-      console.warn('[MongoDB ensure] Connect failed:', err.message);
-      return null;
-    });
+    mongoConnectingPromise = (async () => {
+      try {
+        await connectMongo();
+        if (!kpiDb) _lastMongoFailAt = Date.now();
+        else _lastMongoFailAt = 0;
+        return kpiDb;
+      } catch (err) {
+        _lastMongoFailAt = Date.now();
+        console.warn('[MongoDB ensure] Connect failed:', err.message);
+        return null;
+      } finally {
+        mongoConnectingPromise = null;
+      }
+    })();
   }
   return mongoConnectingPromise;
 }
@@ -749,21 +784,24 @@ async function initCloudSeedData() {
         const seed = JSON.parse(raw.toString('utf8'));
 
         if (seed.officers_config) {
-          for (const [id, cfg] of Object.entries(seed.officers_config)) {
-            await configCol.updateOne({ id }, { $set: cfg }, { upsert: true });
-          }
+          const ops = Object.entries(seed.officers_config).map(([id, cfg]) => ({
+            updateOne: { filter: { id }, update: { $set: cfg }, upsert: true }
+          }));
+          if (ops.length > 0) await configCol.bulkWrite(ops, { ordered: false });
         }
         if (seed.auth_passwords) {
           const authCol = kpiDb.collection('auth_passwords');
-          for (const [id, auth] of Object.entries(seed.auth_passwords)) {
-            await authCol.updateOne({ officerId: id }, { $set: auth }, { upsert: true });
-          }
+          const ops = Object.entries(seed.auth_passwords).map(([id, auth]) => ({
+            updateOne: { filter: { officerId: id }, update: { $setOnInsert: { officerId: id, ...auth } }, upsert: true }
+          }));
+          if (ops.length > 0) await authCol.bulkWrite(ops, { ordered: false });
         }
         if (seed.sessions) {
           const sessionsCol = kpiDb.collection('sessions');
-          for (const [fname, sessData] of Object.entries(seed.sessions)) {
-            await sessionsCol.updateOne({ filename: fname }, { $set: { data: sessData } }, { upsert: true });
-          }
+          const ops = Object.entries(seed.sessions).map(([fname, sessData]) => ({
+            updateOne: { filter: { filename: fname }, update: { $setOnInsert: { filename: fname, data: sessData } }, upsert: true }
+          }));
+          if (ops.length > 0) await sessionsCol.bulkWrite(ops, { ordered: false });
         }
         console.log('[SEED] Đã đồng bộ dữ liệu mẫu lên MongoDB thành công!');
       }
@@ -798,42 +836,25 @@ async function syncOfficerRolesMigration() {
     const configCol = kpiDb.collection('officers_config');
     const sessionsCol = kpiDb.collection('sessions');
 
-    await configCol.updateOne(
-      { id: 'qn_trang' },
-      { $set: { title: qnTrangTitle, specialty: qnTrangSpecialty } }
-    );
-    await configCol.updateOne(
-      { id: 'qn_thuy_le' },
-      { $set: { title: qnThuyTitle, specialty: qnThuySpecialty } }
-    );
+    await configCol.bulkWrite([
+      { updateOne: { filter: { id: 'qn_trang' }, update: { $set: { title: qnTrangTitle, specialty: qnTrangSpecialty } } } },
+      { updateOne: { filter: { id: 'qn_thuy_le' }, update: { $set: { title: qnThuyTitle, specialty: qnThuySpecialty } } } }
+    ], { ordered: false });
 
-    const trangSessions = await sessionsCol.find({ filename: { $regex: /^qn_trang/i } }).toArray();
-    for (const s of trangSessions) {
-      if (s.data && s.data.officer) {
-        if (s.data.officer.title !== qnTrangTitle || s.data.officer.specialty !== qnTrangSpecialty) {
-          await sessionsCol.updateOne(
-            { _id: s._id },
-            { $set: { "data.officer.title": qnTrangTitle, "data.officer.specialty": qnTrangSpecialty } }
-          );
-        }
-      }
-    }
-
-    const thuySessions = await sessionsCol.find({ filename: { $regex: /^qn_thuy_le/i } }).toArray();
-    for (const s of thuySessions) {
-      if (s.data && s.data.officer) {
-        if (s.data.officer.title !== qnThuyTitle || s.data.officer.specialty !== qnThuySpecialty) {
-          await sessionsCol.updateOne(
-            { _id: s._id },
-            { $set: { "data.officer.title": qnThuyTitle, "data.officer.specialty": qnThuySpecialty } }
-          );
-        }
-      }
-    }
+    await sessionsCol.updateMany(
+      { officerId: 'qn_trang' },
+      { $set: { "data.officer.title": qnTrangTitle, "data.officer.specialty": qnTrangSpecialty } }
+    );
+    await sessionsCol.updateMany(
+      { officerId: 'qn_thuy_le' },
+      { $set: { "data.officer.title": qnThuyTitle, "data.officer.specialty": qnThuySpecialty } }
+    );
   } catch (err) {}
 }
 
-connectMongo();
+if (!process.env.VERCEL && require.main === module) {
+  ensureMongoConnected();
+}
 
 // ============================================================================
 // 🛡️ TỰ ĐỘNG SAO LƯU DỰ PHÒNG TOÀN HỆ THỐNG ĐỊNH KỲ (DAILY AUTO-BACKUP)
@@ -1090,63 +1111,195 @@ if (!process.env.VERCEL) {
   } catch (e) {}
 }
 
-function sendJson(res, statusCode, data) {
+// ============================================================================
+// 🔒 BẢO MẬT, CORS ALLOWLIST, HMAC SESSION COOKIES & CHỐNG BRUTE-FORCE
+// ============================================================================
+const MAX_BODY_BYTES = 4 * 1024 * 1024; // Giới hạn tải trọng 4MB
+const AUTH_COOKIE_NAME = 'kpi_session';
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 giờ
+const ALLOWED_PUBLIC_VIEWER_IDS = new Set(['son', 'hoang', 'tu', 'tuan', 'anh', 'qn_trung', 'qn_phuong_tp']);
+const authAttemptMap = new Map();
+let _cachedHmacSecret = null;
+
+function isAllowedOrigin(origin, req) {
+  if (!origin) return false;
+  if (origin === 'null') return !process.env.VERCEL; // Cho phép file:// khi chạy LAN nội bộ
+  try {
+    const u = new URL(origin);
+    const reqHost = req && req.headers && req.headers.host;
+    if (reqHost && u.host === reqHost) return true;
+    const h = u.hostname.toLowerCase();
+    if (h === 'kpi-phong-ktnn.vercel.app' || /^kpi-phong-ktnn(?:-[a-z0-9-]+)?\.vercel\.app$/i.test(h)) return true;
+    if (h === 'localhost' || h === '127.0.0.1') return true;
+    if (/^(10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[0-1])\.\d+\.\d+)$/.test(h)) return true;
+  } catch (e) {}
+  return false;
+}
+
+function getCorsHeaders(req) {
+  const origin = req && req.headers && req.headers.origin;
+  const headers = {
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+    'Vary': 'Origin, Accept-Encoding',
+    'X-Content-Type-Options': 'nosniff'
+  };
+  if (origin && isAllowedOrigin(origin, req)) {
+    headers['Access-Control-Allow-Origin'] = origin;
+    headers['Access-Control-Allow-Credentials'] = 'true';
+  }
+  return headers;
+}
+
+function sanitizeClientIp(req) {
+  try {
+    const xff = String((req && req.headers && req.headers['x-forwarded-for']) || '').split(',')[0].trim();
+    const raw = xff || (req && req.socket && req.socket.remoteAddress) || 'client';
+    const clean = raw.replace(/^::ffff:/i, '');
+    return /^[0-9a-fA-F:.]{3,45}$/.test(clean) ? clean : 'client';
+  } catch (e) {
+    return 'client';
+  }
+}
+
+function checkAuthRateLimit(ip, officerId) {
+  const key = `${ip}:${officerId || '*'}`;
+  const now = Date.now();
+  const winMs = 5 * 60 * 1000;
+  let rec = authAttemptMap.get(key);
+  if (!rec || now - rec.firstAt > winMs) {
+    rec = { count: 0, firstAt: now };
+  }
+  if (rec.count >= 10) {
+    return { allowed: false, retryAfterSec: Math.ceil((winMs - (now - rec.firstAt)) / 1000) };
+  }
+  return { allowed: true, key, rec };
+}
+
+function recordAuthFailure(key) {
+  const now = Date.now();
+  const winMs = 5 * 60 * 1000;
+  const cur = authAttemptMap.get(key);
+  if (!cur || now - cur.firstAt > winMs) {
+    authAttemptMap.set(key, { count: 1, firstAt: now });
+  } else {
+    cur.count++;
+  }
+  if (authAttemptMap.size > 2000) authAttemptMap.clear();
+}
+
+function clearAuthFailures(key) {
+  authAttemptMap.delete(key);
+}
+
+function safeEqualStr(a, b) {
+  const ba = Buffer.from(String(a || ''), 'utf8');
+  const bb = Buffer.from(String(b || ''), 'utf8');
+  if (ba.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ba, bb);
+}
+
+function isValidSessionFilename(fn) {
+  if (!fn || typeof fn !== 'string') return false;
+  if (fn.includes('..') || fn.includes('/') || fn.includes('\\') || fn.includes('\0')) return false;
+  return /^[a-zA-Z0-9_-]+_(?:QuyI|QuyII|QuyIII|QuyIV|QuýI|QuýII|QuýIII|QuýIV|Quý I|Quý II|Quý III|Quý IV|Quy I|Quy II|Quy III|Quy IV)_\d{4}\.json$/i.test(fn);
+}
+
+function sanitizePlainObject(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(sanitizePlainObject);
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (k === '__proto__' || k === 'constructor' || k === 'prototype') continue;
+    out[k] = sanitizePlainObject(v);
+  }
+  return out;
+}
+
+function sendJson(res, statusCode, data, extraHeaders) {
   const jsonStr = (typeof data === 'string') ? data : JSON.stringify(data);
   const req = res._req;
   const acceptEncoding = (req && req.headers && req.headers['accept-encoding']) || '';
+  const corsHeaders = getCorsHeaders(req);
 
   // Tự động nén Gzip cho JSON lớn (> 2KB) để tăng tốc độ truyền qua mạng Internet gấp 10 lần
   if (acceptEncoding.includes('gzip') && jsonStr.length > 2048) {
     zlib.gzip(Buffer.from(jsonStr, 'utf8'), { level: 6 }, (err, gzipped) => {
       if (!err && gzipped) {
-        res.writeHead(statusCode, {
+        const headers = {
           'Content-Type': 'application/json; charset=utf-8',
           'Content-Encoding': 'gzip',
           'Content-Length': gzipped.length,
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Vary': 'Accept-Encoding'
-        });
+          ...corsHeaders,
+          ...(extraHeaders || {})
+        };
+        res.writeHead(statusCode, headers);
         return res.end(gzipped);
       }
-      sendJsonDirect(res, statusCode, jsonStr);
+      sendJsonDirect(res, statusCode, jsonStr, extraHeaders);
     });
     return;
   }
-  sendJsonDirect(res, statusCode, jsonStr);
+  sendJsonDirect(res, statusCode, jsonStr, extraHeaders);
 }
 
-function sendJsonDirect(res, statusCode, jsonStr) {
+function sendJsonDirect(res, statusCode, jsonStr, extraHeaders) {
   const buf = Buffer.from(jsonStr, 'utf8');
-  res.writeHead(statusCode, {
+  const corsHeaders = getCorsHeaders(res._req);
+  const headers = {
     'Content-Type': 'application/json; charset=utf-8',
     'Content-Length': buf.length,
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Cache-Control': 'no-cache, no-store, must-revalidate'
-  });
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    ...corsHeaders,
+    ...(extraHeaders || {})
+  };
+  res.writeHead(statusCode, headers);
   res.end(buf);
 }
 
-// ⚡ Hỗ trợ phân tích dữ liệu POST đa môi trường (Tương thích cả Vercel Serverless lẫn Node Native Stream)
+// ⚡ Hỗ trợ phân tích dữ liệu POST đa môi trường (Giới hạn 4MB, chống DoS tràn RAM)
 function parseJsonBody(req) {
   return new Promise((resolve, reject) => {
     if (req.body !== undefined && req.body !== null) {
-      if (typeof req.body === 'object') return resolve(req.body);
+      if (typeof req.body === 'object') return resolve(sanitizePlainObject(req.body));
       if (typeof req.body === 'string') {
-        try { return resolve(JSON.parse(req.body)); } catch (e) { return resolve({}); }
+        if (Buffer.byteLength(req.body, 'utf8') > MAX_BODY_BYTES) {
+          const e = new Error('Dữ liệu gửi lên vượt quá giới hạn 4MB');
+          e.statusCode = 413;
+          return reject(e);
+        }
+        try { return resolve(sanitizePlainObject(JSON.parse(req.body))); } catch (e) {
+          const pe = new Error('JSON không hợp lệ');
+          pe.statusCode = 400;
+          return reject(pe);
+        }
       }
     }
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
+    const chunks = [];
+    let totalBytes = 0;
+    let aborted = false;
+    req.on('data', chunk => {
+      if (aborted) return;
+      totalBytes += chunk.length;
+      if (totalBytes > MAX_BODY_BYTES) {
+        aborted = true;
+        const e = new Error('Dữ liệu gửi lên vượt quá giới hạn 4MB');
+        e.statusCode = 413;
+        return reject(e);
+      }
+      chunks.push(chunk);
+    });
     req.on('end', () => {
+      if (aborted) return;
+      const body = Buffer.concat(chunks).toString('utf8');
+      if (!body.trim()) return resolve({});
       try {
-        resolve(body ? JSON.parse(body) : {});
+        resolve(sanitizePlainObject(JSON.parse(body)));
       } catch (e) {
-        resolve({});
+        const pe = new Error('JSON không hợp lệ');
+        pe.statusCode = 400;
+        reject(pe);
       }
     });
     req.on('error', reject);
@@ -1155,14 +1308,33 @@ function parseJsonBody(req) {
 
 function parseRawBody(req) {
   return new Promise((resolve, reject) => {
-    if (Buffer.isBuffer(req.body)) return resolve(req.body);
+    if (Buffer.isBuffer(req.body)) {
+      if (req.body.length > MAX_BODY_BYTES) {
+        const e = new Error('Dữ liệu vượt quá giới hạn 4MB');
+        e.statusCode = 413;
+        return reject(e);
+      }
+      return resolve(req.body);
+    }
     if (typeof req.body === 'string') return resolve(Buffer.from(req.body));
     if (req.body !== undefined && req.body !== null && typeof req.body === 'object') {
       return resolve(Buffer.from(JSON.stringify(req.body)));
     }
-    let chunks = [];
-    req.on('data', chunk => chunks.push(chunk));
-    req.on('end', () => resolve(Buffer.concat(chunks)));
+    const chunks = [];
+    let totalBytes = 0;
+    let aborted = false;
+    req.on('data', chunk => {
+      if (aborted) return;
+      totalBytes += chunk.length;
+      if (totalBytes > MAX_BODY_BYTES) {
+        aborted = true;
+        const e = new Error('Dữ liệu vượt quá giới hạn 4MB');
+        e.statusCode = 413;
+        return reject(e);
+      }
+      chunks.push(chunk);
+    });
+    req.on('end', () => { if (!aborted) resolve(Buffer.concat(chunks)); });
     req.on('error', reject);
   });
 }
@@ -1193,9 +1365,10 @@ async function saveAuthPasswords(data) {
   if (kpiDb) {
     try {
       const col = kpiDb.collection('auth_passwords');
-      for (const [id, item] of Object.entries(data)) {
-        await col.updateOne({ officerId: id }, { $set: { officerId: id, ...item } }, { upsert: true });
-      }
+      const ops = Object.entries(data).map(([id, item]) => ({
+        updateOne: { filter: { officerId: id }, update: { $set: { officerId: id, ...item } }, upsert: true }
+      }));
+      if (ops.length > 0) await col.bulkWrite(ops, { ordered: false });
       return true;
     } catch (e) {}
   }
@@ -1207,6 +1380,152 @@ function hashPassword(password, salt) {
     return crypto.createHash('sha256').update(String(password).trim()).digest('hex');
   }
   return crypto.createHash('sha256').update(String(salt) + ':' + String(password).trim()).digest('hex');
+}
+
+function makeSaltedPasswordHash(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const derived = crypto.scryptSync(String(password).trim(), salt, 32).toString('hex');
+  return { salt, hash: `scrypt$${derived}` };
+}
+
+function verifyPasswordAgainstRecord(pwd, record) {
+  if (!record || !record.hash) return false;
+  const trimmed = String(pwd || '').trim();
+  const h = String(record.hash);
+  if (h.startsWith('scrypt$') && record.salt) {
+    const derived = crypto.scryptSync(trimmed, record.salt, 32).toString('hex');
+    return safeEqualStr(`scrypt$${derived}`, h);
+  }
+  if (record.salt) {
+    if (safeEqualStr(hashPassword(trimmed, record.salt), h)) return true;
+  }
+  return safeEqualStr(hashPassword(trimmed), h);
+}
+
+async function getHmacSecret() {
+  if (_cachedHmacSecret) return _cachedHmacSecret;
+  if (process.env.SESSION_SECRET && process.env.SESSION_SECRET.length >= 16) {
+    _cachedHmacSecret = process.env.SESSION_SECRET;
+    return _cachedHmacSecret;
+  }
+  if (kpiDb) {
+    try {
+      const secretsCol = kpiDb.collection('system_secrets');
+      const existing = await secretsCol.findOne({ _id: 'hmac_session_key' });
+      if (existing && existing.key) {
+        _cachedHmacSecret = existing.key;
+        return _cachedHmacSecret;
+      }
+      const generated = crypto.randomBytes(32).toString('hex');
+      const res = await secretsCol.findOneAndUpdate(
+        { _id: 'hmac_session_key' },
+        { $setOnInsert: { _id: 'hmac_session_key', key: generated, createdAt: new Date().toISOString() } },
+        { upsert: true, returnDocument: 'after' }
+      );
+      const doc = (res && res.value) || res || await secretsCol.findOne({ _id: 'hmac_session_key' });
+      if (doc && doc.key) {
+        _cachedHmacSecret = doc.key;
+        return _cachedHmacSecret;
+      }
+    } catch (e) {}
+  }
+  if (!process.env.VERCEL) {
+    try {
+      const secretPath = path.join(DATA_DIR, '.session_secret');
+      if (fs.existsSync(secretPath)) {
+        const s = fs.readFileSync(secretPath, 'utf8').trim();
+        if (s.length >= 32) {
+          _cachedHmacSecret = s;
+          return _cachedHmacSecret;
+        }
+      }
+      const fresh = crypto.randomBytes(32).toString('hex');
+      fs.writeFileSync(secretPath, fresh, { encoding: 'utf8', mode: 0o600 });
+      _cachedHmacSecret = fresh;
+      return _cachedHmacSecret;
+    } catch (e) {}
+  }
+  _cachedHmacSecret = crypto.randomBytes(32).toString('hex');
+  return _cachedHmacSecret;
+}
+
+async function signSessionToken(officerId, role) {
+  const secret = await getHmacSecret();
+  const payloadObj = { sub: String(officerId), role: String(role || 'GDV'), iat: Date.now(), exp: Date.now() + SESSION_TTL_MS };
+  const payloadB64 = Buffer.from(JSON.stringify(payloadObj), 'utf8').toString('base64url');
+  const sigB64 = crypto.createHmac('sha256', secret).update(payloadB64).digest('base64url');
+  return `${payloadB64}.${sigB64}`;
+}
+
+async function verifySessionToken(token) {
+  if (!token || typeof token !== 'string' || !token.includes('.')) return null;
+  const parts = token.split('.');
+  if (parts.length !== 2) return null;
+  const [payloadB64, sigB64] = parts;
+  const secret = await getHmacSecret();
+  const expectedSig = crypto.createHmac('sha256', secret).update(payloadB64).digest('base64url');
+  if (!safeEqualStr(sigB64, expectedSig)) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+    if (!parsed || !parsed.sub || !parsed.exp || Date.now() > parsed.exp) return null;
+    return parsed;
+  } catch (e) {
+    return null;
+  }
+}
+
+function parseCookies(req) {
+  const out = {};
+  const raw = req && req.headers && req.headers.cookie;
+  if (!raw) return out;
+  String(raw).split(';').forEach(pair => {
+    const idx = pair.indexOf('=');
+    if (idx > 0) {
+      const k = pair.slice(0, idx).trim();
+      const v = pair.slice(idx + 1).trim();
+      if (k) out[k] = decodeURIComponent(v);
+    }
+  });
+  return out;
+}
+
+function buildSessionCookieHeader(req, token, maxAgeSec) {
+  const isHttps = !!(process.env.VERCEL || (req && req.headers && req.headers['x-forwarded-proto'] === 'https') || (req && req.socket && req.socket.encrypted));
+  const parts = [
+    `${AUTH_COOKIE_NAME}=${encodeURIComponent(token || '')}`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    `Max-Age=${typeof maxAgeSec === 'number' ? maxAgeSec : Math.floor(SESSION_TTL_MS / 1000)}`
+  ];
+  if (isHttps) parts.push('Secure');
+  return parts.join('; ');
+}
+
+async function getAuthSession(req) {
+  let token = '';
+  const authHdr = req && req.headers && req.headers.authorization;
+  if (authHdr && /^Bearer\s+/i.test(authHdr)) {
+    token = authHdr.replace(/^Bearer\s+/i, '').trim();
+  }
+  if (!token) {
+    const cookies = parseCookies(req);
+    token = cookies[AUTH_COOKIE_NAME] || '';
+  }
+  const verified = await verifySessionToken(token);
+  if (!verified || !verified.sub) return null;
+
+  const officerId = verified.sub;
+  const cfg = await getOfficersConfig();
+  const off = cfg[officerId] || {};
+  const role = off.role || verified.role || 'GDV';
+  const isAdmin = (officerId === 'hoang');
+  const isApprover = (officerId === 'son' || officerId === 'hoang' || role === 'TP');
+  const isLeader = !!(off.isLeader || role === 'TP' || role === 'PTP' || isAdmin);
+  const isKPIAggregator = !!(off.isKPIAggregator || officerId === 'tu');
+  const canViewAll = !!(isAdmin || isApprover || isLeader || isKPIAggregator || ALLOWED_PUBLIC_VIEWER_IDS.has(officerId));
+
+  return { officerId, role, isAdmin, isApprover, isLeader, isKPIAggregator, canViewAll };
 }
 
 function calculateMonthPctFromRows(monthObj, role) {
@@ -1439,14 +1758,20 @@ async function handleKpiRequest(req, res) {
   res._req = req;
   await ensureMongoConnected();
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    });
+    res.writeHead(204, getCorsHeaders(req));
     res.end();
     return;
   }
+
+  const requireAuth = async () => {
+    const sess = await getAuthSession(req);
+    if (!sess) {
+      sendJson(res, 401, { success: false, error: "Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại!", authRequired: true });
+      return null;
+    }
+    return sess;
+  };
+  const sendBodyErr = (err) => sendJson(res, (err && err.statusCode) || 400, { success: false, error: (err && err.message) || "Dữ liệu không hợp lệ" });
 
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   let pathname = parsedUrl.pathname;
@@ -1488,11 +1813,32 @@ async function handleKpiRequest(req, res) {
     });
   }
 
+  // API Auth Me (Kiểm tra phiên đăng nhập hiện tại qua HttpOnly Cookie hoặc Bearer Token)
+  if (pathname === '/api/auth/me' && req.method === 'GET') {
+    const auth = await getAuthSession(req);
+    if (!auth) {
+      return sendJson(res, 401, { success: false, authenticated: false, error: "Chưa đăng nhập" });
+    }
+    return sendJson(res, 200, { success: true, authenticated: true, user: auth });
+  }
+
+  // API Auth Logout (Xóa cookie đăng nhập an toàn)
+  if (pathname === '/api/auth/logout' && req.method === 'POST') {
+    return sendJson(res, 200, { success: true, message: "Đã đăng xuất" }, {
+      'Set-Cookie': buildSessionCookieHeader(req, '', 0)
+    });
+  }
+
   // API Auth Status
   if (pathname === '/api/auth/status' && req.method === 'GET') {
     const officerId = searchParams.get('officerId');
     const authData = await getAuthPasswords();
     if (!officerId) {
+      const auth = await requireAuth();
+      if (!auth) return;
+      if (!auth.isAdmin) {
+        return sendJson(res, 403, { success: false, error: "Chỉ quản trị viên mới có quyền xem trạng thái mật khẩu toàn phòng!" });
+      }
       const statusMap = {};
       for (const [id, item] of Object.entries(authData)) {
         statusMap[id] = !!(item && item.hash);
@@ -1503,7 +1849,7 @@ async function handleKpiRequest(req, res) {
     return sendJson(res, 200, { success: true, officerId, hasPassword });
   }
 
-  // API Set Password (Thiết lập mật khẩu lần đầu)
+  // API Set Password (Thiết lập mật khẩu lần đầu - CHẶN nếu đã có mật khẩu)
   if (pathname === '/api/auth/set-password' && req.method === 'POST') {
     try {
       const payload = await parseJsonBody(req);
@@ -1511,11 +1857,22 @@ async function handleKpiRequest(req, res) {
       if (!officerId || !password || String(password).trim().length < 4) {
         return sendJson(res, 400, { success: false, error: "Mật khẩu phải có ít nhất 4 ký tự" });
       }
-      const salt = crypto.randomBytes(16).toString('hex');
-      const hash = hashPassword(password, salt);
+      const cfg = await getOfficersConfig();
+      const off = cfg[officerId];
+      if (!off) {
+        return sendJson(res, 404, { success: false, error: "Không tìm thấy cán bộ trong danh bạ" });
+      }
+
+      const authData = await getAuthPasswords();
+      const localAuth = getLocalAuth();
+      const existing = authData[officerId] || (!kpiDb ? localAuth[officerId] : null);
+      if (existing && existing.hash) {
+        return sendJson(res, 403, { success: false, error: "Tài khoản đã thiết lập mật khẩu. Vui lòng đăng nhập và dùng chức năng Đổi mật khẩu!" });
+      }
+
+      const { salt, hash } = makeSaltedPasswordHash(password);
       const nowIso = new Date().toISOString();
 
-      // Cập nhật TRỰC TIẾP lên MongoDB Atlas (<50ms) có lá chắn Quota Shield
       if (kpiDb) {
         try {
           await executeMongoWriteWithQuotaShield(async () => {
@@ -1530,164 +1887,170 @@ async function handleKpiRequest(req, res) {
         }
       }
 
-      // Cập nhật local file nếu môi trường hỗ trợ ghi
-      try {
-        const localAuth = getLocalAuth();
-        localAuth[officerId] = { hash, salt, updatedAt: nowIso };
-        saveLocalAuth(localAuth);
-      } catch (e) {}
+      if (!process.env.VERCEL) {
+        try {
+          localAuth[officerId] = { hash, salt, updatedAt: nowIso };
+          saveLocalAuth(localAuth);
+        } catch (e) {}
+      }
 
-      return sendJson(res, 200, { success: true, message: "Đã thiết lập mật khẩu thành công" });
+      const token = await signSessionToken(officerId, off.role || 'GDV');
+      return sendJson(res, 200, {
+        success: true,
+        message: "Đã thiết lập mật khẩu thành công",
+        token,
+        user: { officerId, role: off.role || 'GDV', isAdmin: officerId === 'hoang' }
+      }, {
+        'Set-Cookie': buildSessionCookieHeader(req, token)
+      });
     } catch (err) {
-      return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ: " + err.message });
+      return sendBodyErr(err);
     }
   }
 
-  // API Verify Password (Xác thực mật khẩu đăng nhập với Lá chắn Reset 123456)
+  // API Verify Password (Xác thực đăng nhập + cấp Signed HttpOnly Session Cookie & Rate Limit)
   if (pathname === '/api/auth/verify' && req.method === 'POST') {
     try {
       const payload = await parseJsonBody(req);
       const { officerId, password } = payload;
+      if (!officerId) {
+        return sendJson(res, 400, { success: false, error: "Thiếu mã cán bộ" });
+      }
+      const clientIp = sanitizeClientIp(req);
+      const rl = checkAuthRateLimit(clientIp, officerId);
+      if (!rl.allowed) {
+        return sendJson(res, 429, { success: false, error: `Thử sai quá nhiều lần. Vui lòng chờ ${rl.retryAfterSec} giây trước khi thử lại.` });
+      }
+
       const defaultHash = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92';
       const pwd = String(password || '').trim();
 
-      // Lấy thông tin xác thực từ Cloud và Local
       const authData = await getAuthPasswords();
       const localAuth = getLocalAuth();
-      const userAuth = authData[officerId] || localAuth[officerId];
+      const cloudAuth = authData[officerId];
+      // Chỉ fallback localAuth nếu chưa kết nối được MongoDB hoặc Cloud chưa có bản ghi của cán bộ
+      const userAuth = (kpiDb && cloudAuth && cloudAuth.hash) ? cloudAuth : (cloudAuth || localAuth[officerId]);
 
-      let matched = false;
-
-      // 1. So khớp mật khẩu có salt (chuẩn bảo mật cao nhất)
-      if (userAuth && userAuth.salt && userAuth.hash) {
-        const calculatedHash = hashPassword(pwd, userAuth.salt);
-        if (calculatedHash === userAuth.hash) {
-          matched = true;
-        }
-      }
-
-      // 2. So khớp mật khẩu không có salt (chuẩn trực tiếp / legacy)
-      if (!matched && userAuth && userAuth.hash) {
-        const plainHash = hashPassword(pwd);
-        if (plainHash === userAuth.hash) {
-          matched = true;
-        }
-      }
-
-      // 3. Fallback kiểm tra file auth_passwords.json trong repository (khi admin commit git hoặc đồng bộ offline)
-      if (!matched && localAuth[officerId] && localAuth[officerId].hash) {
-        const localUserAuth = localAuth[officerId];
-        if (localUserAuth.salt) {
-          if (hashPassword(pwd, localUserAuth.salt) === localUserAuth.hash) matched = true;
-        }
-        if (!matched && hashPassword(pwd) === localUserAuth.hash) {
-          matched = true;
-        }
-      }
-
-      // 4. LÁ CHẮN RESET MẬT KHẨU MẶC ĐỊNH (123456 UNIVERSAL RESET SHIELD):
-      // Khi cán bộ nhập 123456:
-      // - Hoặc tài khoản đã được admin đặt về 123456 trên Cloud/Local
-      // - Hoặc tài khoản chưa có mật khẩu / đã bị admin xóa mật khẩu (auth/reset)
-      // - Hoặc hash của cán bộ trong localAuth trùng defaultHash
-      if (!matched && pwd === '123456') {
-        const isDefaultInCloud = (userAuth && userAuth.hash === defaultHash);
-        const isDefaultInLocal = (localAuth[officerId] && localAuth[officerId].hash === defaultHash);
-        const isUnsetPassword = (!userAuth || !userAuth.hash);
-
-        if (isDefaultInCloud || isDefaultInLocal || isUnsetPassword) {
-          matched = true;
-        }
-      }
-
-      if (matched) {
-        // Chỉ đồng bộ lên MongoDB nếu tài khoản chưa từng có bản ghi trên Cloud (tránh write thừa mỗi lần đăng nhập)
-        if (kpiDb && (!authData[officerId] || !authData[officerId].hash)) {
-          try {
-            const currentHash = (pwd === '123456' && (!userAuth || userAuth.hash === defaultHash)) ? defaultHash : ((userAuth && userAuth.hash) || hashPassword(pwd));
-            const currentSalt = (pwd === '123456' && (!userAuth || userAuth.hash === defaultHash)) ? '' : ((userAuth && userAuth.salt) || '');
-            await kpiDb.collection('auth_passwords').updateOne(
-              { officerId },
-              { $set: { officerId, hash: currentHash, salt: currentSalt, updatedAt: new Date().toISOString() } },
-              { upsert: true }
-            );
-          } catch (e) {}
-        }
-        return sendJson(res, 200, { success: true, message: "Xác thực thành công" });
-      }
-
-      // Nếu không khớp và tài khoản chưa từng thiết lập mật khẩu
       if (!userAuth || !userAuth.hash) {
         return sendJson(res, 200, { success: false, error: "Tài khoản chưa thiết lập mật khẩu hoặc đã được đặt lại. Vui lòng thiết lập mật khẩu mới!", notSet: true });
       }
 
-      return sendJson(res, 200, { success: false, error: "Mật khẩu không chính xác. Vui lòng kiểm tra lại!" });
+      let matched = verifyPasswordAgainstRecord(pwd, userAuth);
+      // Hỗ trợ kiểm tra khi quản trị viên đặt lại về 123456 (lưu đúng hash mặc định trên bản ghi active)
+      if (!matched && pwd === '123456' && safeEqualStr(userAuth.hash, defaultHash)) {
+        matched = true;
+      }
+
+      if (matched) {
+        clearAuthFailures(rl.key);
+        if (kpiDb && (!cloudAuth || !cloudAuth.hash) && localAuth[officerId] && localAuth[officerId].hash) {
+          try {
+            await kpiDb.collection('auth_passwords').updateOne(
+              { officerId },
+              { $set: { officerId, hash: localAuth[officerId].hash, salt: localAuth[officerId].salt || '', updatedAt: new Date().toISOString() } },
+              { upsert: true }
+            );
+          } catch (e) {}
+        }
+        const cfg = await getOfficersConfig();
+        const off = cfg[officerId] || {};
+        const role = off.role || 'GDV';
+        const token = await signSessionToken(officerId, role);
+        return sendJson(res, 200, {
+          success: true,
+          message: "Xác thực thành công",
+          token,
+          user: {
+            officerId,
+            role,
+            isAdmin: officerId === 'hoang',
+            isApprover: (officerId === 'son' || officerId === 'hoang' || role === 'TP'),
+            isLeader: !!(off.isLeader || role === 'TP' || role === 'PTP' || officerId === 'hoang'),
+            isKPIAggregator: !!(off.isKPIAggregator || officerId === 'tu')
+          }
+        }, {
+          'Set-Cookie': buildSessionCookieHeader(req, token)
+        });
+      }
+
+      recordAuthFailure(rl.key);
+      return sendJson(res, 401, { success: false, error: "Mật khẩu không chính xác. Vui lòng kiểm tra lại!" });
     } catch (err) {
-      return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ: " + err.message });
+      return sendBodyErr(err);
     }
   }
 
-  // API Change Password (Cán bộ tự đổi mật khẩu)
+  // API Change Password (Cán bộ tự đổi mật khẩu - Bắt buộc đã đăng nhập & khớp mật khẩu cũ)
   if (pathname === '/api/auth/change-password' && req.method === 'POST') {
+    const auth = await requireAuth();
+    if (!auth) return;
     try {
       const payload = await parseJsonBody(req);
       const { officerId, oldPassword, newPassword } = payload;
-      if (!officerId || !newPassword || String(newPassword).trim().length < 4) {
+      const targetId = officerId || auth.officerId;
+      if (targetId !== auth.officerId) {
+        return sendJson(res, 403, { success: false, error: "Chỉ được phép đổi mật khẩu cho chính tài khoản đang đăng nhập!" });
+      }
+      if (!newPassword || String(newPassword).trim().length < 4) {
         return sendJson(res, 400, { success: false, error: "Mật khẩu mới phải có ít nhất 4 ký tự" });
       }
       const authData = await getAuthPasswords();
-      const userAuth = authData[officerId] || getLocalAuth()[officerId];
+      const userAuth = authData[targetId] || (!kpiDb ? getLocalAuth()[targetId] : null);
       if (userAuth && userAuth.hash) {
         const oldTrimmed = String(oldPassword || '').trim();
-        const currentValid = (userAuth.salt && hashPassword(oldTrimmed, userAuth.salt) === userAuth.hash) ||
-                             (hashPassword(oldTrimmed) === userAuth.hash) ||
-                             (oldTrimmed === '123456' && userAuth.hash === '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92');
-        if (!currentValid && payload.adminOfficerId !== 'hoang') {
+        const currentValid = verifyPasswordAgainstRecord(oldTrimmed, userAuth) ||
+          (oldTrimmed === '123456' && safeEqualStr(userAuth.hash, '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92'));
+        if (!currentValid) {
           return sendJson(res, 400, { success: false, error: "Mật khẩu hiện tại không chính xác" });
         }
       }
-      const salt = crypto.randomBytes(16).toString('hex');
-      const hash = hashPassword(newPassword, salt);
+      const { salt, hash } = makeSaltedPasswordHash(newPassword);
       const nowIso = new Date().toISOString();
 
-      // Cập nhật TRỰC TIẾP lên MongoDB Atlas (<50ms) có lá chắn Quota Shield
       if (kpiDb) {
         try {
           await executeMongoWriteWithQuotaShield(async () => {
             return await kpiDb.collection('auth_passwords').updateOne(
-              { officerId },
-              { $set: { officerId, hash, salt, updatedAt: nowIso } },
+              { officerId: targetId },
+              { $set: { officerId: targetId, hash, salt, updatedAt: nowIso } },
               { upsert: true }
             );
           });
         } catch (dbErr) {
           console.error('[API Change Password] Lỗi cập nhật MongoDB:', dbErr);
+          return sendJson(res, 500, { success: false, error: "Lỗi lưu mật khẩu lên CSDL: " + dbErr.message });
         }
       }
 
-      try {
-        const localAuth = getLocalAuth();
-        localAuth[officerId] = { hash, salt, updatedAt: nowIso };
-        saveLocalAuth(localAuth);
-      } catch (e) {}
+      if (!process.env.VERCEL) {
+        try {
+          const localAuth = getLocalAuth();
+          localAuth[targetId] = { hash, salt, updatedAt: nowIso };
+          saveLocalAuth(localAuth);
+        } catch (e) {}
+      }
 
-      return sendJson(res, 200, { success: true, message: "Đã đổi mật khẩu thành công" });
+      const newToken = await signSessionToken(targetId, auth.role);
+      return sendJson(res, 200, { success: true, message: "Đã đổi mật khẩu thành công", token: newToken }, {
+        'Set-Cookie': buildSessionCookieHeader(req, newToken)
+      });
     } catch (err) {
-      return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ: " + err.message });
+      return sendBodyErr(err);
     }
   }
 
-  // API Admin Set Password (Quản trị viên đặt / đổi trực tiếp mật khẩu cho bất kỳ cán bộ nào)
+  // API Admin Set Password (CHỈ Admin Hoàng đã xác thực session)
   if (pathname === '/api/auth/admin-set-password' && req.method === 'POST') {
+    const auth = await requireAuth();
+    if (!auth) return;
+    if (!auth.isAdmin) {
+      return sendJson(res, 403, { success: false, error: "Quyền quản trị bị từ chối!" });
+    }
     try {
       const payload = await parseJsonBody(req);
-      const { adminOfficerId, targetOfficerId, newPassword } = payload;
-      const isAuthorized = isAuthorAuthorizedMachine() || adminOfficerId === 'hoang';
-      if (!isAuthorized) {
-        return sendJson(res, 403, { success: false, error: "Quyền quản trị bị từ chối!" });
-      }
-      if (!targetOfficerId) {
-        return sendJson(res, 400, { success: false, error: "Thiếu mã cán bộ cần đặt mật khẩu" });
+      const { targetOfficerId, newPassword } = payload;
+      if (!targetOfficerId || !newPassword || String(newPassword).trim().length < 4) {
+        return sendJson(res, 400, { success: false, error: "Thiếu mã cán bộ hoặc mật khẩu mới < 4 ký tự" });
       }
       const trimmed = String(newPassword).trim();
       let salt = '';
@@ -1696,12 +2059,12 @@ async function handleKpiRequest(req, res) {
         hash = hashPassword('123456');
         salt = '';
       } else {
-        salt = crypto.randomBytes(16).toString('hex');
-        hash = hashPassword(trimmed, salt);
+        const resHash = makeSaltedPasswordHash(trimmed);
+        salt = resHash.salt;
+        hash = resHash.hash;
       }
       const nowIso = new Date().toISOString();
 
-      // 1. Cập nhật TRỰC TIẾP và NGAY LẬP TỨC lên MongoDB Atlas (có lá chắn tự động giải phóng Quota Shield)
       if (kpiDb) {
         try {
           await executeMongoWriteWithQuotaShield(async () => {
@@ -1717,35 +2080,33 @@ async function handleKpiRequest(req, res) {
         }
       }
 
-      // 2. Cập nhật file cục bộ (nếu môi trường cho phép ghi)
-      try {
-        const localAuth = getLocalAuth();
-        localAuth[targetOfficerId] = {
-          hash,
-          salt,
-          updatedAt: nowIso
-        };
-        saveLocalAuth(localAuth);
-      } catch (e) {}
+      if (!process.env.VERCEL) {
+        try {
+          const localAuth = getLocalAuth();
+          localAuth[targetOfficerId] = { hash, salt, updatedAt: nowIso };
+          saveLocalAuth(localAuth);
+        } catch (e) {}
+      }
 
-      return sendJson(res, 200, { 
-        success: true, 
-        message: `Đã đặt mật khẩu thành công cho cán bộ: ${targetOfficerId}` 
+      return sendJson(res, 200, {
+        success: true,
+        message: `Đã đặt mật khẩu thành công cho cán bộ: ${targetOfficerId}`
       });
     } catch (err) {
-      return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ: " + err.message });
+      return sendBodyErr(err);
     }
   }
 
-  // API Reset Password (Quản trị viên xóa / đặt lại mật khẩu để cán bộ tự đặt mới)
+  // API Reset Password (CHỈ Admin Hoàng đã xác thực session)
   if (pathname === '/api/auth/reset' && req.method === 'POST') {
+    const auth = await requireAuth();
+    if (!auth) return;
+    if (!auth.isAdmin) {
+      return sendJson(res, 403, { success: false, error: "Quyền quản trị bị từ chối!" });
+    }
     try {
       const payload = await parseJsonBody(req);
-      const { adminOfficerId, targetOfficerId } = payload;
-      const isAuthorized = isAuthorAuthorizedMachine() || adminOfficerId === 'hoang';
-      if (!isAuthorized) {
-        return sendJson(res, 403, { success: false, error: "Quyền quản trị bị từ chối!" });
-      }
+      const { targetOfficerId } = payload;
       if (!targetOfficerId) {
         return sendJson(res, 400, { success: false, error: "Thiếu mã cán bộ cần đặt lại" });
       }
@@ -1760,42 +2121,47 @@ async function handleKpiRequest(req, res) {
         }
       }
 
-      try {
-        const localData = getLocalAuth();
-        if (localData[targetOfficerId]) {
-          delete localData[targetOfficerId];
-          saveLocalAuth(localData);
-        }
-      } catch (e) {}
+      if (!process.env.VERCEL) {
+        try {
+          const localData = getLocalAuth();
+          if (localData[targetOfficerId]) {
+            delete localData[targetOfficerId];
+            saveLocalAuth(localData);
+          }
+        } catch (e) {}
+      }
 
-      return sendJson(res, 200, { 
-        success: true, 
-        message: `Đã đặt lại mật khẩu thành công cho cán bộ: ${targetOfficerId}` 
+      return sendJson(res, 200, {
+        success: true,
+        message: `Đã đặt lại mật khẩu thành công cho cán bộ: ${targetOfficerId}`
       });
     } catch (err) {
-      return sendJson(res, 400, { success: false, error: "Dữ liệu không hợp lệ: " + err.message });
+      return sendBodyErr(err);
     }
   }
 
   // API Status
   if (pathname === '/api/status' && req.method === 'GET') {
+    const auth = await getAuthSession(req);
     let sessionsCount = 0;
-    if (kpiDb) {
-      try {
-        sessionsCount = await kpiDb.collection('sessions').countDocuments();
-      } catch(e) {
+    if (auth || !process.env.VERCEL) {
+      if (kpiDb) {
+        try {
+          sessionsCount = await kpiDb.collection('sessions').countDocuments();
+        } catch(e) {
+          sessionsCount = Object.keys(getAllLocalSessions()).length;
+        }
+      } else {
         sessionsCount = Object.keys(getAllLocalSessions()).length;
       }
-    } else {
-      sessionsCount = Object.keys(getAllLocalSessions()).length;
     }
     return sendJson(res, 200, {
       status: "ok",
       storageMode: kpiDb ? "mongodb_cloud" : "local_file_storage",
       serverTime: new Date().toISOString(),
-      hostIp: getLanIp(),
-      port: PORT,
-      sessionsCount,
+      hostIp: (auth || !process.env.VERCEL) ? getLanIp() : undefined,
+      port: (auth || !process.env.VERCEL) ? PORT : undefined,
+      sessionsCount: (auth || !process.env.VERCEL) ? sessionsCount : undefined,
       version: "V18_Hybrid_Local_Cloud"
     });
   }
@@ -1825,18 +2191,17 @@ async function handleKpiRequest(req, res) {
     });
   }
 
-  // API Update Officer Information (Sửa thông tin cán bộ)
+  // API Update Officer Information (CHỈ Trưởng phòng Sơn & Phó TP Hoàng đã xác thực session)
   if (pathname === '/api/officer/update' && req.method === 'POST') {
+    const auth = await requireAuth();
+    if (!auth) return;
+    if (!auth.isApprover) {
+      return sendJson(res, 403, { success: false, error: "Chỉ có Trưởng phòng (đ/c Hoàng Anh Sơn) và Phó Trưởng phòng (đ/c Trần Quốc Hoàng) mới có quyền sửa thông tin cán bộ." });
+    }
     try {
       const payload = await parseJsonBody(req);
-      const { officerId, name, role, title, group, specialty, approverTitle, approverName, requesterId } = payload;
+      const { officerId, name, role, title, group, specialty, approverTitle, approverName } = payload;
       if (!officerId) return sendJson(res, 400, { success: false, error: "Thiếu officerId" });
-
-      // Phân quyền: Lãnh đạo phòng (son, hoang) mới có quyền sửa thông tin cán bộ
-      const reqUser = requesterId || 'hoang';
-      if (reqUser !== 'son' && reqUser !== 'hoang') {
-        return sendJson(res, 403, { success: false, error: "Chỉ có Trưởng phòng (đ/c Hoàng Anh Sơn) và Phó Trưởng phòng (đ/c Trần Quốc Hoàng) mới có quyền sửa thông tin cán bộ." });
-      }
 
       const allCfg = await getOfficersConfig();
       const existing = allCfg[officerId] || { id: officerId };
@@ -1886,12 +2251,17 @@ async function handleKpiRequest(req, res) {
 
   // API Get Previous Quarter Last Month (Phục vụ kế thừa KPI)
   if (pathname === '/api/session/previous-month' && req.method === 'GET') {
+    const auth = await requireAuth();
+    if (!auth) return;
     const officerId = searchParams.get('officerId');
     const quarter = searchParams.get('quarter') || 'Quý IV';
     const year = searchParams.get('year') || 2026;
 
     if (!officerId) {
       return sendJson(res, 400, { success: false, error: "Thiếu thông số officerId" });
+    }
+    if (auth.officerId !== officerId && !auth.canViewAll) {
+      return sendJson(res, 403, { success: false, error: "Không có quyền truy cập hồ sơ cán bộ khác!" });
     }
 
     try {
@@ -1927,12 +2297,17 @@ async function handleKpiRequest(req, res) {
 
   // API Get Session
   if (pathname === '/api/session' && req.method === 'GET') {
+    const auth = await requireAuth();
+    if (!auth) return;
     const officerId = searchParams.get('officerId');
     const quarter = searchParams.get('quarter');
     const year = searchParams.get('year');
 
     if (!officerId) {
       return sendJson(res, 400, { success: false, error: "Thiếu thông số officerId" });
+    }
+    if (auth.officerId !== officerId && !auth.canViewAll) {
+      return sendJson(res, 403, { success: false, error: "Không có quyền xem hồ sơ KPI của cán bộ khác!" });
     }
 
     const isDeltaMode = (searchParams.get('delta') === '1');
@@ -2114,6 +2489,8 @@ async function handleKpiRequest(req, res) {
 
   // API Save Session (CÓ LƯU TRỮ LỊCH SỬ PHIÊN BẢN - SNAPSHOT VERSIONING)
   if (pathname === '/api/session' && req.method === 'POST') {
+    const auth = await requireAuth();
+    if (!auth) return;
     try {
       const payload = await parseJsonBody(req);
         const officerId = payload.officerId || (payload.officer && payload.officer.officerId) || (payload.state && payload.state.officer && payload.state.officer.officerId);
@@ -2123,6 +2500,9 @@ async function handleKpiRequest(req, res) {
 
         if (!officerId) {
           return sendJson(res, 400, { success: false, error: "Thiếu thông số officerId" });
+        }
+        if (auth.officerId !== officerId && !auth.isApprover) {
+          return sendJson(res, 403, { success: false, error: "Không có quyền sửa đổi hồ sơ của cán bộ khác!" });
         }
 
         const filename = getSessionFilename(officerId, quarter, year);
@@ -2194,8 +2574,7 @@ async function handleKpiRequest(req, res) {
 
         if (existingSession) {
           const currentStatus = existingSession.status;
-          const senderId = payload.senderId || officerId;
-          const isLeaderOrAdmin = (senderId === 'son' || senderId === 'hoang' || senderId === 'tuan' || senderId === 'anh');
+          const isLeaderOrAdmin = auth.isApprover;
 
           // 🔒 KIỂM TRA KHÓA DỮ LIỆU: Nếu đã nộp hoặc đã duyệt, cán bộ thường không được sửa
           if ((currentStatus === 'da_nop' || currentStatus === 'da_duyet') && !isLeaderOrAdmin && payload.action !== 'submit') {
@@ -2288,14 +2667,14 @@ async function handleKpiRequest(req, res) {
         const isTimeForSnapshot = (Date.now() - lastSnapTime > 15 * 60 * 1000); // 15 phút một lần
         const shouldTakeSnapshot = isActionSnapshot || !lastSnapshotTimeMap.has(filename) || isTimeForSnapshot;
 
-        const clientIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
+        const clientIp = sanitizeClientIp(req);
         let snapshotSummary = "";
         if (cleanState.months && Array.isArray(cleanState.months)) {
           let mPct = cleanState.months.map(m => m.completionPercent || 0).join(' - ');
           snapshotSummary = `Tháng: [${mPct}]% - TT: ${cleanState.status || 'da_luu'}`;
         }
 
-        if (shouldTakeSnapshot) {
+        if (shouldTakeSnapshot && !process.env.VERCEL) {
           lastSnapshotTimeMap.set(filename, Date.now());
           saveLocalSnapshotAsync(filename, {
             officerId,
@@ -2306,6 +2685,8 @@ async function handleKpiRequest(req, res) {
             summary: snapshotSummary,
             data: cleanState
           }).catch(() => {});
+        } else if (shouldTakeSnapshot) {
+          lastSnapshotTimeMap.set(filename, Date.now());
         }
 
         if (kpiDb) {
@@ -2330,36 +2711,34 @@ async function handleKpiRequest(req, res) {
               );
             });
 
-            // Chỉ lưu snapshot trên Cloud khi có hành động nộp duyệt/phê duyệt chính thức
+            // Await trực tiếp trước khi trả response để Vercel Serverless không bị đóng băng ngang chừng
             if (isActionSnapshot) {
-              setImmediate(async () => {
-                try {
-                  const snapshotsCol = kpiDb.collection('session_snapshots');
-                  await snapshotsCol.insertOne({
-                    filename,
-                    officerId,
-                    quarter: normalizeQuarter(quarter),
-                    year: Number(year) || 2026,
-                    savedAt: cleanState.lastSaved,
-                    clientIp,
-                    summary: snapshotSummary,
-                    data: cleanState
-                  });
+              try {
+                const snapshotsCol = kpiDb.collection('session_snapshots');
+                await snapshotsCol.insertOne({
+                  filename,
+                  officerId,
+                  quarter: normalizeQuarter(quarter),
+                  year: Number(year) || 2026,
+                  savedAt: cleanState.lastSaved,
+                  clientIp,
+                  summary: snapshotSummary,
+                  data: cleanState
+                });
 
-                  const maxSnapshots = 2;
-                  const snapCount = await snapshotsCol.countDocuments({ filename });
-                  if (snapCount > maxSnapshots) {
-                    const overflow = await snapshotsCol.find({ filename })
-                      .sort({ savedAt: 1 })
-                      .limit(snapCount - maxSnapshots)
-                      .project({ _id: 1 })
-                      .toArray();
-                    if (overflow.length > 0) {
-                      await snapshotsCol.deleteMany({ _id: { $in: overflow.map(d => d._id) } });
-                    }
+                const maxSnapshots = 2;
+                const snapCount = await snapshotsCol.countDocuments({ filename });
+                if (snapCount > maxSnapshots) {
+                  const overflow = await snapshotsCol.find({ filename })
+                    .sort({ savedAt: 1 })
+                    .limit(snapCount - maxSnapshots)
+                    .project({ _id: 1 })
+                    .toArray();
+                  if (overflow.length > 0) {
+                    await snapshotsCol.deleteMany({ _id: { $in: overflow.map(d => d._id) } });
                   }
-                } catch (e) {}
-              });
+                }
+              } catch (e) {}
             }
           } catch (snapErr) {
             console.warn('[MongoDB WARNING] Lỗi ghi lên Cloud, đã lưu cục bộ an toàn:', snapErr.message);
@@ -2374,16 +2753,21 @@ async function handleKpiRequest(req, res) {
           savedAt: cleanState.lastSaved
         });
       } catch (err) {
-        return sendJson(res, 500, { success: false, error: "Lỗi ghi dữ liệu: " + err.message });
+        return sendJson(res, (err && err.statusCode) || 500, { success: false, error: "Lỗi ghi dữ liệu: " + err.message });
       }
   }
 
   // --- API NỘP BÁO CÁO KPI (SUBMIT KPI) ---
   if (pathname === '/api/session/submit' && req.method === 'POST') {
+    const auth = await requireAuth();
+    if (!auth) return;
     try {
       const payload = await parseJsonBody(req);
         const { officerId, quarter, year, state } = payload;
         if (!officerId) return sendJson(res, 400, { success: false, error: "Thiếu officerId" });
+        if (auth.officerId !== officerId && !auth.isApprover) {
+          return sendJson(res, 403, { success: false, error: "Không có quyền nộp hồ sơ KPI thay cho cán bộ khác!" });
+        }
 
         const filename = getSessionFilename(officerId, quarter, year);
         const targetNormQ = normalizeQuarter(quarter);
@@ -2437,24 +2821,29 @@ async function handleKpiRequest(req, res) {
         targetState.officer.quarter = quarter || targetState.officer.quarter || 'Quý III';
         targetState.officer.year = Number(year) || targetState.officer.year || 2026;
 
-        // Lưu CSDL cục bộ bất đồng bộ
+        // Lưu CSDL cục bộ bất đồng bộ & dọn altFilename trong SESSIONS_DIR
         await saveLocalSessionAsync(filename, targetState);
-        for (const altFn of altFilenames) {
-          try {
-            const altPath = path.join(DATA_DIR, altFn);
-            if (fs.existsSync(altPath)) fs.unlinkSync(altPath);
-          } catch (e) {}
+        if (!process.env.VERCEL) {
+          for (const altFn of altFilenames) {
+            try {
+              const altPath = path.join(SESSIONS_DIR, altFn);
+              if (fs.existsSync(altPath)) fs.unlinkSync(altPath);
+            } catch (e) {}
+          }
         }
 
-        saveLocalSnapshotAsync(filename, {
-          officerId,
-          quarter: normalizeQuarter(quarter),
-          year: Number(year) || 2026,
-          savedAt: submitTime,
-          clientIp: req.socket.remoteAddress || 'client',
-          summary: '📤 [NỘP KPI QUÝ] Chốt số liệu cá nhân',
-          data: targetState
-        }).catch(() => {});
+        const submitClientIp = sanitizeClientIp(req);
+        if (!process.env.VERCEL) {
+          saveLocalSnapshotAsync(filename, {
+            officerId,
+            quarter: normalizeQuarter(quarter),
+            year: Number(year) || 2026,
+            savedAt: submitTime,
+            clientIp: submitClientIp,
+            summary: '📤 [NỘP KPI QUÝ] Chốt số liệu cá nhân',
+            data: targetState
+          }).catch(() => {});
+        }
 
         if (kpiDb) {
           try {
@@ -2479,20 +2868,24 @@ async function handleKpiRequest(req, res) {
             if (altFilenames.length > 0) {
               await sessionsCol.deleteMany({ filename: { $in: altFilenames } });
             }
-            setImmediate(async () => {
-              try {
-                await kpiDb.collection('session_snapshots').insertOne({
-                  filename,
-                  officerId,
-                  quarter: normalizeQuarter(quarter),
-                  year: Number(year) || 2026,
-                  savedAt: submitTime,
-                  clientIp: req.socket.remoteAddress || 'client',
-                  summary: '📤 [NỘP KPI QUÝ] Chốt số liệu cá nhân',
-                  data: targetState
-                });
-              } catch (e) {}
-            });
+            try {
+              const snapCol = kpiDb.collection('session_snapshots');
+              await snapCol.insertOne({
+                filename,
+                officerId,
+                quarter: normalizeQuarter(quarter),
+                year: Number(year) || 2026,
+                savedAt: submitTime,
+                clientIp: submitClientIp,
+                summary: '📤 [NỘP KPI QUÝ] Chốt số liệu cá nhân',
+                data: targetState
+              });
+              const snapCount = await snapCol.countDocuments({ filename });
+              if (snapCount > 2) {
+                const overflow = await snapCol.find({ filename }).sort({ savedAt: 1 }).limit(snapCount - 2).project({ _id: 1 }).toArray();
+                if (overflow.length > 0) await snapCol.deleteMany({ _id: { $in: overflow.map(d => d._id) } });
+              }
+            } catch (e) {}
           } catch (e) {}
         }
         invalidateSummaryCache();
@@ -2503,7 +2896,7 @@ async function handleKpiRequest(req, res) {
           submittedAt: submitTime
         });
       } catch (err) {
-        return sendJson(res, 500, { success: false, error: err.message });
+        return sendJson(res, (err && err.statusCode) || 500, { success: false, error: err.message });
       }
   }
 
@@ -2641,16 +3034,19 @@ async function handleKpiRequest(req, res) {
   }
 
   // --- API LÃNH ĐẠO PHÊ DUYỆT KPI (APPROVE KPI) - ATOMIC FAST PATCH ---
+  // --- API LÃNH ĐẠO PHÊ DUYỆT KPI (APPROVE KPI) - ATOMIC FAST PATCH ---
   if (pathname === '/api/session/approve' && req.method === 'POST') {
+    const auth = await requireAuth();
+    if (!auth) return;
+    if (!auth.isApprover) {
+      return sendJson(res, 403, { success: false, error: "Chỉ có Trưởng phòng (đ/c Hoàng Anh Sơn) và Phó Trưởng phòng (đ/c Trần Quốc Hoàng) mới có thẩm quyền phê duyệt kết quả KPI." });
+    }
     try {
       const payload = await parseJsonBody(req);
-        const { officerId, quarter, year, leaderOfficerId, leaderRatingProposal, leaderRatingNote } = payload;
+        const { officerId, quarter, year, leaderRatingProposal, leaderRatingNote } = payload;
+        const leaderOfficerId = auth.officerId;
         if (!officerId) return sendJson(res, 400, { success: false, error: "Thiếu officerId" });
 
-        // PHÂN QUYỀN CHẶT CHẼ: Chỉ có Trưởng phòng (Sơn) và Phó Trưởng phòng (Hoàng) mới có quyền duyệt
-        if (leaderOfficerId !== 'son' && leaderOfficerId !== 'hoang') {
-          return sendJson(res, 403, { success: false, error: "Chỉ có Trưởng phòng (đ/c Hoàng Anh Sơn) và Phó Trưởng phòng (đ/c Trần Quốc Hoàng) mới có thẩm quyền phê duyệt kết quả KPI." });
-        }
         // Trưởng phòng Hoàng Anh Sơn là cấp cao nhất phòng, hồ sơ tự xác nhận chính thức
         if (officerId === 'son') {
           return sendJson(res, 400, { success: false, error: "Đồng chí Hoàng Anh Sơn là Trưởng phòng KTNN - Cán bộ đứng đầu đơn vị, hồ sơ tự xác nhận chính thức, không chịu sự phê duyệt trong nội bộ phòng." });
@@ -2693,21 +3089,23 @@ async function handleKpiRequest(req, res) {
           approvedAt: approveTime
         });
       } catch (err) {
-        return sendJson(res, 500, { success: false, error: err.message });
+        return sendJson(res, (err && err.statusCode) || 500, { success: false, error: err.message });
       }
   }
 
   // --- API LÃNH ĐẠO TRẢ LẠI ĐỂ SỬA ĐỔI / GIẢI TRÌNH (REJECT & RETURN) - ATOMIC FAST PATCH ---
   if (pathname === '/api/session/reject' && req.method === 'POST') {
+    const auth = await requireAuth();
+    if (!auth) return;
+    if (!auth.isApprover) {
+      return sendJson(res, 403, { success: false, error: "Chỉ có Trưởng phòng (đ/c Hoàng Anh Sơn) và Phó Trưởng phòng (đ/c Trần Quốc Hoàng) mới có thẩm quyền trả lại hồ sơ KPI." });
+    }
     try {
       const payload = await parseJsonBody(req);
-        const { officerId, quarter, year, leaderOfficerId, rejectReason } = payload;
+        const { officerId, quarter, year, rejectReason } = payload;
+        const leaderOfficerId = auth.officerId;
         if (!officerId) return sendJson(res, 400, { success: false, error: "Thiếu officerId" });
 
-        // PHÂN QUYỀN CHẶT CHẼ: Chỉ có Trưởng phòng (Sơn) và Phó Trưởng phòng (Hoàng) mới có quyền trả lại
-        if (leaderOfficerId !== 'son' && leaderOfficerId !== 'hoang') {
-          return sendJson(res, 403, { success: false, error: "Chỉ có Trưởng phòng (đ/c Hoàng Anh Sơn) và Phó Trưởng phòng (đ/c Trần Quốc Hoàng) mới có thẩm quyền trả lại hồ sơ KPI." });
-        }
         // Không thể trả lại hồ sơ của Trưởng phòng Hoàng Anh Sơn
         if (officerId === 'son') {
           return sendJson(res, 400, { success: false, error: "Đồng chí Hoàng Anh Sơn là Trưởng phòng KTNN - Cán bộ đứng đầu đơn vị, không thể trả lại hồ sơ của Trưởng phòng." });
@@ -2746,14 +3144,22 @@ async function handleKpiRequest(req, res) {
           rejectedAt: rejectTime
         });
       } catch (err) {
-        return sendJson(res, 500, { success: false, error: err.message });
+        return sendJson(res, (err && err.statusCode) || 500, { success: false, error: err.message });
       }
   }
 
   // --- API CỘNG GỘP SỐ LƯỢNG CÔNG VIỆC CHI TIẾT TỪ GDV PHỤ TRÁCH CHO LÃNH ĐẠO PHÒNG ---
   if (pathname === '/api/leader-aggregate' && req.method === 'GET') {
+    const auth = await requireAuth();
+    if (!auth) return;
+    if (!auth.canViewAll) {
+      return sendJson(res, 403, { success: false, error: "Không có quyền tổng hợp số liệu cấp phòng!" });
+    }
     try {
-      const leaderId = (searchParams.get('leaderId') || 'hoang').trim();
+      const leaderId = (searchParams.get('leaderId') || auth.officerId || 'hoang').trim();
+      if (!auth.isApprover && !auth.isKPIAggregator && leaderId !== auth.officerId) {
+        return sendJson(res, 403, { success: false, error: "Chỉ được xem tổng hợp công việc thuộc quyền phụ trách!" });
+      }
       const qRaw = searchParams.get('quarter') || 'Quý III';
       const yNum = Number(searchParams.get('year')) || 2026;
       const gdvIdsParam = (searchParams.get('gdvIds') || '').trim();
@@ -3014,12 +3420,17 @@ async function handleKpiRequest(req, res) {
 
   // --- API LẤY LỊCH SỬ CÁC BẢN SAO LƯU (SNAPSHOT HISTORY) ---
   if (pathname === '/api/session/history' && req.method === 'GET') {
+    const auth = await requireAuth();
+    if (!auth) return;
     const officerId = searchParams.get('officerId');
     const quarter = searchParams.get('quarter');
     const year = searchParams.get('year');
 
     if (!officerId) {
       return sendJson(res, 400, { success: false, error: "Thiếu officerId" });
+    }
+    if (auth.officerId !== officerId && !auth.isApprover) {
+      return sendJson(res, 403, { success: false, error: "Không có quyền xem lịch sử sao lưu của cán bộ khác!" });
     }
 
     const filename = getSessionFilename(officerId, quarter, year);
@@ -3051,6 +3462,8 @@ async function handleKpiRequest(req, res) {
 
   // --- API KHÔI PHỤC DỮ LIỆU TỪ BẢN SAO LƯU (ROLLBACK TO SNAPSHOT) ---
   if (pathname === '/api/session/rollback' && req.method === 'POST') {
+    const auth = await requireAuth();
+    if (!auth) return;
     try {
       const payload = await parseJsonBody(req);
         const { snapshotId, officerId, quarter, year } = payload;
@@ -3059,6 +3472,7 @@ async function handleKpiRequest(req, res) {
           return sendJson(res, 400, { success: false, error: "Thiếu snapshotId" });
         }
 
+        const expectedFn = (officerId && quarter && year) ? getSessionFilename(officerId, quarter, year) : null;
         let snapDoc = null;
         if (kpiDb) {
           try {
@@ -3067,28 +3481,35 @@ async function handleKpiRequest(req, res) {
           } catch(e) {}
         }
         if (!snapDoc) {
-          snapDoc = getLocalSnapshotById(snapshotId);
+          snapDoc = getLocalSnapshotById(snapshotId, expectedFn);
         }
 
         if (!snapDoc || !snapDoc.data) {
           return sendJson(res, 404, { success: false, error: "Không tìm thấy bản ghi snapshot này!" });
         }
 
+        const snapOffId = snapDoc.officerId || (snapDoc.data.officer && snapDoc.data.officer.officerId);
+        if (officerId && snapOffId && snapOffId !== officerId) {
+          return sendJson(res, 403, { success: false, error: "Bản sao lưu không thuộc hồ sơ cán bộ đang chọn!" });
+        }
         const restoredData = snapDoc.data;
-        const targetOffId = officerId || snapDoc.officerId || (restoredData.officer && restoredData.officer.officerId);
+        const targetOffId = officerId || snapOffId;
+        if (!targetOffId || (auth.officerId !== targetOffId && !auth.isApprover)) {
+          return sendJson(res, 403, { success: false, error: "Không có quyền khôi phục hồ sơ của cán bộ khác!" });
+        }
         const targetQ = quarter || snapDoc.quarter || (restoredData.officer && restoredData.officer.quarter) || 'Quý III';
         const targetY = Number(year || snapDoc.year || (restoredData.officer && restoredData.officer.year) || 2026);
         const targetNormQ = normalizeQuarter(targetQ);
         const filename = getSessionFilename(targetOffId, targetQ, targetY);
         if (!restoredData.officer) restoredData.officer = {};
         restoredData.officer.officerId = targetOffId;
-        restoredData.officer.quarter = (targetNormQ === 'QuyI') ? 'Quý I' : (targetNormQ === 'QuyII') ? 'Quý II' : (targetNormQ === 'QuyIV') ? 'Quý IV' : 'Quý III';
+        restoredData.officer.quarter = quarterNormToLabel(targetNormQ);
         restoredData.officer.year = targetY;
         restoredData.lastSaved = restoredData.lastSaved || snapDoc.savedAt || new Date().toISOString();
         restoredData._restoredFrom = snapDoc.savedAt;
 
         // Lưu CSDL cục bộ
-        saveLocalSession(filename, restoredData);
+        await saveLocalSessionAsync(filename, restoredData);
 
         if (kpiDb) {
           try {
@@ -3121,12 +3542,17 @@ async function handleKpiRequest(req, res) {
           data: restoredData
         });
       } catch (err) {
-        return sendJson(res, 500, { success: false, error: "Lỗi khôi phục: " + err.message });
+        return sendJson(res, (err && err.statusCode) || 500, { success: false, error: "Lỗi khôi phục: " + err.message });
       }
   }
 
   // API Leader Proposal (Atomic partial update — <300B wire)
   if (pathname === '/api/leader-proposal' && req.method === 'POST') {
+    const auth = await requireAuth();
+    if (!auth) return;
+    if (!auth.isApprover) {
+      return sendJson(res, 403, { success: false, error: "Chỉ có Lãnh đạo có thẩm quyền (Trưởng phòng / PTP Hoàng) mới được cập nhật đề xuất xếp loại!" });
+    }
     try {
       const payload = await parseJsonBody(req);
       const { officerId, quarter, year, leaderRatingProposal, leaderRatingNote } = payload;
@@ -3193,21 +3619,18 @@ async function handleKpiRequest(req, res) {
     }
   }
 
-  // --- API Xuất toàn bộ dữ liệu ra tệp JSON trực tiếp ---
+  // --- API Xuất toàn bộ dữ liệu ra tệp JSON trực tiếp (CHỈ Admin Hoàng) ---
   if (pathname === '/api/backup/export-all' && req.method === 'GET') {
-    const adminOfficerId = searchParams.get('adminOfficerId');
-    const adminKey = req.headers['x-admin-key'] || searchParams.get('adminKey');
-    const configuredKey = process.env.ADMIN_SECRET_KEY || 'kbxv_ktnn_admin_secret_2026_secure';
-    const isAuthorized = isAuthorAuthorizedMachine() || (adminKey === configuredKey && adminOfficerId === 'hoang');
-    if (!isAuthorized) {
-      return sendJson(res, 403, { success: false, error: "BẢN QUYỀN & BẢO MẬT: Thao tác xuất toàn bộ dữ liệu yêu cầu khóa Admin Key bảo vệ!" });
+    const auth = await requireAuth();
+    if (!auth) return;
+    if (!auth.isAdmin) {
+      return sendJson(res, 403, { success: false, error: "BẢN QUYỀN & BẢO MẬT: Chỉ quản trị viên mới được xuất toàn bộ dữ liệu!" });
     }
     try {
       let exportData = {
         exportedAt: new Date().toISOString(),
         author: AUTHOR_INFO.author,
         officers_config: await getOfficersConfig(),
-        auth_passwords: await getAuthPasswords(),
         sessions: {}
       };
       
@@ -3228,29 +3651,30 @@ async function handleKpiRequest(req, res) {
         }
       }
 
+      const bodyBuf = Buffer.from(JSON.stringify(exportData), 'utf8');
       res.writeHead(200, {
         'Content-Type': 'application/json; charset=utf-8',
-        'Content-Disposition': `attachment; filename="KPI_PhongKTNN_Backup_${new Date().toISOString().slice(0,10)}.json"`
+        'Content-Length': bodyBuf.length,
+        'Content-Disposition': `attachment; filename="KPI_PhongKTNN_Backup_${new Date().toISOString().slice(0,10)}.json"`,
+        ...getCorsHeaders(req)
       });
-      return res.end(JSON.stringify(exportData));
+      return res.end(bodyBuf);
     } catch(err) {
       return sendJson(res, 500, { success: false, error: err.message });
     }
   }
 
-  // --- API Nạp toàn bộ dữ liệu từ tệp cục bộ lên MongoDB Cloud / Local (Import All) ---
+  // --- API Nạp toàn bộ dữ liệu (Import All - CHỈ Admin Hoàng + Schema & Filename Validation) ---
   if (pathname === '/api/backup/import-all' && req.method === 'POST') {
-    const adminOfficerId = searchParams.get('adminOfficerId');
-    const adminKey = req.headers['x-admin-key'] || searchParams.get('adminKey');
-    const configuredKey = process.env.ADMIN_SECRET_KEY || 'kbxv_ktnn_admin_secret_2026_secure';
-    const isAuthorized = isAuthorAuthorizedMachine() || (adminKey === configuredKey && adminOfficerId === 'hoang');
-    if (!isAuthorized) {
-      return sendJson(res, 403, { success: false, error: "BẢN QUYỀN & BẢO MẬT: Thao tác nạp dữ liệu bị từ chối do thiếu khóa Admin Key bảo vệ!" });
+    const auth = await requireAuth();
+    if (!auth) return;
+    if (!auth.isAdmin) {
+      return sendJson(res, 403, { success: false, error: "BẢN QUYỀN & BẢO MẬT: Chỉ quản trị viên mới được nạp dữ liệu!" });
     }
     try {
       let importData = null;
       if (req.body && typeof req.body === 'object' && (req.body.sessions || req.body.officers_config)) {
-        importData = req.body;
+        importData = sanitizePlainObject(req.body);
       } else {
         const buffer = await parseRawBody(req);
         let jsonStr = '';
@@ -3259,42 +3683,60 @@ async function handleKpiRequest(req, res) {
         } catch(e) {
           jsonStr = buffer.toString('utf8');
         }
-        importData = JSON.parse(jsonStr);
+        importData = sanitizePlainObject(JSON.parse(jsonStr));
       }
-      if (!importData.sessions) {
+      if (!importData || !importData.sessions || typeof importData.sessions !== 'object') {
         return sendJson(res, 400, { success: false, error: "Tệp dữ liệu không hợp lệ" });
       }
 
       let count = 0;
-      // Luôn ghi đè vào thư mục cục bộ data/
+      const bulkSessions = [];
       for (const [fname, sess] of Object.entries(importData.sessions)) {
+        if (!isValidSessionFilename(fname) || !sess || typeof sess !== 'object') continue;
         const cleanSess = sanitizeSessionData(sess);
         saveLocalSession(fname, cleanSess);
+        const fnQ = extractQuarterFromFilename(fname) || normalizeQuarter(cleanSess.officer && cleanSess.officer.quarter);
+        const yMatch = fname.match(/_(\d{4})\.json$/i);
+        const fnOffId = (cleanSess.officer && cleanSess.officer.officerId) || fname.split('_')[0];
+        bulkSessions.push({
+          updateOne: {
+            filter: { filename: fname },
+            update: {
+              $set: {
+                filename: fname,
+                officerId: fnOffId,
+                quarterNorm: fnQ,
+                year: (yMatch && Number(yMatch[1])) || Number(cleanSess.officer && cleanSess.officer.year) || 2026,
+                activeTasksCount: countSessionActiveTasks(cleanSess),
+                totalDonePoints: getSessionTotalDonePoints(cleanSess),
+                updatedAt: cleanSess.lastSaved || new Date().toISOString(),
+                data: cleanSess
+              }
+            },
+            upsert: true
+          }
+        });
         count++;
       }
-      if (importData.officers_config) {
+      if (importData.officers_config && typeof importData.officers_config === 'object') {
         saveLocalOfficers(importData.officers_config);
       }
-      if (importData.auth_passwords) {
+      if (importData.auth_passwords && typeof importData.auth_passwords === 'object' && !process.env.VERCEL) {
         saveLocalAuth(importData.auth_passwords);
       }
 
       if (kpiDb) {
         try {
-          const sessionsCol = kpiDb.collection('sessions');
-          for (const [fname, sess] of Object.entries(importData.sessions)) {
-            const cleanSess = sanitizeSessionData(sess);
-            await sessionsCol.updateOne({ filename: fname }, { $set: { filename: fname, data: cleanSess } }, { upsert: true });
+          if (bulkSessions.length > 0) {
+            await kpiDb.collection('sessions').bulkWrite(bulkSessions, { ordered: false });
           }
-
-          if (importData.officers_config) {
-            const configCol = kpiDb.collection('officers_config');
-            for (const [id, cfg] of Object.entries(importData.officers_config)) {
-              await configCol.updateOne({ id }, { $set: cfg }, { upsert: true });
-            }
+          if (importData.officers_config && typeof importData.officers_config === 'object') {
+            const cfgOps = Object.entries(importData.officers_config).map(([id, cfg]) => ({
+              updateOne: { filter: { id }, update: { $set: cfg }, upsert: true }
+            }));
+            if (cfgOps.length > 0) await kpiDb.collection('officers_config').bulkWrite(cfgOps, { ordered: false });
           }
-
-          if (importData.auth_passwords) {
+          if (importData.auth_passwords && typeof importData.auth_passwords === 'object') {
             await saveAuthPasswords(importData.auth_passwords);
           }
           await syncOfficerRolesMigration();
@@ -3305,60 +3747,72 @@ async function handleKpiRequest(req, res) {
       console.log(`[IMPORT CLOUD] Đã nạp thành công ${count} phiên dữ liệu lên MongoDB từ file máy tính.`);
       return sendJson(res, 200, { success: true, count, message: `Đã nạp thành công dữ liệu ${count} cán bộ lên hệ thống Cloud từ file máy tính!` });
     } catch(err) {
-      return sendJson(res, 500, { success: false, error: "Lỗi nạp dữ liệu: " + err.message });
+      return sendJson(res, (err && err.statusCode) || 500, { success: false, error: "Lỗi nạp dữ liệu: " + err.message });
     }
   }
 
-  // --- API Nạp phân đoạn dữ liệu (Import Chunk) tối ưu cho Vercel Serverless (< 4.5MB) ---
+  // --- API Nạp phân đoạn dữ liệu (Import Chunk - CHỈ Admin Hoàng) ---
   if (pathname === '/api/backup/import-chunk' && req.method === 'POST') {
-    const adminOfficerId = searchParams.get('adminOfficerId');
-    const adminKey = req.headers['x-admin-key'] || searchParams.get('adminKey');
-    const configuredKey = process.env.ADMIN_SECRET_KEY || 'kbxv_ktnn_admin_secret_2026_secure';
-    const isAuthorized = isAuthorAuthorizedMachine() || (adminKey === configuredKey && adminOfficerId === 'hoang');
-    if (!isAuthorized) {
-      return sendJson(res, 403, { success: false, error: "BẢN QUYỀN & BẢO MẬT: Thao tác nạp dữ liệu bị từ chối do thiếu khóa Admin Key bảo vệ!" });
+    const auth = await requireAuth();
+    if (!auth) return;
+    if (!auth.isAdmin) {
+      return sendJson(res, 403, { success: false, error: "BẢN QUYỀN & BẢO MẬT: Chỉ quản trị viên mới được nạp dữ liệu!" });
     }
     try {
       const payload = await parseJsonBody(req);
-      const { chunkType, officers_config, auth_passwords, sessions } = payload;
+      const { officers_config, auth_passwords, sessions } = payload;
       let count = 0;
 
-      // 1. Nạp cấu hình cán bộ và mật khẩu (nếu có)
       if (officers_config && typeof officers_config === 'object') {
         saveLocalOfficers(officers_config);
         if (kpiDb) {
           try {
-            const configCol = kpiDb.collection('officers_config');
-            for (const [id, cfg] of Object.entries(officers_config)) {
-              await configCol.updateOne({ id }, { $set: cfg }, { upsert: true });
-            }
+            const cfgOps = Object.entries(officers_config).map(([id, cfg]) => ({
+              updateOne: { filter: { id }, update: { $set: cfg }, upsert: true }
+            }));
+            if (cfgOps.length > 0) await kpiDb.collection('officers_config').bulkWrite(cfgOps, { ordered: false });
           } catch (e) {}
         }
       }
       if (auth_passwords && typeof auth_passwords === 'object') {
-        saveLocalAuth(auth_passwords);
+        if (!process.env.VERCEL) saveLocalAuth(auth_passwords);
         if (kpiDb) {
-          try {
-            await saveAuthPasswords(auth_passwords);
-          } catch (e) {}
+          try { await saveAuthPasswords(auth_passwords); } catch (e) {}
         }
       }
 
-      // 2. Nạp lô hồ sơ cán bộ (sessions chunk)
       if (sessions && typeof sessions === 'object') {
-        const entries = Object.entries(sessions);
-        for (const [fname, sess] of entries) {
+        const bulkOps = [];
+        for (const [fname, sess] of Object.entries(sessions)) {
+          if (!isValidSessionFilename(fname) || !sess || typeof sess !== 'object') continue;
           const cleanSess = sanitizeSessionData(sess);
           saveLocalSession(fname, cleanSess);
+          const fnQ = extractQuarterFromFilename(fname) || normalizeQuarter(cleanSess.officer && cleanSess.officer.quarter);
+          const yMatch = fname.match(/_(\d{4})\.json$/i);
+          const fnOffId = (cleanSess.officer && cleanSess.officer.officerId) || fname.split('_')[0];
+          bulkOps.push({
+            updateOne: {
+              filter: { filename: fname },
+              update: {
+                $set: {
+                  filename: fname,
+                  officerId: fnOffId,
+                  quarterNorm: fnQ,
+                  year: (yMatch && Number(yMatch[1])) || Number(cleanSess.officer && cleanSess.officer.year) || 2026,
+                  activeTasksCount: countSessionActiveTasks(cleanSess),
+                  totalDonePoints: getSessionTotalDonePoints(cleanSess),
+                  updatedAt: cleanSess.lastSaved || new Date().toISOString(),
+                  data: cleanSess
+                }
+              },
+              upsert: true
+            }
+          });
           count++;
         }
-        if (kpiDb) {
+        if (kpiDb && bulkOps.length > 0) {
           try {
-            const sessionsCol = kpiDb.collection('sessions');
-            for (const [fname, sess] of entries) {
-              const cleanSess = sanitizeSessionData(sess);
-              await sessionsCol.updateOne({ filename: fname }, { $set: { filename: fname, data: cleanSess } }, { upsert: true });
-            }
+            await kpiDb.collection('sessions').bulkWrite(bulkOps, { ordered: false });
           } catch (e) {}
         }
       }
@@ -3370,14 +3824,15 @@ async function handleKpiRequest(req, res) {
         message: `Đã nạp thành công ${count} hồ sơ cán bộ!`
       });
     } catch (err) {
-      return sendJson(res, 500, { success: false, error: "Lỗi nạp phân đoạn: " + err.message });
+      return sendJson(res, (err && err.statusCode) || 500, { success: false, error: "Lỗi nạp phân đoạn: " + err.message });
     }
   }
 
-  // --- API Kiểm tra thống kê dung lượng MongoDB Atlas ---
+  // --- API Kiểm tra thống kê dung lượng MongoDB Atlas (CHỈ Admin Hoàng) ---
   if (pathname === '/api/admin/db-stats' && req.method === 'GET') {
-    const adminOfficerId = searchParams.get('adminOfficerId');
-    if (adminOfficerId !== 'hoang') {
+    const auth = await requireAuth();
+    if (!auth) return;
+    if (!auth.isAdmin) {
       return sendJson(res, 403, { success: false, error: "Chỉ quản trị viên mới có quyền tra cứu!" });
     }
     try {
@@ -3505,68 +3960,67 @@ async function handleKpiRequest(req, res) {
     }
   }
 
-  // --- API Tối ưu hóa & Thu gọn CSDL MongoDB Atlas (Giải phóng vùng đệm WiredTiger) ---
-  if (pathname === '/api/admin/reclaim-storage' && (req.method === 'POST' || req.method === 'GET')) {
-    const adminOfficerId = searchParams.get('adminOfficerId');
-    if (adminOfficerId !== 'hoang') {
+  // --- API Tối ưu hóa & Thu gọn CSDL MongoDB Atlas AN TOÀN (KHÔNG DROP DỮ LIỆU, CHỈ POST) ---
+  if (pathname === '/api/admin/reclaim-storage' && req.method === 'POST') {
+    const auth = await requireAuth();
+    if (!auth) return;
+    if (!auth.isAdmin) {
       return sendJson(res, 403, { success: false, error: "BẢN QUYỀN & BẢO MẬT: Chỉ quản trị viên (Hoàng) mới có quyền thực hiện!" });
     }
     if (!kpiDb) {
       return sendJson(res, 500, { success: false, error: "Chưa kết nối CSDL MongoDB" });
     }
     try {
-      console.log("[RECLAIM STORAGE] Bắt đầu quá trình tối ưu và làm sạch bộ nhớ đệm WiredTiger...");
-      
-      // 1. Sao lưu toàn bộ dữ liệu hiện thời vào RAM
-      const oldSessions = await kpiDb.collection('sessions').find({}).toArray();
-      const oldConfigs = await kpiDb.collection('officers_config').find({}).toArray();
-      const oldAuth = await kpiDb.collection('auth_passwords').find({}).toArray();
-
-      if (!oldSessions || oldSessions.length === 0) {
+      console.log("[RECLAIM STORAGE] Bắt đầu tinh gọn sessions và cắt tỉa an toàn snapshot thừa (ZERO DROP)...");
+      const sessionsCol = kpiDb.collection('sessions');
+      const allDocs = await sessionsCol.find({}).toArray();
+      if (!allDocs || allDocs.length === 0) {
         return sendJson(res, 400, { success: false, error: "Không tìm thấy dữ liệu sessions để làm sạch!" });
       }
 
-      // Tinh gọn dữ liệu sessions (loại bỏ trường đệm quartersData thừa)
-      const cleanSessions = oldSessions.map(doc => {
-        return {
-          filename: doc.filename,
-          data: sanitizeSessionData(doc.data),
-          updatedAt: doc.updatedAt || new Date().toISOString()
-        };
-      });
-
-      // 2. Drop collections cũ để WiredTiger giải phóng các file .wt phình to trên đĩa AWS
-      try { await kpiDb.collection('session_snapshots').drop(); } catch (e) {}
-      try { await kpiDb.collection('sessions').drop(); } catch (e) {}
-
-      // 3. Tái tạo collection và index chuẩn
-      const newSessionsCol = kpiDb.collection('sessions');
-      await newSessionsCol.createIndex({ filename: 1 }, { unique: true });
-
-      // Nạp lại dữ liệu tinh gọn vào sessions
-      if (cleanSessions.length > 0) {
-        await newSessionsCol.insertMany(cleanSessions);
+      const bulkOps = [];
+      for (const doc of allDocs) {
+        if (!doc.data) continue;
+        const cleanData = sanitizeSessionData(doc.data);
+        const fnQ = doc.quarterNorm || extractQuarterFromFilename(doc.filename) || normalizeQuarter(cleanData.officer && cleanData.officer.quarter);
+        const yMatch = (doc.filename || '').match(/_(\d{4})\.json$/i);
+        const yr = Number(doc.year) || (yMatch && Number(yMatch[1])) || Number(cleanData.officer && cleanData.officer.year) || 2026;
+        const offId = doc.officerId || (cleanData.officer && cleanData.officer.officerId) || (doc.filename || '').split('_')[0];
+        bulkOps.push({
+          updateOne: {
+            filter: { _id: doc._id },
+            update: {
+              $set: {
+                officerId: offId,
+                quarterNorm: fnQ,
+                year: yr,
+                activeTasksCount: countSessionActiveTasks(cleanData),
+                totalDonePoints: getSessionTotalDonePoints(cleanData),
+                updatedAt: doc.updatedAt || cleanData.lastSaved || new Date().toISOString(),
+                data: cleanData
+              }
+            }
+          }
+        });
+      }
+      if (bulkOps.length > 0) {
+        await sessionsCol.bulkWrite(bulkOps, { ordered: false });
       }
 
-      // Tái tạo index cho snapshots
-      const newSnapCol = kpiDb.collection('session_snapshots');
-      await newSnapCol.createIndex({ filename: 1, savedAt: -1 });
-
-      // 4. Xóa bộ đệm RAM
+      const prunedSnapshots = await pruneOldSnapshotsSafe(2);
       invalidateSummaryCache();
-
-      // 5. Lấy thống kê sau khi làm sạch
       const dbStats = await kpiDb.command({ dbStats: 1 });
 
       const result = {
         success: true,
-        message: `ĐÃ TỐI ƯU HÓA THÀNH CÔNG! Đã giải phóng hoàn toàn vùng đệm thừa trên MongoDB Atlas cho ${cleanSessions.length} hồ sơ cán bộ.`,
-        restoredCount: cleanSessions.length,
+        message: `ĐÃ TỐI ƯU HÓA AN TOÀN! Tinh gọn ${bulkOps.length} hồ sơ (không drop) và cắt tỉa ${prunedSnapshots} snapshot cũ.`,
+        restoredCount: bulkOps.length,
+        prunedSnapshots,
         newDataSizeMB: Number((dbStats.dataSize / (1024 * 1024)).toFixed(2)),
         newStorageSizeMB: Number((dbStats.storageSize / (1024 * 1024)).toFixed(2))
       };
 
-      console.log(`[RECLAIM STORAGE SUCCESS] Hoàn tất! Dung lượng mới: ${result.newStorageSizeMB} MB`);
+      console.log(`[RECLAIM STORAGE SUCCESS] Hoàn tất! Dung lượng hiện tại: ${result.newStorageSizeMB} MB`);
       return sendJson(res, 200, result);
     } catch (err) {
       console.error("[RECLAIM STORAGE ERROR]", err);
@@ -3574,118 +4028,101 @@ async function handleKpiRequest(req, res) {
     }
   }
 
-  // --- API Dọn dẹp các phiên ảo Quý I, Quý II, Quý IV sinh ra do mở nhầm / lưu tự động mẫu cũ ---
-  if (pathname === '/api/admin/clean-dummy-quarters' && (req.method === 'POST' || req.method === 'GET')) {
-    const adminOfficerId = searchParams.get('adminOfficerId');
-    if (adminOfficerId !== 'hoang') {
+  // --- API Dọn dẹp CHỈ CÁC BẢN NHÁP RỖNG 0 VIỆC (POST ONLY - BẢO VỆ TUYỆT ĐỐI HỒ SƠ CÓ SỐ LIỆU) ---
+  if (pathname === '/api/admin/clean-dummy-quarters' && req.method === 'POST') {
+    const auth = await requireAuth();
+    if (!auth) return;
+    if (!auth.isAdmin) {
       return sendJson(res, 403, { success: false, error: "BẢN QUYỀN & BẢO MẬT: Chỉ quản trị viên (Hoàng) mới có quyền thực hiện!" });
     }
     if (!kpiDb) {
       return sendJson(res, 500, { success: false, error: "Chưa kết nối CSDL MongoDB" });
     }
     try {
-      console.log("[CLEAN DUMMY QUARTERS] Bắt đầu rà soát các phiên ảo phi-Quý III...");
-      
-      // 1. Lấy danh sách tất cả sessions hiện tại
+      const payload = await parseJsonBody(req);
+      const isDryRun = (searchParams.get('dryRun') === '1' || payload.dryRun === true);
       const allSessions = await kpiDb.collection('sessions').find({}).toArray();
       const totalBefore = allSessions.length;
-
-      // 2. Phân loại: Giữ lại TUYỆT ĐỐI 100% các file Quý III (bất kể định dạng chữ hoa/thường, có/không dấu)
-      const q3Docs = [];
-      const dummyDocs = [];
+      const emptyDummyFilenames = [];
 
       for (const s of allSessions) {
-        const fn = (s.filename || '').toLowerCase();
-        if (fn.includes('quyiii') || fn.includes('quýiii') || fn.includes('quý iii') || fn.includes('quy iii')) {
-          q3Docs.push(s.filename);
-        } else {
-          dummyDocs.push(s.filename);
+        const d = s.data || {};
+        const tasks = countSessionActiveTasks(d);
+        const pts = getSessionTotalDonePoints(d);
+        const hasStatusAction = !!(d.isSubmitted || d.isApproved || d.status === 'da_nop' || d.status === 'da_duyet' || d.status === 'tra_lai');
+        const hasAnyPct = !!(Array.isArray(d.months) && d.months.some(m => Number(m && m.completionPercent) > 0));
+        if (tasks === 0 && pts === 0 && !hasStatusAction && !hasAnyPct && s.filename) {
+          emptyDummyFilenames.push(s.filename);
         }
       }
 
-      console.log(`[CLEAN DUMMY QUARTERS] Tìm thấy ${q3Docs.length} hồ sơ Quý III cần BẢO TOÀN TUYỆT ĐỐI, và ${dummyDocs.length} hồ sơ ảo cần dọn dẹp.`);
+      if (isDryRun) {
+        return sendJson(res, 200, {
+          success: true,
+          dryRun: true,
+          totalBefore,
+          emptyCandidatesCount: emptyDummyFilenames.length,
+          emptyCandidates: emptyDummyFilenames
+        });
+      }
 
-      // 3. Xóa các dummy sessions khỏi collection 'sessions' và 'session_snapshots'
       let deletedSessionsCount = 0;
       let deletedSnapshotsCount = 0;
-
-      if (dummyDocs.length > 0) {
-        const delRes = await kpiDb.collection('sessions').deleteMany({ filename: { $in: dummyDocs } });
+      if (emptyDummyFilenames.length > 0) {
+        const delRes = await kpiDb.collection('sessions').deleteMany({ filename: { $in: emptyDummyFilenames } });
         deletedSessionsCount = delRes.deletedCount || 0;
-
-        try {
-          const snapDelRes = await kpiDb.collection('session_snapshots').deleteMany({ filename: { $in: dummyDocs } });
-          deletedSnapshotsCount = snapDelRes.deletedCount || 0;
-        } catch (e) {
-          console.warn("[CLEAN DUMMY QUARTERS] Lỗi xóa snapshots:", e.message);
-        }
+        const snapDelRes = await kpiDb.collection('session_snapshots').deleteMany({ filename: { $in: emptyDummyFilenames } });
+        deletedSnapshotsCount = snapDelRes.deletedCount || 0;
       }
 
-      // 4. Xóa các file ảo tương ứng trên ổ đĩa local (data/sessions) nếu có
-      let localDeletedCount = 0;
-      try {
-        const sessionsDir = path.join(__dirname, 'data', 'sessions');
-        if (fs.existsSync(sessionsDir)) {
-          const localFiles = fs.readdirSync(sessionsDir);
-          for (const lf of localFiles) {
-            const lfn = lf.toLowerCase();
-            if (!lfn.includes('quyiii') && !lfn.includes('quýiii') && !lfn.includes('quý iii') && !lfn.includes('quy iii') && lf.endsWith('.json')) {
-              try { fs.unlinkSync(path.join(sessionsDir, lf)); localDeletedCount++; } catch (e) {}
-            }
-          }
-        }
-      } catch (e) {
-        console.warn("[CLEAN DUMMY QUARTERS] Lỗi dọn file local:", e.message);
-      }
-
-      // 5. Làm mới bộ đệm RAM để API Summary phản ánh ngay lập tức
       invalidateSummaryCache();
-
-      // 6. Kiểm tra lại số lượng còn lại
       const totalAfter = await kpiDb.collection('sessions').countDocuments();
 
       return sendJson(res, 200, {
         success: true,
-        message: `ĐÃ DỌN DẸP SẠCH TOÀN BỘ ${deletedSessionsCount} PHIÊN ẢO KHÔNG PHẢI QUÝ III! Dữ liệu Quý III (${totalAfter} bản ghi) được bảo toàn 100%.`,
+        message: `Đã dọn ${deletedSessionsCount} bản nháp rỗng (0 việc, 0%). Bảo toàn nguyên vẹn ${totalAfter} hồ sơ có số liệu ở tất cả các quý.`,
         totalBefore,
         deletedSessionsCount,
         deletedSnapshotsCount,
-        localDeletedCount,
-        deletedFilenames: dummyDocs,
-        remainingQ3Count: totalAfter,
-        protectedQ3FilenamesCount: q3Docs.length
+        remainingCount: totalAfter
       });
     } catch (err) {
-      console.error("[CLEAN DUMMY QUARTERS ERROR]", err);
-      return sendJson(res, 500, { success: false, error: "Lỗi dọn dẹp phiên ảo: " + err.message });
+      return sendJson(res, (err && err.statusCode) || 500, { success: false, error: "Lỗi dọn dẹp phiên rỗng: " + err.message });
     }
   }
 
-  // --- API Đặt lại (Reset) trạng thái hồ sơ của cán bộ về Chưa nộp / Bảng trắng ---
-  if (pathname === '/api/admin/reset-officer-quarter' && (req.method === 'POST' || req.method === 'GET')) {
-    const adminOfficerId = searchParams.get('adminOfficerId');
-    const targetOfficerId = searchParams.get('officerId');
-    const targetQuarter = searchParams.get('quarter') || "Quý I";
-    const targetYear = searchParams.get('year') || "2026";
-
-    if (adminOfficerId !== 'hoang') {
+  // --- API Đặt lại (Reset) trạng thái hồ sơ của cán bộ (POST ONLY - CHỈ Admin Hoàng) ---
+  if (pathname === '/api/admin/reset-officer-quarter' && req.method === 'POST') {
+    const auth = await requireAuth();
+    if (!auth) return;
+    if (!auth.isAdmin) {
       return sendJson(res, 403, { success: false, error: "BẢN QUYỀN & BẢO MẬT: Chỉ quản trị viên (Hoàng) mới có quyền thực hiện!" });
     }
-    if (!targetOfficerId) {
-      return sendJson(res, 400, { success: false, error: "Thiếu thông số officerId" });
-    }
-
-    const filename = getSessionFilename(targetOfficerId, targetQuarter, targetYear);
     try {
-      if (kpiDb) {
-        await kpiDb.collection('sessions').deleteOne({ filename });
-        await kpiDb.collection('session_snapshots').deleteMany({ filename });
+      const payload = await parseJsonBody(req);
+      const targetOfficerId = payload.officerId || searchParams.get('officerId');
+      const targetQuarter = payload.quarter || searchParams.get('quarter') || "Quý I";
+      const targetYear = payload.year || searchParams.get('year') || "2026";
+      if (!targetOfficerId) {
+        return sendJson(res, 400, { success: false, error: "Thiếu thông số officerId" });
       }
-      try {
-        const localPath = path.join(SESSIONS_DIR, filename);
-        if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
-      } catch(e) {}
-      
+
+      const filename = getSessionFilename(targetOfficerId, targetQuarter, targetYear);
+      const altFns = getSameQuarterAltFilenames(targetOfficerId, targetQuarter, targetYear);
+      const allTargets = [filename, ...altFns];
+      if (kpiDb) {
+        await kpiDb.collection('sessions').deleteMany({ filename: { $in: allTargets } });
+        await kpiDb.collection('session_snapshots').deleteMany({ filename: { $in: allTargets } });
+      }
+      for (const fn of allTargets) {
+        delete _localSessionsRamCache[fn];
+        if (!process.env.VERCEL) {
+          try {
+            const localPath = path.join(SESSIONS_DIR, fn);
+            if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
+          } catch(e) {}
+        }
+      }
       invalidateSummaryCache();
       return sendJson(res, 200, {
         success: true,
@@ -3693,22 +4130,26 @@ async function handleKpiRequest(req, res) {
         filename
       });
     } catch(err) {
-      return sendJson(res, 500, { success: false, error: "Lỗi reset: " + err.message });
+      return sendJson(res, (err && err.statusCode) || 500, { success: false, error: "Lỗi reset: " + err.message });
     }
   }
 
-  // --- API Rà soát & Chuẩn hóa Metadata Toàn bộ Hồ sơ (KHÔNG XÓA DỮ LIỆU CÔNG VIỆC) ---
+  // --- API Rà soát & Chuẩn hóa Metadata Toàn bộ Hồ sơ (audit = GET/POST, repair = POST ONLY) ---
   if (pathname === '/api/admin/audit-repair' && (req.method === 'POST' || req.method === 'GET')) {
-    const payload = (req.method === 'POST') ? await parseJsonBody(req) : {};
-    const adminOfficerId = searchParams.get('adminOfficerId') || payload.adminOfficerId;
-    if (adminOfficerId !== 'hoang') {
+    const auth = await requireAuth();
+    if (!auth) return;
+    if (!auth.isAdmin) {
       return sendJson(res, 403, { success: false, error: "Chỉ quản trị viên (Hoàng) mới có quyền thực hiện!" });
     }
     if (!kpiDb) {
       return sendJson(res, 500, { success: false, error: "Chưa kết nối CSDL MongoDB" });
     }
     try {
+      const payload = (req.method === 'POST') ? await parseJsonBody(req) : {};
       const mode = searchParams.get('mode') || payload.mode || 'audit';
+      if (mode === 'repair' && req.method !== 'POST') {
+        return sendJson(res, 405, { success: false, error: "Chế độ sửa chữa (repair) yêu cầu phương thức POST!" });
+      }
       const customFixes = Array.isArray(payload.fixes) ? payload.fixes : [];
       const sessionsCol = kpiDb.collection('sessions');
       const allDocs = await sessionsCol.find({}, {
@@ -3810,20 +4251,33 @@ async function handleKpiRequest(req, res) {
     }
   }
 
-  // --- API Chuẩn hóa Chức danh trên Cloud (Thủ kho tiền: Thu Trang, GDV: Lệ Thủy) ---
-  if (pathname === '/api/sync-roles' && (req.method === 'GET' || req.method === 'POST')) {
+  // --- API Chuẩn hóa Chức danh trên Cloud (POST ONLY - CHỈ Admin Hoàng) ---
+  if (pathname === '/api/sync-roles' && req.method === 'POST') {
+    const auth = await requireAuth();
+    if (!auth) return;
+    if (!auth.isAdmin) {
+      return sendJson(res, 403, { success: false, error: "Chỉ quản trị viên (Hoàng) mới có quyền thực hiện!" });
+    }
     await syncOfficerRolesMigration();
+    invalidateSummaryCache();
     return sendJson(res, 200, {
       success: true,
       message: "Đã chuẩn hóa và đồng bộ chính xác chức danh: Nguyễn Thị Thu Trang (GDV - Thủ kho tiền) và Võ Thị Lệ Thuỷ (GDV) trên MongoDB Cloud!"
     });
   }
 
-  // API Summary Toàn phòng (CÓ BỘ ĐỆM RAM TỐC ĐỘ CAO - SUB-MILLISECOND CACHING)
+  // API Summary Toàn phòng (CÓ BỘ ĐỆM RAM + TRUY VẤN INDEXED KHÔNG COLLSCAN)
   if (pathname === '/api/summary' && req.method === 'GET') {
+    const auth = await requireAuth();
+    if (!auth) return;
+    if (!auth.canViewAll) {
+      return sendJson(res, 403, { success: false, error: "Chỉ Lãnh đạo phòng và Bộ phận Tổng hợp KPI mới có quyền xem Bảng tổng hợp KPI toàn phòng!" });
+    }
     const quarter = searchParams.get('quarter') || "Quý III";
     const year = searchParams.get('year') || "2026";
-    const cacheKey = `${quarter}_${year}`;
+    const normQ = normalizeQuarter(quarter);
+    const targetYear = Number(year) || 2026;
+    const cacheKey = `${normQ}_${targetYear}`;
     const forceRefresh = (searchParams.get('refresh') === '1' || searchParams.get('refresh') === 'true');
 
     if (!process.env.VERCEL && !forceRefresh && summaryCache[cacheKey] && (Date.now() - summaryCache[cacheKey].timestamp < 60000)) {
@@ -3840,19 +4294,17 @@ async function handleKpiRequest(req, res) {
     let completedCount = 0;
     let notCompletedCount = 0;
 
-    const normQ = normalizeQuarter(quarter);
-    const targetYear = Number(year) || 2026;
+    const quarterLabel = quarterNormToLabel(normQ);
     const safeQNoSpace = String(quarter).replace(/\s+/g, '');
 
     let allSessionsMap = {};
     if (kpiDb) {
       try {
-        // ⚡ TRUY VẤN SIÊU TỐC (<50ms): Chỉ lọc đúng Quý và Năm cần xem, không project mảng rows cồng kềnh
+        // ⚡ TRUY VẤN INDEXED ({ quarterNorm: 1, year: 1 }), loại bỏ RegExp COLLSCAN
         const docs = await kpiDb.collection('sessions').find({
           $or: [
             { quarterNorm: normQ, year: targetYear },
-            { filename: new RegExp(`_${normQ}_${targetYear}\\.json$`, 'i') },
-            { filename: new RegExp(`_${safeQNoSpace}_${targetYear}\\.json$`, 'i') },
+            { "data.officer.quarter": quarterLabel, "data.officer.year": targetYear },
             { "data.officer.quarter": quarter, "data.officer.year": targetYear },
             { "data.officer.quarter": normQ, "data.officer.year": targetYear }
           ]
@@ -3887,7 +4339,6 @@ async function handleKpiRequest(req, res) {
 
         docs.forEach(d => {
           if (!d) return;
-          // Chống rò rỉ dữ liệu chéo Quý: kiểm tra cả quarter trong filename lẫn quarterNorm
           const fnQ = extractQuarterFromFilename(d.filename);
           if (fnQ && fnQ !== normQ) return;
           if (!fnQ && d.quarterNorm && normalizeQuarter(d.quarterNorm) !== normQ) return;
@@ -3901,28 +4352,32 @@ async function handleKpiRequest(req, res) {
           }
           const offId = d.officerId || (sessionData.officer && sessionData.officer.officerId);
           if (offId) {
-            const canonicalFn = getSessionFilename(offId, quarter, targetYear);
+            const canonicalFn = getSessionFilename(offId, quarterLabel, targetYear);
             allSessionsMap[canonicalFn] = pickBestSession(allSessionsMap[canonicalFn], sessionData);
           }
         });
       } catch (e) {
         console.error('[API SUMMARY] Lỗi truy vấn MongoDB sessions:', e);
-        allSessionsMap = getAllLocalSessions();
       }
     }
-    // HỢP NHẤT THÔNG MINH: Chỉ đọc toàn bộ file local khi chạy Offline/Local hoặc khi MongoDB không khả dụng
+    // HỢP NHẤT THÔNG MINH ĐÚNG QUÝ & NĂM (Cấm rò rỉ dữ liệu Quý III sang Q1/Q2/Q4 khi chạy Offline LAN)
     if (!kpiDb || !process.env.VERCEL || Object.keys(allSessionsMap).length === 0) {
       const localSessions = getAllLocalSessions();
       for (const [fn, lData] of Object.entries(localSessions)) {
+        const fnQ = extractQuarterFromFilename(fn);
+        const yMatch = fn.match(/_(\d{4})\.json$/i);
+        const fnYear = yMatch ? Number(yMatch[1]) : Number(lData && lData.officer && lData.officer.year);
+        if (fnQ && fnQ !== normQ) continue;
+        if (fnYear && fnYear !== targetYear) continue;
         allSessionsMap[fn] = pickBestSession(allSessionsMap[fn], lData);
       }
     }
 
     for (const off of officersList) {
-      const filename = getSessionFilename(off.id, quarter, year);
-      const altFilename = `${off.id}_${safeQNoSpace}_${year}.json`;
-      const altFilename2 = `${off.id}_${normQ}_${year}.json`;
-      const altFilename3 = `${off.id}_${quarter}_${year}.json`;
+      const filename = getSessionFilename(off.id, quarterLabel, targetYear);
+      const altFilename = `${off.id}_${safeQNoSpace}_${targetYear}.json`;
+      const altFilename2 = `${off.id}_${normQ}_${targetYear}.json`;
+      const altFilename3 = `${off.id}_${quarterLabel}_${targetYear}.json`;
 
       let sess = pickBestSession(
         allSessionsMap[filename],
@@ -3931,11 +4386,12 @@ async function handleKpiRequest(req, res) {
         allSessionsMap[altFilename3]
       );
 
-      // Fallback: Tìm theo metadata bên trong session nếu filename không khớp hoặc bản ghi rỗng
+      // Fallback an toàn: chỉ ghép đúng cán bộ + đúng Quý/Năm
       if (!sess) {
         for (const [fn, sData] of Object.entries(allSessionsMap)) {
           if (fn.startsWith(off.id + '_') && sData) {
-            sess = pickBestSession(sess, sData);
+            const fnQ = extractQuarterFromFilename(fn) || normalizeQuarter(sData.officer && sData.officer.quarter);
+            if (fnQ === normQ) sess = pickBestSession(sess, sData);
           }
         }
       }
@@ -4133,23 +4589,26 @@ async function handleKpiRequest(req, res) {
         return res.end();
       }
       const acceptEncoding = req.headers['accept-encoding'] || '';
+      const htmlSecHeaders = {
+        'Content-Type': 'text/html; charset=utf-8',
+        'ETag': cachedHtml.etag,
+        'Cache-Control': 'no-cache, must-revalidate',
+        'Vary': 'Accept-Encoding',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'SAMEORIGIN',
+        'Referrer-Policy': 'same-origin'
+      };
       if (acceptEncoding.includes('gzip')) {
         res.writeHead(200, {
-          'Content-Type': 'text/html; charset=utf-8',
+          ...htmlSecHeaders,
           'Content-Encoding': 'gzip',
-          'Content-Length': cachedHtml.gzipBuffer.length,
-          'ETag': cachedHtml.etag,
-          'Cache-Control': 'no-cache, must-revalidate',
-          'Vary': 'Accept-Encoding'
+          'Content-Length': cachedHtml.gzipBuffer.length
         });
         return res.end(cachedHtml.gzipBuffer);
       } else {
         res.writeHead(200, {
-          'Content-Type': 'text/html; charset=utf-8',
-          'Content-Length': cachedHtml.rawBuffer.length,
-          'ETag': cachedHtml.etag,
-          'Cache-Control': 'no-cache, must-revalidate',
-          'Vary': 'Accept-Encoding'
+          ...htmlSecHeaders,
+          'Content-Length': cachedHtml.rawBuffer.length
         });
         return res.end(cachedHtml.rawBuffer);
       }
