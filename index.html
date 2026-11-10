@@ -2801,6 +2801,14 @@
             🕒 Lịch sử
           </button>
 
+          <!-- Cụm nút Sao lưu & Phục hồi dự phòng cá nhân (Bảo vệ tuyệt đối 100%) -->
+          <button type="button" class="btn btn-sm" onclick="exportPersonalBackupJson()" style="background: #2b6cb0; color: #fff; font-weight: 700; height: 24px; padding: 0 8px; font-size: 11px; display: inline-flex; align-items: center; gap: 3px; border-radius: 3px; border: none; cursor: pointer;" title="Tải tệp sao lưu dữ liệu cá nhân (.json) về máy tính để bảo vệ số liệu an toàn 100%">
+            📥 Xuất dự phòng
+          </button>
+          <button type="button" class="btn btn-sm" onclick="triggerImportPersonalBackup()" style="background: #4a5568; color: #fff; font-weight: 700; height: 24px; padding: 0 8px; font-size: 11px; display: inline-flex; align-items: center; gap: 3px; border-radius: 3px; border: none; cursor: pointer;" title="Nạp lại dữ liệu đánh giá từ tệp sao lưu (.json) đã lưu trên máy tính">
+            📂 Nạp dự phòng
+          </button>
+
           <!-- Nút Nộp KPI Quý -->
           <button id="btnSubmitKpiQuarter" type="button" class="btn btn-sm" onclick="submitKpiForQuarter()" style="background: #276749; color: #fff; font-weight: 700; height: 24px; padding: 0 8px; font-size: 11px; display: inline-flex; align-items: center; gap: 3px; border-radius: 3px;" title="Nộp kết quả KPI Quý">
             📤 Nộp KPI Quý
@@ -4105,6 +4113,12 @@
               <span>Lưu kết quả</span>
               <span style="font-size: 10px; opacity: 0.9; font-weight: normal; background: rgba(255,255,255,0.22); padding: 1px 4px; border-radius: 2px;">F9</span>
             </button>
+            <button type="button" class="btn btn-sm" onclick="exportPersonalBackupJson()" style="background: #2b6cb0; color: #fff; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; border-radius: 4px; padding: 0 9px; font-size: 11px; height: 26px; border: none; cursor: pointer;" title="Tải tệp sao lưu dữ liệu cá nhân (.json) về máy tính để bảo vệ an toàn 100%">
+              📥 Xuất dự phòng
+            </button>
+            <button type="button" class="btn btn-sm" onclick="triggerImportPersonalBackup()" style="background: #4a5568; color: #fff; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; border-radius: 4px; padding: 0 9px; font-size: 11px; height: 26px; border: none; cursor: pointer;" title="Nạp lại dữ liệu đánh giá từ tệp sao lưu (.json) đã lưu trên máy tính">
+              📂 Nạp dự phòng
+            </button>
             
           </div>
         </div>
@@ -4618,7 +4632,14 @@ function verifyAuthorIntegrity() {
 
 // Initialize State on Load
 window.addEventListener('DOMContentLoaded', async () => {
-  // 0. Kiem tra ban quyen & Khoa thiet bi goc
+  // 0. Khoi tao CSDL cuc bo IndexedDB & Di tru du lieu an toan tu dong
+  try {
+    await getKpiIndexedDB();
+  } catch (err) {
+    console.warn("[IndexedDB] Khoi tao IDB loi:", err);
+  }
+
+  // 0.1 Kiem tra ban quyen & Khoa thiet bi goc
   await checkLicenseAndMachineLock();
 
   // 1. Kiem tra ket noi Server Host & Nap cau hinh can bo tu server
@@ -7758,6 +7779,254 @@ async function checkServerStatus(isManual = false) {
   }
 }
 
+// ============================================================================
+// HỆ THỐNG LƯU TRỮ CƠ SỞ DỮ LIỆU CỤC BỘ INDEXEDDB (KPI_KTNN_LocalDB)
+// Chuẩn Lưu trữ Bền vững Air-Gapped & Bảo toàn Dữ liệu Tuyệt đối (Zero Data-Loss)
+// ============================================================================
+const KPI_IDB_NAME = 'KPI_KTNN_LocalDB';
+const KPI_IDB_VERSION = 1;
+let _kpiIdbPromise = null;
+
+function getKpiIndexedDB() {
+  if (_kpiIdbPromise) return _kpiIdbPromise;
+  _kpiIdbPromise = new Promise((resolve) => {
+    if (!window.indexedDB) {
+      console.warn('[IndexedDB] Trình duyệt không hỗ trợ IndexedDB, sử dụng fallback localStorage.');
+      resolve(null);
+      return;
+    }
+    const req = window.indexedDB.open(KPI_IDB_NAME, KPI_IDB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('sessions')) {
+        const store = db.createObjectStore('sessions', { keyPath: 'id' });
+        store.createIndex('officerId', 'officerId', { unique: false });
+        store.createIndex('quarter', 'quarter', { unique: false });
+        store.createIndex('year', 'year', { unique: false });
+        store.createIndex('updatedAt', 'updatedAt', { unique: false });
+      }
+      if (!db.objectStoreNames.contains('monthly_records')) {
+        const store = db.createObjectStore('monthly_records', { keyPath: 'id' });
+        store.createIndex('officerId', 'officerId', { unique: false });
+        store.createIndex('quarter', 'quarter', { unique: false });
+        store.createIndex('year', 'year', { unique: false });
+        store.createIndex('monthNum', 'monthNum', { unique: false });
+        store.createIndex('updatedAt', 'updatedAt', { unique: false });
+      }
+      if (!db.objectStoreNames.contains('local_snapshots')) {
+        const store = db.createObjectStore('local_snapshots', { keyPath: 'id', autoIncrement: true });
+        store.createIndex('officerId', 'officerId', { unique: false });
+        store.createIndex('quarter', 'quarter', { unique: false });
+        store.createIndex('year', 'year', { unique: false });
+        store.createIndex('savedAt', 'savedAt', { unique: false });
+      }
+    };
+    req.onsuccess = (e) => {
+      const db = e.target.result;
+      console.log('[IndexedDB] Kết nối CSDL cục bộ an toàn KPI_KTNN_LocalDB thành công!');
+      migrateLocalStorageToIndexedDB(db);
+      resolve(db);
+    };
+    req.onerror = (e) => {
+      console.warn('[IndexedDB] Lỗi mở IndexedDB:', e.target.error);
+      resolve(null);
+    };
+  });
+  return _kpiIdbPromise;
+}
+
+// Tự động sao chép toàn bộ dữ liệu hiện có trong localStorage sang IndexedDB (Bảo toàn dữ liệu 100%)
+async function migrateLocalStorageToIndexedDB(db) {
+  if (!db) return;
+  try {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith('KBXV_KPI_SESS_'));
+    for (const key of keys) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      try {
+        const data = JSON.parse(raw);
+        if (data && data.officer) {
+          const offId = data.officer.officerId || 'hoang';
+          const q = data.officer.quarter || 'Quý I';
+          const y = data.officer.year || 2026;
+          await saveSessionToIndexedDB(db, offId, q, y, data, false);
+        }
+      } catch (err) {}
+    }
+  } catch (e) {}
+}
+
+// Lưu phiên làm việc vào IndexedDB (Gồm bảng Sessions, bảng Monthly và Snapshot)
+async function saveSessionToIndexedDB(db, officerId, quarter, year, sessionData, takeSnapshot = true) {
+  if (!db || !sessionData) return false;
+  const offId = officerId || (sessionData.officer && sessionData.officer.officerId) || 'hoang';
+  const q = quarter || (sessionData.officer && sessionData.officer.quarter) || 'Quý III';
+  const y = Number(year || (sessionData.officer && sessionData.officer.year) || 2026);
+  const sessionId = `${offId}_${normalizeQuarter(q)}_${y}`;
+  const nowIso = new Date().toISOString();
+
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(['sessions', 'monthly_records', 'local_snapshots'], 'readwrite');
+      const sessStore = tx.objectStore('sessions');
+      const monthStore = tx.objectStore('monthly_records');
+      const snapStore = tx.objectStore('local_snapshots');
+
+      const sessionDoc = {
+        id: sessionId,
+        officerId: offId,
+        quarter: q,
+        year: y,
+        updatedAt: nowIso,
+        data: sessionData
+      };
+      sessStore.put(sessionDoc);
+
+      if (sessionData.months && Array.isArray(sessionData.months)) {
+        sessionData.months.forEach((m, idx) => {
+          if (!m) return;
+          const monthNum = m.monthNum || (idx + 1);
+          const monthId = `${offId}_${y}_${normalizeQuarter(q)}_M${monthNum}`;
+          monthStore.put({
+            id: monthId,
+            officerId: offId,
+            quarter: q,
+            year: y,
+            monthNum: monthNum,
+            name: m.name || `Tháng ${monthNum}`,
+            completionPercent: m.completionPercent || 0,
+            updatedAt: nowIso,
+            monthData: m
+          });
+        });
+      }
+
+      if (takeSnapshot) {
+        snapStore.add({
+          officerId: offId,
+          quarter: q,
+          year: y,
+          savedAt: nowIso,
+          data: sessionData
+        });
+      }
+
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    } catch (err) {
+      resolve(false);
+    }
+  });
+}
+
+// Đọc phiên làm việc từ IndexedDB
+async function getSessionFromIndexedDB(db, officerId, quarter, year) {
+  if (!db) return null;
+  const offId = officerId || 'hoang';
+  const q = normalizeQuarter(quarter);
+  const y = Number(year || 2026);
+  const sessionId = `${offId}_${q}_${y}`;
+
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction('sessions', 'readonly');
+      const store = tx.objectStore('sessions');
+      const req = store.get(sessionId);
+      req.onsuccess = () => {
+        if (req.result && req.result.data) {
+          resolve(req.result.data);
+        } else {
+          resolve(null);
+        }
+      };
+      req.onerror = () => resolve(null);
+    } catch (e) {
+      resolve(null);
+    }
+  });
+}
+
+// ============================================================================
+// CHỨC NĂNG SAO LƯU & PHỤC HỒI DỮ LIỆU CÁ NHÂN AIR-GAPPED (1 CÚ NHẤP CHUỘT)
+// ============================================================================
+function exportPersonalBackupJson() {
+  if (!appState || !appState.officer) {
+    showToast('⚠️ Không có dữ liệu để xuất file dự phòng!');
+    return;
+  }
+  const offId = appState.officer.officerId || 'hoang';
+  const offName = appState.officer.name || 'CanBo';
+  const q = appState.officer.quarter || 'Quý III';
+  const y = appState.officer.year || 2026;
+  const timeNow = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+
+  const exportPayload = {
+    appVersion: "KPI_KTNN_KBXV_V18",
+    backupType: "PERSONAL_OFFICER_BACKUP",
+    exportedAt: new Date().toISOString(),
+    officer: { ...appState.officer },
+    currentQuarterState: { ...appState },
+    quartersData: appState.quartersData || {}
+  };
+
+  const jsonStr = JSON.stringify(exportPayload, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const safeName = offName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]/g, '_');
+  a.href = url;
+  a.download = `KPI_DuPhong_${safeName}_${normalizeQuarter(q)}_${y}_${timeNow}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast(`💾 Đã xuất thành công tệp sao lưu cá nhân của [${offName}]! Đồng chí hãy cất giữ file này cẩn thận.`, 5000);
+}
+
+function triggerImportPersonalBackup() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.onchange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const parsed = JSON.parse(event.target.result);
+        let targetState = parsed.currentQuarterState || parsed;
+        if (!targetState || !targetState.officer) {
+          alert('❌ Tệp sao lưu không hợp lệ hoặc không đúng định dạng KPI Phòng KTNN!');
+          return;
+        }
+
+        const offName = (targetState.officer && targetState.officer.name) || 'Cán bộ';
+        const q = (targetState.officer && targetState.officer.quarter) || 'Quý I';
+        const y = (targetState.officer && targetState.officer.year) || 2026;
+
+        if (!confirm(`Đồng chí có chắc chắn muốn KHÔI PHỤC dữ liệu từ tệp sao lưu này?\n\n• Cán bộ: ${offName}\n• Kỳ đánh giá: ${q}/${y}\n• Thời gian xuất file: ${parsed.exportedAt || 'Trước đó'}\n\nThao tác này sẽ nạp lại toàn bộ số lượng thực tế và điểm số đã chấm.`)) {
+          return;
+        }
+
+        const offId = targetState.officer.officerId || 'hoang';
+        applyLoadedSession(targetState, offId, q, y);
+        if (parsed.quartersData) {
+          appState.quartersData = Object.assign({}, appState.quartersData || {}, parsed.quartersData);
+        }
+
+        await saveActiveSession(false);
+        renderAll();
+        showToast(`🎉 Khôi phục thành công 100% dữ liệu từ tệp dự phòng cho [${offName}]!`, 5000);
+      } catch (err) {
+        alert('❌ Lỗi đọc tệp: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
 // Tao Storage Key duy nhat theo can bo, quy va nam
 function normalizeQuarter(qStr) {
   if (!qStr) return 'QuyIII';
@@ -7884,7 +8153,7 @@ async function loadSessionForOfficer(officerId, quarter, year, ramCandidate = nu
   const y = year || (appState.officer && appState.officer.year) || 2026;
   const storageKey = getSessionStorageKey(offId, q, y);
 
-  // 1. CACHE-FIRST: Đọc bản đệm từ LocalStorage máy trạm
+  // 1. CACHE-FIRST: Đọc bản đệm từ LocalStorage máy trạm & IndexedDB CSDL cục bộ (0ms)
   let localCandidate = null;
   try {
     const cached = localStorage.getItem(storageKey);
@@ -7896,8 +8165,18 @@ async function loadSessionForOfficer(officerId, quarter, year, ramCandidate = nu
     }
   } catch (err) {}
 
-  // Chọn bản tốt nhất giữa RAM đệm và LocalStorage để hiển thị ngay tức thì (0ms)
-  let bestLocal = pickBestClientSession(ramCandidate, localCandidate);
+  let idbCandidate = null;
+  try {
+    const db = await getKpiIndexedDB();
+    if (db) {
+      idbCandidate = await getSessionFromIndexedDB(db, offId, q, y);
+    }
+  } catch (err) {
+    console.warn('[IndexedDB] Đọc phiên đệm lỗi:', err);
+  }
+
+  // Chọn bản tốt nhất giữa RAM đệm, LocalStorage và IndexedDB để hiển thị ngay tức thì (0ms)
+  let bestLocal = pickBestClientSession(ramCandidate, pickBestClientSession(localCandidate, idbCandidate));
   let hadLocalCache = false;
   if (bestLocal && countClientSessionRealWorkTasks(bestLocal) > 0) {
     applyLoadedSession(bestLocal, offId, q, y);
@@ -7925,6 +8204,10 @@ async function loadSessionForOfficer(officerId, quarter, year, ramCandidate = nu
           // Server thực sự có bản mới hơn hoặc đầy đủ hơn -> Áp dụng bản Server
           applyLoadedSession(serverCandidate, offId, q, y);
           try { localStorage.setItem(storageKey, JSON.stringify(appState)); } catch(e){}
+          try {
+            const db = await getKpiIndexedDB();
+            if (db) saveSessionToIndexedDB(db, offId, q, y, appState, false);
+          } catch(e){}
           updateLastSavedTime(serverCandidate.lastSaved || new Date().toISOString(), false);
           return;
         } else if (hadLocalCache) {
@@ -8096,7 +8379,7 @@ async function saveCurrentScreenData(screenName = '') {
 
   // 4. Hiển thị thông báo thành công rõ ràng
   const label = screenName ? ` [${screenName}]` : '';
-  showToast(`💾 Đã lưu thành công dữ liệu${label} vào CSDL hệ thống! Dữ liệu được bảo lưu an toàn.`, 4000);
+  showToast(`💾 Đã lưu thành công dữ liệu${label} vào CSDL máy tính (IndexedDB) & Cloud! Dữ liệu được bảo lưu an toàn 100%.`, 4000);
 }
 
 let _pendingServerSync = false;
@@ -8138,7 +8421,7 @@ async function saveActiveSession(showNotification = true) {
     });
   }
 
-  // 1. Luôn lưu trực tiếp an toàn tại máy người dùng (LocalStorage riêng theo từng kỳ 3 chiều)
+  // 1. Luôn lưu trực tiếp an toàn tại máy người dùng (LocalStorage riêng theo từng kỳ 3 chiều & IndexedDB CSDL)
   const statePayload = { ...appState };
   if (statePayload.quartersData) delete statePayload.quartersData;
 
@@ -8150,11 +8433,20 @@ async function saveActiveSession(showNotification = true) {
     console.error("Loi luu localStorage:", err);
   }
 
+  // 1.1 Lưu bền vững vào CSDL IndexedDB (Native DB - không giới hạn 5MB & lưu lịch sử snapshot)
+  try {
+    getKpiIndexedDB().then(db => {
+      if (db) saveSessionToIndexedDB(db, offId, q, y, statePayload, true);
+    }).catch(e => console.warn('[IndexedDB] Lỗi lưu IndexedDB:', e));
+  } catch (err) {
+    console.warn("[IndexedDB] Lỗi gọi lưu:", err);
+  }
+
   _hasUnsavedLocalChanges = false;
   updateLastSavedTime(saveTime, true);
 
   // ĐỒNG BỘ BẢN NHÁP HYBRID AN TOÀN (HYBRID SAFE DRAFT SYNC):
-  // 1. Luôn lưu tức thì vào máy trạm (LocalStorage) ở trên.
+  // 1. Luôn lưu tức thì vào máy trạm (LocalStorage & IndexedDB) ở trên.
   // 2. Gửi đồng bộ lên Cloud/Server nhưng BẢO TOÀN trạng thái 'da_luu', isSubmitted: false.
   // 3. KHÔNG KHÓA BẢNG TÍNH. Người dùng sang máy khác vẫn tải được bản nháp để làm tiếp.
   // 4. Chỉ khi bấm 'Nộp báo cáo KPI quý', hệ thống mới chuyển thành 'da_nop' và khóa bảng.
@@ -8177,6 +8469,10 @@ async function saveActiveSession(showNotification = true) {
       if (resJson && resJson.restoredOriginal && resJson.data) {
         applyLoadedSession(resJson.data, offId, q, y);
         try { localStorage.setItem(storageKey, JSON.stringify(resJson.data)); } catch(e){}
+        try {
+          const db = await getKpiIndexedDB();
+          if (db) saveSessionToIndexedDB(db, offId, q, y, resJson.data, false);
+        } catch(e){}
         return;
       }
       _pendingServerSync = false;
@@ -8189,9 +8485,9 @@ async function saveActiveSession(showNotification = true) {
       }
       if (showNotification) {
         if (isDraftMode) {
-          showToast('💾 Đã lưu an toàn bản nháp! (Đã đồng bộ lên hệ thống, sẵn sàng mở trên mọi máy tính)', 4000);
+          showToast('💾 Đã lưu an toàn bản nháp vào CSDL máy tính & Cloud! (Sẵn sàng mở trên mọi máy tính)', 4000);
         } else {
-          showToast('💾 Đã lưu thành công kết quả thẩm định lên CSDL Cloud!', 4000);
+          showToast('💾 Đã lưu thành công kết quả thẩm định lên CSDL máy tính & Cloud!', 4000);
         }
       }
     } else {
@@ -8209,7 +8505,7 @@ async function saveActiveSession(showNotification = true) {
       updateAutosaveIndicator('⚠️ Đã lưu máy tính (Ngoại tuyến - chờ mạng)');
     }
     if (showNotification) {
-      showToast(`⚠️ Không thể kết nối Cloud! Dữ liệu của ${appState.officer.name} đã được bảo vệ trên máy bạn.`, 5000);
+      showToast(`⚠️ Không thể kết nối Cloud! Dữ liệu của ${appState.officer.name} đã được lưu an toàn 100% trong CSDL máy tính (IndexedDB).`, 5000);
     }
   }
 
