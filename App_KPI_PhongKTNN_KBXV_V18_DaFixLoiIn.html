@@ -6276,13 +6276,15 @@ function renderMonthTable24() {
         `;
       } else if (appState.status === 'da_nop') {
         const curQCheck = (appState.officer && appState.officer.quarter) || 'Quý III';
-        if (curQCheck !== 'Quý III' && curQCheck !== 'QuyIII' && appState.submittedAt && String(appState.submittedAt).includes('2026-09')) {
-          // Triệt tiêu rò rỉ ngày nộp Quý III sang Quý I, không render banner khóa
+        const normQ = (typeof normalizeQuarter === 'function') ? normalizeQuarter(curQCheck) : String(curQCheck || '').toLowerCase().replace(/[\s_]/g, '');
+        const isQ3 = (normQ === 'QuyIII' || normQ === 'quyiii' || normQ.includes('iii') || normQ.includes('3'));
+        if (!isQ3 && appState.submittedAt && String(appState.submittedAt).includes('2026-09')) {
+          // Triệt tiêu rò rỉ ngày nộp Quý III sang Quý khác, không khóa bảng
           appState.status = 'draft';
           appState.isSubmitted = false;
           appState.submittedAt = null;
-          lockBannerContainer.innerHTML = '';
-          return;
+          if (lockBannerContainer) lockBannerContainer.innerHTML = '';
+          // Tuyệt đối không return để bảng tiếp tục render bình thường
         }
         const subTime = appState.submittedAt ? (new Date(appState.submittedAt).toLocaleTimeString('vi-VN') + ' ' + new Date(appState.submittedAt).toLocaleDateString('vi-VN')) : '';
         lockBannerContainer.innerHTML = `
@@ -6759,12 +6761,13 @@ function updateRow24(rowIdx, field, value) {
   }
 
   if (activeMIdx === 0) {
-    // SỬA THÁNG 7: Cập nhật T7, đồng thời gán làm mặc định cho T8 & T9 NẾU ô đó chưa được sửa riêng!
+    // SỬA THÁNG 1: Cập nhật T1, đồng thời gán làm mặc định cho T2 & T3 NẾU ô đó chưa được sửa riêng!
+    const mult = getRoleMultiplier();
     [1, 2].forEach(mIdx => {
       const targetMonth = appState.months[mIdx];
       if (targetMonth && targetMonth.rows && targetMonth.rows[rowIdx]) {
         const targetRow = targetMonth.rows[rowIdx];
-        // Chỉ cập nhật nếu dòng đó chưa bị người dùng tùy chỉnh riêng ở Tháng 8/Tháng 9
+        // Chỉ cập nhật nếu dòng đó chưa bị người dùng tùy chỉnh riêng ở Tháng 2 / Tháng 3
         if (!targetRow._isCustomized) {
           targetRow[field] = value;
           if (field === "soluong_tt" && Number(value) > 0) {
@@ -6780,9 +6783,16 @@ function updateRow24(rowIdx, field, value) {
           }
         }
       }
+      if (targetMonth) {
+        const c = calculateMonth24(targetMonth, mult);
+        targetMonth.completionPercent = c.finalMonthPct;
+        targetMonth.quantityPct = c.quantityPct;
+        targetMonth.qualityPct = c.qualityPct;
+        targetMonth.progressPct = c.progressPct;
+      }
     });
   } else {
-    // SỬA THÁNG 8 HOẶC THÁNG 9: Lưu riêng độc lập cho tháng đó, không ảnh hưởng Tháng 7!
+    // SỬA THÁNG 2 HOẶC THÁNG 3: Lưu riêng độc lập cho tháng đó, không ảnh hưởng Tháng 1!
     row._isCustomized = true;
   }
 
@@ -6960,6 +6970,7 @@ function renderMonthTabsHeader() {
 }
 
 function selectMonthTab(mIdx) {
+  appState.activeMonthIdx = mIdx;
   renderMonthTabsHeader();
   document.querySelectorAll('.month-tab-btn').forEach((btn, idx) => {
     btn.classList.toggle('active', idx === mIdx);
@@ -6983,7 +6994,6 @@ function selectMonthTab(mIdx) {
     if (filterToolbar) filterToolbar.style.display = 'flex';
     if (leaderGdvToolbar) leaderGdvToolbar.style.display = 'block';
     if (quarterPane) quarterPane.style.display = 'none';
-    appState.activeMonthIdx = mIdx;
     updateMonthIndicator();
     renderMonthTable24();
   }
@@ -7021,40 +7031,77 @@ function updateMonthIndicator() {
   }
 }
 
-function copyMonth1ToAllMonths() {
+async function copyMonth1ToAllMonths() {
   const qMonths = getQuarterMonthsInfo(appState.officer.quarter, appState.officer.year);
   const m1Short = qMonths[0].shortName;
   const m2Short = qMonths[1].shortName;
   const m3Short = qMonths[2].shortName;
   if (!confirm(`Bạn có chắc chắn muốn sao chép toàn bộ số liệu chấm điểm của ${m1Short} sang làm giá trị ban đầu cho ${m2Short} và ${m3Short}?`)) return;
 
-  const m1Rows = appState.months[0].rows;
+  const m1Rows = appState.months && appState.months[0] ? appState.months[0].rows : null;
+  if (!m1Rows || !Array.isArray(m1Rows) || m1Rows.length === 0) {
+    alert(`Không tìm thấy dữ liệu mẫu ở ${m1Short} để sao chép.`);
+    return;
+  }
+
+  const mult = getRoleMultiplier();
   [1, 2].forEach(mIdx => {
-    appState.months[mIdx].rows = JSON.parse(JSON.stringify(m1Rows));
-    appState.months[mIdx].rows.forEach(r => r._isCustomized = false);
+    if (appState.months[mIdx]) {
+      appState.months[mIdx].rows = JSON.parse(JSON.stringify(m1Rows));
+      appState.months[mIdx].rows.forEach(r => {
+        r._isCustomized = false;
+        updateRowOutputDetail(r);
+      });
+      const c = calculateMonth24(appState.months[mIdx], mult);
+      appState.months[mIdx].completionPercent = c.finalMonthPct;
+      appState.months[mIdx].quantityPct = c.quantityPct;
+      appState.months[mIdx].qualityPct = c.qualityPct;
+      appState.months[mIdx].progressPct = c.progressPct;
+    }
   });
 
   saveState();
+  if (typeof saveActiveSession === 'function') {
+    await saveActiveSession(false);
+  }
   renderMonthTable24();
   renderDashboard();
   renderPrintForms();
-  alert(`Đã đồng bộ số liệu ${m1Short} sang ${m2Short} và ${m3Short} thành công!`);
+  showToast(`✅ Đã đồng bộ số liệu ${m1Short} sang ${m2Short} và ${m3Short} thành công!`, 3500);
 }
 
-function resetMonthFromMonth1(mIdx) {
+async function resetMonthFromMonth1(mIdx) {
   const qMonths = getQuarterMonthsInfo(appState.officer.quarter, appState.officer.year);
   const m1Short = qMonths[0].shortName;
-  const targetName = appState.months[mIdx].name;
+  const targetName = (appState.months[mIdx] && appState.months[mIdx].name) || `Tháng ${mIdx + 1}`;
   if (!confirm(`Bạn có chắc chắn muốn đặt lại bảng số liệu ${targetName} theo giá trị mặc định của ${m1Short}?`)) return;
 
-  appState.months[mIdx].rows = JSON.parse(JSON.stringify(appState.months[0].rows));
-  appState.months[mIdx].rows.forEach(r => r._isCustomized = false);
+  const m1Rows = appState.months && appState.months[0] ? appState.months[0].rows : null;
+  if (!m1Rows || !Array.isArray(m1Rows) || m1Rows.length === 0) {
+    alert(`Không tìm thấy dữ liệu mẫu ở ${m1Short} để kế thừa.`);
+    return;
+  }
+
+  const mult = getRoleMultiplier();
+  appState.months[mIdx].rows = JSON.parse(JSON.stringify(m1Rows));
+  appState.months[mIdx].rows.forEach(r => {
+    r._isCustomized = false;
+    updateRowOutputDetail(r);
+  });
+  const c = calculateMonth24(appState.months[mIdx], mult);
+  appState.months[mIdx].completionPercent = c.finalMonthPct;
+  appState.months[mIdx].quantityPct = c.quantityPct;
+  appState.months[mIdx].qualityPct = c.qualityPct;
+  appState.months[mIdx].progressPct = c.progressPct;
 
   saveState();
+  if (typeof saveActiveSession === 'function') {
+    await saveActiveSession(false);
+  }
   renderMonthTable24();
   renderDashboard();
   renderPrintForms();
-  alert(`Đã đặt lại số liệu ${targetName} theo mặc định của ${m1Short}!`);
+  showToast(`✅ Đã đặt lại số liệu ${targetName} theo mặc định của ${m1Short}!`, 3500);
 }
 
 // Backward-compatible aliases
@@ -10956,7 +11003,9 @@ function updateUserInterfaceByRole() {
   // CHỐT TỰ ĐỘNG CHỮA LỖI (SELF-HEAL):
   // Nếu đang xem Quý I, Quý II, Quý IV nhưng appState lại dính ngày nộp tháng 9 của Quý III (rò rỉ từ phiên cũ)
   const curQ = (appState.officer && appState.officer.quarter) || 'Quý III';
-  if (curQ !== 'Quý III' && curQ !== 'QuyIII') {
+  const normQ = (typeof normalizeQuarter === 'function') ? normalizeQuarter(curQ) : String(curQ || '').toLowerCase().replace(/[\s_]/g, '');
+  const isQ3 = (normQ === 'QuyIII' || normQ === 'quyiii' || normQ.includes('iii') || normQ.includes('3'));
+  if (!isQ3) {
     if (appState.status === 'da_nop' || appState.status === 'da_duyet' || appState.isSubmitted || (appState.submittedAt && String(appState.submittedAt).includes('2026-09'))) {
       console.warn('[SELF-HEAL UI] Phát hiện rò rỉ trạng thái nộp Quý III sang ' + curQ + ', đưa về chế độ soạn thảo.');
       appState.status = 'draft';
