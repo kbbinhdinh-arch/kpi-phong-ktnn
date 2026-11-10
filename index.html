@@ -5712,6 +5712,7 @@ function computeOfflineLocalLeaderGdvAggregate(offId, curQ, curY, gdvIds) {
 async function ensureLeaderGdvAggregateLoaded(forceRefresh = false) {
   const offId = (appState.officer && appState.officer.officerId) || 'hoang';
   const role = (appState.officer && appState.officer.role) || 'GDV';
+  if (!sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN')) return null;
   const isLeaderRole = (role === 'TP' || role === 'PTP' || role === 'TRUONG_PGD' || role === 'PHO_PGD' || (appState.officer && appState.officer.isLeader));
   if (!isLeaderRole) return null;
 
@@ -5728,7 +5729,7 @@ async function ensureLeaderGdvAggregateLoaded(forceRefresh = false) {
   _leaderGdvAggCache.loading = true;
   try {
     const url = `${CURRENT_SERVER_HOST}/api/leader-aggregate?leaderId=${encodeURIComponent(offId)}&quarter=${encodeURIComponent(curQ)}&year=${encodeURIComponent(curY)}&gdvIds=${encodeURIComponent(gdvIds.join(','))}`;
-    const res = await apiFetch(url, { cache: 'no-cache' });
+    const res = await apiFetch(url, { cache: 'no-cache', skipAuthRedirect: true });
     if (res.ok) {
       const json = await res.json();
       if (json && json.success) {
@@ -6042,7 +6043,8 @@ function renderLeaderGdvAggregateToolbar() {
     const parts = fullName.trim().split(/\s+/);
     const shortName = parts.length >= 2 ? parts.slice(-2).join(' ') : fullName;
     const hasData = meta ? meta.hasData : false;
-    return `<span style="display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:3px;font-size:11px;font-weight:600;background:${hasData ? '#f0fff4' : '#f7fafc'};color:${hasData ? '#22543d' : '#4a5568'};border:1px solid ${hasData ? '#9ae6b4' : '#cbd5e0'};" title="${escapeHtml(fullName)}${meta ? ' (' + meta.activeTasksCount + ' việc)' : ''}">${hasData ? '🟢' : '⚪'} ${escapeHtml(shortName)}</span>`;
+    const dotHtml = `<span style="width:7px;height:7px;border-radius:50%;display:inline-block;background:${hasData ? '#16a34a' : '#94a3b8'};"></span>`;
+    return `<span style="display:inline-flex;align-items:center;gap:4px;padding:1px 6px;border-radius:3px;font-size:11px;font-weight:600;background:${hasData ? '#f0fff4' : '#f7fafc'};color:${hasData ? '#22543d' : '#4a5568'};border:1px solid ${hasData ? '#9ae6b4' : '#cbd5e0'};" title="${escapeHtml(fullName)}${meta ? ' (' + meta.activeTasksCount + ' việc)' : ''}">${dotHtml} ${escapeHtml(shortName)}</span>`;
   }).join(' ');
 
   // Đếm số dòng Mục II có phát sinh số lượng từ GDV trong tháng đang chọn
@@ -7455,18 +7457,22 @@ async function apiFetch(url, options = {}) {
   });
 
   if (res.status === 401 && !skipAuthRedirect) {
+    let hadSession = false;
     try {
-      if (typeof saveLocalDraftToMachine === 'function') saveLocalDraftToMachine();
+      hadSession = !!(sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || sessionStorage.getItem('KBXV_AUTH_TOKEN'));
+      if (hadSession && typeof saveLocalDraftToMachine === 'function') saveLocalDraftToMachine();
       sessionStorage.removeItem('KBXV_AUTH_TOKEN');
       sessionStorage.removeItem('KBXV_CURRENT_LOGGED_IN');
     } catch (e) {}
-    const now = Date.now();
-    if (now - _authPrompted401At > 4000) {
-      _authPrompted401At = now;
-      if (typeof showToast === 'function') {
-        showToast('Phiên đăng nhập đã hết hạn. Dữ liệu đang soạn đã được lưu cục bộ — vui lòng đăng nhập lại!', 5000);
+    if (hadSession) {
+      const now = Date.now();
+      if (now - _authPrompted401At > 4000) {
+        _authPrompted401At = now;
+        if (typeof showToast === 'function') {
+          showToast('Phiên đăng nhập đã hết hạn. Dữ liệu đang soạn đã được lưu cục bộ — vui lòng đăng nhập lại!', 5000);
+        }
+        if (typeof openLoginModal === 'function') openLoginModal();
       }
-      if (typeof openLoginModal === 'function') openLoginModal();
     }
   }
   return res;
@@ -8009,9 +8015,9 @@ function updateLastSavedTime(isoString, isLocalOnly = false) {
   const date = new Date(isoString);
   const timeStr = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   if (isLocalOnly || _pendingServerSync) {
-    indicator.innerHTML = '⚠️ <span style="color: #c53030; font-weight: 700;">Lưu máy: ' + timeStr + ' (Đang chờ đồng bộ máy chủ)</span>';
+    indicator.innerHTML = '<span style="color: #c53030; font-weight: 700;">Lưu máy: ' + timeStr + ' (Chờ đồng bộ máy chủ)</span>';
   } else {
-    indicator.innerHTML = '🟢 <span style="color: #276749; font-weight: 700;">Đã lưu máy chủ: ' + timeStr + '</span>';
+    indicator.innerHTML = '<span style="color: #276749; font-weight: 700;">Đã lưu máy chủ: ' + timeStr + '</span>';
   }
 }
 
@@ -10989,16 +10995,16 @@ async function renderAdminPasswordTable() {
       : '<span class="badge" style="background:#edf2f7; color:#4a5568;">Giao dịch viên</span>');
 
     const statusBadge = hasPwd
-      ? '<span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:12px; font-size:11.5px; font-weight:700; background:#f0fff4; color:#22543d; border:1px solid #c6f6d5;">🟢 Đã có mật khẩu</span>'
-      : '<span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:12px; font-size:11.5px; font-weight:600; background:#fffaf0; color:#dd6b20; border:1px solid #feebc8;">⚪ Chưa đặt mật khẩu</span>';
+      ? '<span style="display:inline-flex; align-items:center; gap:5px; padding:3px 8px; border-radius:12px; font-size:11.5px; font-weight:700; background:#f0fff4; color:#22543d; border:1px solid #c6f6d5;"><span style="width:7px;height:7px;border-radius:50%;background:#16a34a;display:inline-block;"></span> Đã có mật khẩu</span>'
+      : '<span style="display:inline-flex; align-items:center; gap:5px; padding:3px 8px; border-radius:12px; font-size:11.5px; font-weight:600; background:#fffaf0; color:#dd6b20; border:1px solid #feebc8;"><span style="width:7px;height:7px;border-radius:50%;background:#d97706;display:inline-block;"></span> Chưa đặt mật khẩu</span>';
 
     const safeName = (off.name || offId).replace(/'/g, "\\'");
     
     // Nút Sửa thông tin cá nhân cán bộ
-    const editBtn = `<button type="button" class="btn btn-primary btn-sm" onclick="openEditOfficerModal('${offId}')" style="font-size:11.5px; padding:3px 8px; font-weight:700; background:#2b6cb0; color:#fff; border:none; border-radius:4px; margin-right:4px; display:inline-flex; align-items:center; gap:2px;" title="Chỉnh sửa họ tên, chức danh, phân công nhiệm vụ của cán bộ này">✏️ Sửa TT</button>`;
+    const editBtn = `<button type="button" class="btn btn-primary btn-sm" onclick="openEditOfficerModal('${offId}')" style="font-size:11.5px; padding:3px 8px; font-weight:700; background:#2b6cb0; color:#fff; border:none; border-radius:4px; margin-right:4px; display:inline-flex; align-items:center; gap:2px;" title="Chỉnh sửa họ tên, chức danh, phân công nhiệm vụ của cán bộ này">Sửa TT</button>`;
 
     // Nút Đổi/Đặt mật khẩu luôn hiển thị cho MỌI cán bộ
-    const setBtn = `<button type="button" class="btn btn-warning btn-sm" onclick="adminDirectSetPasswordPrompt('${offId}', '${safeName}')" style="font-size:11.5px; padding:3px 8px; font-weight:700; background:#d69e2e; color:#fff; border:none; border-radius:4px; margin-right:4px;" title="Đặt hoặc đổi mật khẩu mới cho cán bộ này">🔑 Đổi MK</button>`;
+    const setBtn = `<button type="button" class="btn btn-warning btn-sm" onclick="adminDirectSetPasswordPrompt('${offId}', '${safeName}')" style="font-size:11.5px; padding:3px 8px; font-weight:700; background:#d69e2e; color:#fff; border:none; border-radius:4px; margin-right:4px;" title="Đặt hoặc đổi mật khẩu mới cho cán bộ này">Đổi MK</button>`;
 
     // Nút Xóa/Đặt lại mật khẩu
     const resetBtn = hasPwd
@@ -14692,7 +14698,7 @@ window.addEventListener('beforeunload', (e) => {
 // Tự động lên lịch lưu nháp vào máy tính (Local Autosave Debounce)
 function triggerLocalDraftAutosave() {
   _hasUnsavedLocalChanges = true;
-  updateAutosaveIndicator('🟡 Đang có thay đổi chưa lưu...');
+  updateAutosaveIndicator('Đang có thay đổi chưa lưu...');
   clearTimeout(_autosaveTimer);
   _autosaveTimer = setTimeout(() => {
     saveLocalDraftToMachine();
@@ -14712,7 +14718,7 @@ function saveLocalDraftToMachine() {
     getKpiIndexedDB().then(db => {
       if (db) saveSessionToIndexedDB(db, offId, q, y, compactState, false);
     }).catch(() => {});
-    updateAutosaveIndicator('🟢 Đã lưu tạm an toàn trên máy');
+    updateAutosaveIndicator('Đã lưu tạm trên máy');
   } catch (e) {
     console.warn('[AUTOSAVE] Không thể lưu draft:', e);
   }
