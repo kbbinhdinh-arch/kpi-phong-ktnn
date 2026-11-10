@@ -7599,7 +7599,14 @@ ${contentHtml}
 // ==========================================================================
 const DEFAULT_CLOUD_HOST = 'https://kpi-phong-ktnn.vercel.app';
 let savedHost = '';
-try { savedHost = localStorage.getItem('KBXV_KPI_CUSTOM_SERVER') || ''; } catch(e){}
+try {
+  savedHost = localStorage.getItem('KBXV_KPI_CUSTOM_SERVER') || '';
+  // Tự động dọn dẹp địa chỉ Render cũ đã dừng hoạt động
+  if (savedHost.includes('onrender.com')) {
+    localStorage.removeItem('KBXV_KPI_CUSTOM_SERVER');
+    savedHost = '';
+  }
+} catch(e){}
 
 let CURRENT_SERVER_HOST = savedHost || (
   (window.location && window.location.origin && window.location.origin.includes('http') && !window.location.hostname.includes('vibehost'))
@@ -7615,17 +7622,24 @@ function promptChangeServerHost() {
   const current = CURRENT_SERVER_HOST;
   const newHost = prompt(
     "CẤU HÌNH MÁY CHỦ API (CSDL CLOUD / LAN):\n" +
-    "- Mặc định Cloud: https://kpi-ktnn-kbxv.onrender.com\n" +
-    "- Hoặc máy chủ nội bộ: http://localhost:8080 (hoặc http://IP_LAN:8080)\n\n" +
-    "Nhập địa chỉ máy chủ API bạn muốn kết nối:",
+    "- Mặc định Cloud Vercel: https://kpi-phong-ktnn.vercel.app\n" +
+    "- Hoặc máy chủ nội bộ LAN: http://localhost:8080 (hoặc http://IP_LAN:8080)\n\n" +
+    "Nhập địa chỉ máy chủ API bạn muốn kết nối (Để trống và bấm OK để khôi phục mặc định Cloud Vercel):",
     current
   );
-  if (newHost !== null && newHost.trim()) {
-    CURRENT_SERVER_HOST = newHost.trim().replace(/\/+$/, '');
-    try {
-      localStorage.setItem('KBXV_KPI_CUSTOM_SERVER', CURRENT_SERVER_HOST);
-    } catch(e){}
-    showToast(`🔄 Đang chuyển kết nối sang máy chủ: ${CURRENT_SERVER_HOST}...`);
+  if (newHost !== null) {
+    const trimmed = newHost.trim().replace(/\/+$/, '');
+    if (!trimmed || trimmed === DEFAULT_CLOUD_HOST) {
+      try { localStorage.removeItem('KBXV_KPI_CUSTOM_SERVER'); } catch(e){}
+      CURRENT_SERVER_HOST = DEFAULT_CLOUD_HOST;
+      showToast(`🔄 Đã khôi phục máy chủ mặc định Cloud: ${DEFAULT_CLOUD_HOST}`);
+    } else {
+      CURRENT_SERVER_HOST = trimmed;
+      try {
+        localStorage.setItem('KBXV_KPI_CUSTOM_SERVER', CURRENT_SERVER_HOST);
+      } catch(e){}
+      showToast(`🔄 Đang chuyển kết nối sang máy chủ: ${CURRENT_SERVER_HOST}...`);
+    }
     checkServerStatus(true);
   }
 }
@@ -7664,6 +7678,16 @@ function showToast(msg, duration = 3000) {
   }, duration);
 }
 
+// Tự động kiểm tra và đồng bộ lại khi máy tính có kết nối mạng trở lại
+window.addEventListener('online', () => {
+  showToast('🌐 Thiết bị đã có kết nối mạng! Đang kết nối lại Cloud...', 3500);
+  checkServerStatus(false).then(ok => {
+    if (ok && typeof _pendingServerSync !== 'undefined' && _pendingServerSync) {
+      if (typeof saveState === 'function') saveState(false);
+    }
+  });
+});
+
 // Kiem tra ket noi voi may chu
 async function checkServerStatus(isManual = false) {
   const badge = document.getElementById('serverStatusBadge');
@@ -7671,10 +7695,10 @@ async function checkServerStatus(isManual = false) {
   const text = document.getElementById('serverStatusText');
 
   try {
-    const isCloud = CURRENT_SERVER_HOST.includes('onrender.com') || CURRENT_SERVER_HOST.includes('https://');
+    const isCloud = CURRENT_SERVER_HOST.includes('vercel.app') || CURRENT_SERVER_HOST.includes('https://');
     const checkEndpoint = CURRENT_SERVER_HOST + '/api/license';
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6500);
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
 
     const res = await fetch(checkEndpoint, { method: 'GET', cache: 'no-cache', signal: controller.signal });
     clearTimeout(timeoutId);
@@ -7799,7 +7823,7 @@ async function loadSessionForOfficer(officerId, quarter, year) {
   // 2. Tải bản mới nhất từ Server API chạy nền (Background Revalidation)
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     const res = await fetch(`${CURRENT_SERVER_HOST}/api/session?officerId=${encodeURIComponent(offId)}&quarter=${encodeURIComponent(q)}&year=${encodeURIComponent(y)}`, { 
       cache: 'no-cache',
       signal: controller.signal
