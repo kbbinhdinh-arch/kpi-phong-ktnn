@@ -2220,6 +2220,14 @@ async function handleKpiRequest(req, res) {
           }
           cleanState.isSubmitted = false;
           cleanState.submittedAt = null;
+        } else if (isOfficiallySubmitted && payload.action !== 'submit' && (cleanState.status === 'da_luu' || cleanState.status === 'draft')) {
+          // Bảo vệ trạng thái đã nộp / đã duyệt: không để autosave 'da_luu' hạ cấp ngược trạng thái (chỉ mở khóa qua /api/session/reject)
+          cleanState.status = existingSession.status;
+          cleanState.isSubmitted = !!existingSession.isSubmitted;
+          cleanState.isApproved = !!existingSession.isApproved;
+          cleanState.submittedAt = existingSession.submittedAt || cleanState.submittedAt;
+          cleanState.approvedAt = existingSession.approvedAt || cleanState.approvedAt;
+          cleanState.approvedBy = existingSession.approvedBy || cleanState.approvedBy;
         }
 
         // 1. Lưu RAM / Đĩa máy chủ (nếu chạy LAN)
@@ -3031,9 +3039,13 @@ async function handleKpiRequest(req, res) {
           return sendJson(res, 404, { success: false, error: "Không tìm thấy bản ghi snapshot này!" });
         }
 
-        const filename = getSessionFilename(officerId || snapDoc.officerId, quarter || snapDoc.quarter, year || snapDoc.year);
         const restoredData = snapDoc.data;
-        restoredData.lastSaved = new Date().toISOString();
+        const targetOffId = officerId || snapDoc.officerId || (restoredData.officer && restoredData.officer.officerId);
+        const targetQ = quarter || snapDoc.quarter || (restoredData.officer && restoredData.officer.quarter) || 'Quý III';
+        const targetY = Number(year || snapDoc.year || (restoredData.officer && restoredData.officer.year) || 2026);
+        const targetNormQ = normalizeQuarter(targetQ);
+        const filename = getSessionFilename(targetOffId, targetQ, targetY);
+        restoredData.lastSaved = restoredData.lastSaved || snapDoc.savedAt || new Date().toISOString();
         restoredData._restoredFrom = snapDoc.savedAt;
 
         // Lưu CSDL cục bộ
@@ -3043,7 +3055,18 @@ async function handleKpiRequest(req, res) {
           try {
             await kpiDb.collection('sessions').updateOne(
               { filename },
-              { $set: { filename, data: restoredData, updatedAt: restoredData.lastSaved } },
+              {
+                $set: {
+                  filename,
+                  officerId: targetOffId,
+                  quarterNorm: targetNormQ,
+                  year: targetY,
+                  activeTasksCount: countSessionActiveTasks(restoredData),
+                  totalDonePoints: getSessionTotalDonePoints(restoredData),
+                  data: restoredData,
+                  updatedAt: restoredData.lastSaved
+                }
+              },
               { upsert: true }
             );
           } catch(e) {}
@@ -3386,7 +3409,52 @@ async function handleKpiRequest(req, res) {
         writeStatus = { canWrite: false, error: wErr.message };
       }
 
-      return sendJson(res, 200, { success: true, writeStatus, report });
+      let details = undefined;
+      if (searchParams.get('details') === '1' && kpiDb) {
+        const sDocs = await kpiDb.collection('sessions').find({}, {
+          projection: {
+            _id: 1, filename: 1, officerId: 1, quarterNorm: 1, year: 1, activeTasksCount: 1, totalDonePoints: 1, updatedAt: 1,
+            "data.status": 1, "data.isSubmitted": 1, "data.isApproved": 1, "data.submittedAt": 1, "data.lastSaved": 1,
+            "data.officer.officerId": 1, "data.officer.quarter": 1, "data.officer.year": 1,
+            "data.months.completionPercent": 1, "data.generalCriteria": 1
+          }
+        }).toArray();
+        const snDocs = await kpiDb.collection('session_snapshots').find({}, {
+          projection: {
+            _id: 1, filename: 1, officerId: 1, quarter: 1, year: 1, savedAt: 1, summary: 1,
+            "data.status": 1, "data.isSubmitted": 1, "data.officer.officerId": 1, "data.officer.quarter": 1, "data.officer.year": 1,
+            "data.months.completionPercent": 1, "data.months.monthNum": 1, "data.generalCriteria": 1
+          }
+        }).toArray();
+        details = {
+          sessions: sDocs.map(d => ({
+            filename: d.filename,
+            officerId: d.officerId || (d.data && d.data.officer && d.data.officer.officerId),
+            quarterNorm: d.quarterNorm,
+            year: d.year,
+            status: d.data && d.data.status,
+            isSubmitted: d.data && d.data.isSubmitted,
+            submittedAt: d.data && d.data.submittedAt,
+            lastSaved: d.data && d.data.lastSaved,
+            pcts: d.data && Array.isArray(d.data.months) ? d.data.months.map(m => m && m.completionPercent) : null,
+            activeTasksCount: d.activeTasksCount
+          })),
+          snapshots: snDocs.map(s => ({
+            id: String(s._id),
+            filename: s.filename,
+            officerId: s.officerId || (s.data && s.data.officer && s.data.officer.officerId),
+            quarter: s.quarter || (s.data && s.data.officer && s.data.officer.quarter),
+            year: s.year,
+            savedAt: s.savedAt,
+            summary: s.summary,
+            status: s.data && s.data.status,
+            pcts: s.data && Array.isArray(s.data.months) ? s.data.months.map(m => m && m.completionPercent) : null,
+            generalCriteria: s.data && s.data.generalCriteria
+          }))
+        };
+      }
+
+      return sendJson(res, 200, { success: true, writeStatus, report, details });
     } catch (err) {
       return sendJson(res, 500, { success: false, error: err.message });
     }
