@@ -10788,6 +10788,25 @@ async function adminDirectSetPasswordPrompt(targetOfficerId, officerName) {
   await renderAdminPasswordTable();
 }
 
+async function reclaimCloudStorage() {
+  if (!confirm("Đồng chí có chắc chắn muốn giải phóng bộ nhớ MongoDB Atlas Cloud?\n\nThao tác này sẽ dọn sạch các bản chụp snapshot lịch sử phình to trên Cloud để đưa dung lượng về < 20MB, bảo đảm quyền ghi dữ liệu thông suốt.\n\n(Hồ sơ KPI, điểm số và mật khẩu cán bộ được bảo toàn 100%)")) {
+    return;
+  }
+  showToast("⏳ Đang giải phóng bộ nhớ MongoDB Atlas Cloud...", 4000);
+  try {
+    const res = await fetch(`${CURRENT_SERVER_HOST}/api/admin/reclaim-storage?adminOfficerId=hoang`, { method: 'POST' });
+    const json = await res.json();
+    if (res.ok && json.success) {
+      alert(`🎉 ${json.message}\n\n• Số hồ sơ cán bộ bảo toàn: ${json.restoredCount || 0}\n• Dung lượng mới: ${json.newStorageSizeMB || 0} MB`);
+      await renderAdminPasswordTable();
+    } else {
+      alert(`⚠️ Lỗi: ${json.error || 'Không thể dọn dẹp bộ nhớ'}`);
+    }
+  } catch (err) {
+    alert(`❌ Lỗi kết nối: ${err.message}`);
+  }
+}
+
 async function renderAdminPasswordTable() {
   const container = document.getElementById('adminPasswordTableContainer');
   if (!container) return;
@@ -14753,7 +14772,8 @@ async function rollbackToSnapshot(snapshotId, timeLabel) {
           <div style="text-align: center; padding: 30px; color: #718096;">Đang tải dữ liệu mật khẩu cán bộ...</div>
         </div>
       </div>
-      <div style="padding: 12px 20px; background: #f7fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end;">
+      <div style="padding: 12px 20px; background: #f7fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn btn-warning" onclick="reclaimCloudStorage()" style="background: #c53030; color: #fff; font-weight: 700; padding: 6px 14px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; border-radius: 4px; border: none; cursor: pointer;" title="Dọn sạch các bản snapshot phình to trên Cloud để giải phóng bộ nhớ MongoDB Atlas">🧹 Giải phóng dung lượng Cloud</button>
         <button type="button" class="btn btn-secondary" onclick="closeAdminPasswordModal()" style="font-weight: 600; padding: 6px 18px;">Đóng</button>
       </div>
     </div>

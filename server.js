@@ -559,13 +559,88 @@ async function connectMongo() {
   }
 }
 
+// ============================================================================
+// GIẢI PHÁP TỰ ĐỘNG GIẢI PHÓNG BỘ NHỚ CLOUD (MONGODB ATLAS FREE TIER QUOTA SHIELD)
+// Tự động thu gọn, dọn sạch session_snapshots khi dung lượng chạm 512MB
+// ============================================================================
+async function autoHealMongoStorageQuota() {
+  if (!kpiDb) return;
+  try {
+    let needsHeal = false;
+    try {
+      const stats = await kpiDb.command({ dbStats: 1 });
+      const storageMB = stats.storageSize / (1024 * 1024);
+      if (storageMB >= 420) {
+        console.warn(`[STORAGE AUTO-HEAL] Dung lượng MongoDB Atlas đang ở mức ${storageMB.toFixed(1)}MB / 512MB.`);
+        needsHeal = true;
+      }
+    } catch (e) {}
+
+    if (!needsHeal) {
+      try {
+        const testCol = kpiDb.collection('_test_quota');
+        await testCol.insertOne({ test: 1, at: new Date() });
+        await testCol.deleteOne({ test: 1 });
+      } catch (wErr) {
+        const msg = String(wErr && wErr.message ? wErr.message : wErr);
+        if (msg.includes('space quota') || msg.includes('Writes are blocked') || msg.includes('quota')) {
+          needsHeal = true;
+        }
+      }
+    }
+
+    if (needsHeal) {
+      console.warn('[STORAGE AUTO-HEAL] Tiến hành giải phóng bộ nhớ MongoDB Atlas...');
+      try {
+        await kpiDb.collection('session_snapshots').drop();
+        console.log('[STORAGE AUTO-HEAL] Đã drop collection session_snapshots thành công, thu hồi ~500MB!');
+        const newSnap = kpiDb.collection('session_snapshots');
+        await newSnap.createIndex({ filename: 1, savedAt: -1 }).catch(() => {});
+      } catch (dropErr) {
+        console.error('[STORAGE AUTO-HEAL] Lỗi drop session_snapshots:', dropErr.message);
+      }
+    }
+  } catch (err) {
+    console.error('[STORAGE AUTO-HEAL] Lỗi tổng quát:', err.message);
+  }
+}
+
+async function executeMongoWriteWithQuotaShield(writeFn) {
+  try {
+    return await writeFn();
+  } catch (err) {
+    const msg = String(err && err.message ? err.message : err);
+    if (msg.includes('space quota') || msg.includes('Writes are blocked') || msg.includes('quota')) {
+      console.warn('[QUOTA SHIELD] Lỗi ghi do vượt 512MB! Giải phóng session_snapshots và thử lại...');
+      try {
+        if (kpiDb) {
+          await kpiDb.collection('session_snapshots').drop();
+          console.log('[QUOTA SHIELD] Đã giải phóng hoàn toàn session_snapshots!');
+          const newSnap = kpiDb.collection('session_snapshots');
+          await newSnap.createIndex({ filename: 1, savedAt: -1 }).catch(() => {});
+        }
+      } catch (dropErr) {
+        console.error('[QUOTA SHIELD] Lỗi drop:', dropErr.message);
+      }
+      await new Promise(r => setTimeout(r, 800));
+      return await writeFn();
+    }
+    throw err;
+  }
+}
+
 // ⚡ Đảm bảo kết nối MongoDB trong môi trường Serverless (Vercel) trước khi xử lý request
 let mongoConnectingPromise = null;
 async function ensureMongoConnected() {
-  if (kpiDb) return kpiDb;
+  if (kpiDb) {
+    return kpiDb;
+  }
   if (!mongoConnectingPromise) {
-    mongoConnectingPromise = connectMongo().then(() => {
+    mongoConnectingPromise = connectMongo().then(async () => {
       mongoConnectingPromise = null;
+      if (kpiDb) {
+        await autoHealMongoStorageQuota();
+      }
       return kpiDb;
     }).catch(err => {
       mongoConnectingPromise = null;
@@ -1377,14 +1452,16 @@ async function handleKpiRequest(req, res) {
       const hash = hashPassword(password, salt);
       const nowIso = new Date().toISOString();
 
-      // Cập nhật TRỰC TIẾP lên MongoDB Atlas (<50ms)
+      // Cập nhật TRỰC TIẾP lên MongoDB Atlas (<50ms) có lá chắn Quota Shield
       if (kpiDb) {
         try {
-          await kpiDb.collection('auth_passwords').updateOne(
-            { officerId },
-            { $set: { officerId, hash, salt, updatedAt: nowIso } },
-            { upsert: true }
-          );
+          await executeMongoWriteWithQuotaShield(async () => {
+            return await kpiDb.collection('auth_passwords').updateOne(
+              { officerId },
+              { $set: { officerId, hash, salt, updatedAt: nowIso } },
+              { upsert: true }
+            );
+          });
         } catch (dbErr) {
           console.error('[API Set Password] Lỗi cập nhật MongoDB:', dbErr);
         }
@@ -1510,14 +1587,16 @@ async function handleKpiRequest(req, res) {
       const hash = hashPassword(newPassword, salt);
       const nowIso = new Date().toISOString();
 
-      // Cập nhật TRỰC TIẾP lên MongoDB Atlas (<50ms)
+      // Cập nhật TRỰC TIẾP lên MongoDB Atlas (<50ms) có lá chắn Quota Shield
       if (kpiDb) {
         try {
-          await kpiDb.collection('auth_passwords').updateOne(
-            { officerId },
-            { $set: { officerId, hash, salt, updatedAt: nowIso } },
-            { upsert: true }
-          );
+          await executeMongoWriteWithQuotaShield(async () => {
+            return await kpiDb.collection('auth_passwords').updateOne(
+              { officerId },
+              { $set: { officerId, hash, salt, updatedAt: nowIso } },
+              { upsert: true }
+            );
+          });
         } catch (dbErr) {
           console.error('[API Change Password] Lỗi cập nhật MongoDB:', dbErr);
         }
@@ -1559,14 +1638,16 @@ async function handleKpiRequest(req, res) {
       }
       const nowIso = new Date().toISOString();
 
-      // 1. Cập nhật TRỰC TIẾP và NGAY LẬP TỨC lên MongoDB Atlas (Single fast operation < 50ms)
+      // 1. Cập nhật TRỰC TIẾP và NGAY LẬP TỨC lên MongoDB Atlas (có lá chắn tự động giải phóng Quota Shield)
       if (kpiDb) {
         try {
-          await kpiDb.collection('auth_passwords').updateOne(
-            { officerId: targetOfficerId },
-            { $set: { officerId: targetOfficerId, hash, salt, updatedAt: nowIso } },
-            { upsert: true }
-          );
+          await executeMongoWriteWithQuotaShield(async () => {
+            return await kpiDb.collection('auth_passwords').updateOne(
+              { officerId: targetOfficerId },
+              { $set: { officerId: targetOfficerId, hash, salt, updatedAt: nowIso } },
+              { upsert: true }
+            );
+          });
         } catch (dbErr) {
           console.error('[API Admin Set Password] Lỗi cập nhật MongoDB:', dbErr);
           return sendJson(res, 500, { success: false, error: "Lỗi kết nối cơ sở dữ liệu Cloud: " + dbErr.message });
@@ -1608,7 +1689,9 @@ async function handleKpiRequest(req, res) {
 
       if (kpiDb) {
         try {
-          await kpiDb.collection('auth_passwords').deleteOne({ officerId: targetOfficerId });
+          await executeMongoWriteWithQuotaShield(async () => {
+            return await kpiDb.collection('auth_passwords').deleteOne({ officerId: targetOfficerId });
+          });
         } catch (e) {
           console.error('[API Auth Reset] Lỗi xóa MongoDB:', e);
         }
@@ -1982,23 +2065,26 @@ async function handleKpiRequest(req, res) {
         if (kpiDb) {
           try {
             const sessionsCol = kpiDb.collection('sessions');
-            await sessionsCol.updateOne(
-              { filename },
-              {
-                $set: {
-                  filename,
-                  officerId,
-                  quarterNorm: normalizeQuarter(quarter),
-                  year: Number(year) || 2026,
-                  activeTasksCount: countIncomingActive,
-                  updatedAt: cleanState.lastSaved,
-                  data: cleanState
-                }
-              },
-              { upsert: true }
-            );
+            await executeMongoWriteWithQuotaShield(async () => {
+              return await sessionsCol.updateOne(
+                { filename },
+                {
+                  $set: {
+                    filename,
+                    officerId,
+                    quarterNorm: normalizeQuarter(quarter),
+                    year: Number(year) || 2026,
+                    activeTasksCount: countIncomingActive,
+                    updatedAt: cleanState.lastSaved,
+                    data: cleanState
+                  }
+                },
+                { upsert: true }
+              );
+            });
 
-            if (shouldTakeSnapshot) {
+            // Chỉ lưu snapshot trên Cloud khi có hành động nộp duyệt/phê duyệt chính thức
+            if (isActionSnapshot) {
               setImmediate(async () => {
                 try {
                   const snapshotsCol = kpiDb.collection('session_snapshots');
@@ -2013,7 +2099,7 @@ async function handleKpiRequest(req, res) {
                     data: cleanState
                   });
 
-                  const maxSnapshots = parseInt(process.env.MAX_SNAPSHOTS_PER_OFFICER, 10) || 15;
+                  const maxSnapshots = 2;
                   const snapCount = await snapshotsCol.countDocuments({ filename });
                   if (snapCount > maxSnapshots) {
                     const overflow = await snapshotsCol.find({ filename })
@@ -2135,21 +2221,23 @@ async function handleKpiRequest(req, res) {
         if (kpiDb) {
           try {
             const sessionsCol = kpiDb.collection('sessions');
-            await sessionsCol.updateOne(
-              { filename },
-              {
-                $set: {
-                  filename,
-                  officerId,
-                  quarterNorm: normalizeQuarter(quarter),
-                  year: Number(year) || 2026,
-                  activeTasksCount: countSessionActiveTasks(targetState),
-                  updatedAt: submitTime,
-                  data: targetState
-                }
-              },
-              { upsert: true }
-            );
+            await executeMongoWriteWithQuotaShield(async () => {
+              return await sessionsCol.updateOne(
+                { filename },
+                {
+                  $set: {
+                    filename,
+                    officerId,
+                    quarterNorm: normalizeQuarter(quarter),
+                    year: Number(year) || 2026,
+                    activeTasksCount: countSessionActiveTasks(targetState),
+                    updatedAt: submitTime,
+                    data: targetState
+                  }
+                },
+                { upsert: true }
+              );
+            });
             if (altFilenames.length > 0) {
               await sessionsCol.deleteMany({ filename: { $in: altFilenames } });
             }
@@ -2265,21 +2353,23 @@ async function handleKpiRequest(req, res) {
         if (kpiDb) {
           try {
             const sessionsCol = kpiDb.collection('sessions');
-            await sessionsCol.updateOne(
-              { filename },
-              {
-                $set: {
-                  filename,
-                  officerId,
-                  quarterNorm: normalizeQuarter(quarter),
-                  year: Number(year) || 2026,
-                  activeTasksCount: countSessionActiveTasks(docData),
-                  updatedAt: approveTime,
-                  data: docData
-                }
-              },
-              { upsert: true }
-            );
+            await executeMongoWriteWithQuotaShield(async () => {
+              return await sessionsCol.updateOne(
+                { filename },
+                {
+                  $set: {
+                    filename,
+                    officerId,
+                    quarterNorm: normalizeQuarter(quarter),
+                    year: Number(year) || 2026,
+                    activeTasksCount: countSessionActiveTasks(docData),
+                    updatedAt: approveTime,
+                    data: docData
+                  }
+                },
+                { upsert: true }
+              );
+            });
             if (altFilenames.length > 0) {
               await sessionsCol.deleteMany({ filename: { $in: altFilenames } });
             }
@@ -2391,21 +2481,23 @@ async function handleKpiRequest(req, res) {
         if (kpiDb) {
           try {
             const sessionsCol = kpiDb.collection('sessions');
-            await sessionsCol.updateOne(
-              { filename },
-              {
-                $set: {
-                  filename,
-                  officerId,
-                  quarterNorm: normalizeQuarter(quarter),
-                  year: Number(year) || 2026,
-                  activeTasksCount: countSessionActiveTasks(docData),
-                  updatedAt: rejectTime,
-                  data: docData
-                }
-              },
-              { upsert: true }
-            );
+            await executeMongoWriteWithQuotaShield(async () => {
+              return await sessionsCol.updateOne(
+                { filename },
+                {
+                  $set: {
+                    filename,
+                    officerId,
+                    quarterNorm: normalizeQuarter(quarter),
+                    year: Number(year) || 2026,
+                    activeTasksCount: countSessionActiveTasks(docData),
+                    updatedAt: rejectTime,
+                    data: docData
+                  }
+                },
+                { upsert: true }
+              );
+            });
             if (altFilenames.length > 0) {
               await sessionsCol.deleteMany({ filename: { $in: altFilenames } });
             }
