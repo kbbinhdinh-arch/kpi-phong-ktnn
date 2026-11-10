@@ -6760,41 +6760,13 @@ function updateRow24(rowIdx, field, value) {
     updateRowOutputDetail(row);
   }
 
-  if (activeMIdx === 0) {
-    // SỬA THÁNG 1: Cập nhật T1, đồng thời gán làm mặc định cho T2 & T3 NẾU ô đó chưa được sửa riêng!
-    const mult = getRoleMultiplier();
-    [1, 2].forEach(mIdx => {
-      const targetMonth = appState.months[mIdx];
-      if (targetMonth && targetMonth.rows && targetMonth.rows[rowIdx]) {
-        const targetRow = targetMonth.rows[rowIdx];
-        // Chỉ cập nhật nếu dòng đó chưa bị người dùng tùy chỉnh riêng ở Tháng 2 / Tháng 3
-        if (!targetRow._isCustomized) {
-          targetRow[field] = value;
-          if (field === "soluong_tt" && Number(value) > 0) {
-            targetRow.co_thuchien = "Có";
-          }
-          if (field === "co_thuchien" && value === "Không") {
-            targetRow.soluong_tt = 0;
-            targetRow.cl_loi = 0;
-            targetRow.td_cham = 0;
-          }
-          if (field === "soluong_tt" || field === "co_thuchien" || field === "sp_daura") {
-            updateRowOutputDetail(targetRow);
-          }
-        }
-      }
-      if (targetMonth) {
-        const c = calculateMonth24(targetMonth, mult);
-        targetMonth.completionPercent = c.finalMonthPct;
-        targetMonth.quantityPct = c.quantityPct;
-        targetMonth.qualityPct = c.qualityPct;
-        targetMonth.progressPct = c.progressPct;
-      }
-    });
-  } else {
-    // SỬA THÁNG 2 HOẶC THÁNG 3: Lưu riêng độc lập cho tháng đó, không ảnh hưởng Tháng 1!
-    row._isCustomized = true;
-  }
+  // TÍNH ĐIỂM RIÊNG BIỆT CHO THÁNG ĐANG SỬA (CHỈ ĐỒNG BỘ SANG THÁNG KHÁC KHI NGƯỜI DÙNG BẤM NÚT ĐỒNG BỘ)
+  const mult = getRoleMultiplier();
+  const c = calculateMonth24(currentMonth, mult);
+  currentMonth.completionPercent = c.finalMonthPct;
+  currentMonth.quantityPct = c.quantityPct;
+  currentMonth.qualityPct = c.qualityPct;
+  currentMonth.progressPct = c.progressPct;
 
   saveState();
   if (typeof triggerLocalDraftAutosave === 'function') {
@@ -7016,15 +6988,15 @@ function updateMonthIndicator() {
   if (mIdx === 0) {
     const isInherited = appState.months && appState.months[0] && appState.months[0]._isInheritedFromPrevQuarter;
     const inheritedBadge = isInherited ? ` <span style="font-size: 10px; color: #065f46; font-weight: 700; background: #d1fae5; border: 1px solid #6ee7b7; padding: 1px 5px; border-radius: 3px; display: inline-flex; align-items: center; gap: 2px;" title="Tháng này đã được tự động kế thừa từ ${prevInfo.lastMonthName} (${prevInfo.quarter}/${prevInfo.year})">✓ Đã kế thừa ${prevInfo.lastMonthShort}</span>` : '';
-    badge.innerHTML = `<span style="color: #2b6cb0; font-weight: 800;">📍 Đang chấm: ${mName}</span>${inheritedBadge} <span style="font-size: 11px; color: #4a5568; font-weight: normal;">(Gốc: ${m2Short}, ${m3Short} kế thừa)</span>`;
+    badge.innerHTML = `<span style="color: #2b6cb0; font-weight: 800;">📍 Đang chấm: ${mName}</span>${inheritedBadge}`;
     if (copyBtn) {
       copyBtn.innerHTML = `
         <button type="button" class="btn btn-sm" onclick="inheritFromPreviousQuarterLastMonth(true)" style="background: linear-gradient(135deg, #0d9488, #059669); color: #ffffff; font-weight: 700; font-size: 11px; padding: 3px 9px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.15); display: inline-flex; align-items: center; gap: 4px;" title="Tự động cập nhật / kế thừa số liệu KPI từ tháng cuối quý trước (${prevInfo.lastMonthName} - ${prevInfo.quarter}/${prevInfo.year}) sang tháng đầu quý này">📥 Kế thừa từ ${prevInfo.lastMonthShort} (${prevInfo.quarter})</button>
-        <button type="button" class="btn btn-sm" onclick="copyMonth1ToAllMonths()" style="background: #2b6cb0; color: #ffffff; font-weight: 700; font-size: 11px; padding: 3px 10px; border-radius: 4px; border: none; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.15);" title="Áp dụng toàn bộ số liệu của ${m1Short} làm mặc định ban đầu cho cả ${m2Short} và ${m3Short}">📋 Đồng bộ ${m1Short} sang ${m2Short}, ${m3Short}</button>
+        <button type="button" class="btn btn-sm" onclick="copyMonth1ToAllMonths()" style="background: #2b6cb0; color: #ffffff; font-weight: 700; font-size: 11px; padding: 3px 10px; border-radius: 4px; border: none; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.15);" title="Sao chép số liệu từ ${m1Short} sang ${m2Short} và ${m3Short} (chỉ đồng bộ 1 lần tại thời điểm bấm, sau đó từng tháng tự sửa độc lập)">📋 Đồng bộ ${m1Short} sang ${m2Short}, ${m3Short}</button>
       `;
     }
   } else {
-    badge.innerHTML = `<span style="color: #276749; font-weight: 800;">📍 Đang chấm: ${mName}</span> <span style="font-size: 11px; color: #4a5568; font-weight: normal;">(Bảng riêng ${curMonth ? curMonth.shortName : ''} — Sửa lưu riêng)</span>`;
+    badge.innerHTML = `<span style="color: #276749; font-weight: 800;">📍 Đang chấm: ${mName}</span> <span style="font-size: 11px; color: #4a5568; font-weight: normal;">(Bảng riêng ${curMonth ? curMonth.shortName : ''} — Tự sửa độc lập)</span>`;
     if (copyBtn) {
       copyBtn.innerHTML = `<button type="button" class="btn btn-sm" onclick="resetMonthFromMonth1(${mIdx})" style="background: #edf2f7; color: #2d3748; font-weight: 600; font-size: 11px; padding: 3px 8px; border-radius: 4px; border: 1px solid #cbd5e0; cursor: pointer;" title="Đặt lại bảng này theo giá trị mặc định của ${m1Short}">↺ Kế thừa lại từ ${m1Short}</button>`;
     }
