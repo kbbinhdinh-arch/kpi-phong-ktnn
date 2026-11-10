@@ -2396,6 +2396,10 @@ async function handleKpiRequest(req, res) {
         }
         targetState.submittedAt = submitTime;
         targetState.lastSaved = submitTime;
+        if (!targetState.officer) targetState.officer = {};
+        targetState.officer.officerId = officerId;
+        targetState.officer.quarter = quarter || targetState.officer.quarter || 'Quý III';
+        targetState.officer.year = Number(year) || targetState.officer.year || 2026;
 
         // Lưu CSDL cục bộ bất đồng bộ
         await saveLocalSessionAsync(filename, targetState);
@@ -3045,6 +3049,10 @@ async function handleKpiRequest(req, res) {
         const targetY = Number(year || snapDoc.year || (restoredData.officer && restoredData.officer.year) || 2026);
         const targetNormQ = normalizeQuarter(targetQ);
         const filename = getSessionFilename(targetOffId, targetQ, targetY);
+        if (!restoredData.officer) restoredData.officer = {};
+        restoredData.officer.officerId = targetOffId;
+        restoredData.officer.quarter = (targetNormQ === 'QuyI') ? 'Quý I' : (targetNormQ === 'QuyII') ? 'Quý II' : (targetNormQ === 'QuyIV') ? 'Quý IV' : 'Quý III';
+        restoredData.officer.year = targetY;
         restoredData.lastSaved = restoredData.lastSaved || snapDoc.savedAt || new Date().toISOString();
         restoredData._restoredFrom = snapDoc.savedAt;
 
@@ -3729,6 +3737,8 @@ async function handleKpiRequest(req, res) {
 
         docs.forEach(d => {
           if (!d) return;
+          // Chống rò rỉ dữ liệu chéo Quý: nếu document đã gắn rõ quarterNorm khác với Quý đang xem thì bỏ qua
+          if (d.quarterNorm && normalizeQuarter(d.quarterNorm) !== normQ) return;
           const sessionData = d.data || {};
           if (typeof d.activeTasksCount === 'number') {
             sessionData.activeTasksCount = d.activeTasksCount;
