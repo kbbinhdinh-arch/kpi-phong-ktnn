@@ -1639,6 +1639,65 @@ async function handleKpiRequest(req, res) {
     });
   }
 
+  // API Update Officer Information (Sửa thông tin cán bộ)
+  if (pathname === '/api/officer/update' && req.method === 'POST') {
+    try {
+      const payload = await parseJsonBody(req);
+      const { officerId, name, role, title, group, specialty, approverTitle, approverName, requesterId } = payload;
+      if (!officerId) return sendJson(res, 400, { success: false, error: "Thiếu officerId" });
+
+      // Phân quyền: Lãnh đạo phòng (son, hoang) mới có quyền sửa thông tin cán bộ
+      const reqUser = requesterId || 'hoang';
+      if (reqUser !== 'son' && reqUser !== 'hoang') {
+        return sendJson(res, 403, { success: false, error: "Chỉ có Trưởng phòng (đ/c Hoàng Anh Sơn) và Phó Trưởng phòng (đ/c Trần Quốc Hoàng) mới có quyền sửa thông tin cán bộ." });
+      }
+
+      const allCfg = await getOfficersConfig();
+      const existing = allCfg[officerId] || { id: officerId };
+
+      if (name !== undefined && String(name).trim()) existing.name = String(name).trim();
+      if (role !== undefined && String(role).trim()) existing.role = String(role).trim();
+      if (title !== undefined) existing.title = String(title).trim();
+      if (group !== undefined) existing.group = String(group).trim();
+      if (specialty !== undefined) existing.specialty = String(specialty).trim();
+      if (approverTitle !== undefined) existing.approverTitle = String(approverTitle).trim();
+      if (approverName !== undefined) existing.approverName = String(approverName).trim();
+      existing.isLeader = (existing.role === 'TP' || existing.role === 'PTP');
+      existing.updatedAt = new Date().toISOString();
+
+      allCfg[officerId] = existing;
+
+      // 1. Lưu CSDL cục bộ (File officers_config.json)
+      saveLocalOfficers(allCfg);
+      officersConfigCache = allCfg;
+      officersConfigCacheTime = Date.now();
+
+      // 2. Lưu MongoDB Cloud
+      if (kpiDb) {
+        try {
+          await kpiDb.collection('officers_config').updateOne(
+            { id: officerId },
+            { $set: existing },
+            { upsert: true }
+          );
+        } catch (e) {
+          console.error("Lỗi cập nhật officer lên MongoDB:", e);
+        }
+      }
+
+      // Xóa cache bảng tổng hợp để áp dụng tên/chức danh mới
+      invalidateSummaryCache();
+
+      return sendJson(res, 200, {
+        success: true,
+        message: `Đã cập nhật thông tin cán bộ ${existing.name} (${officerId}) thành công!`,
+        officer: existing
+      });
+    } catch (err) {
+      return sendJson(res, 500, { success: false, error: err.message });
+    }
+  }
+
   // API Get Previous Quarter Last Month (Phục vụ kế thừa KPI)
   if (pathname === '/api/session/previous-month' && req.method === 'GET') {
     const officerId = searchParams.get('officerId');

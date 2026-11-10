@@ -4554,11 +4554,23 @@ function renderOfficerSelectDropdowns(cfg) {
 
 async function loadServerOfficersConfig() {
   try {
+    const cached = localStorage.getItem('KBXV_OFFICERS_CUSTOM');
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+          window.OFFICERS_ASSIGNMENTS = Object.assign({}, window.OFFICERS_ASSIGNMENTS, parsed);
+          renderOfficerSelectDropdowns(window.OFFICERS_ASSIGNMENTS);
+        }
+      } catch (e) {}
+    }
+
     const res = await fetch(`${CURRENT_SERVER_HOST}/api/officers`, { cache: 'no-cache' });
     if (res.ok) {
       const data = await res.json();
       if (data.success && data.officers && Object.keys(data.officers).length > 0) {
         window.OFFICERS_ASSIGNMENTS = data.officers;
+        try { localStorage.setItem('KBXV_OFFICERS_CUSTOM', JSON.stringify(data.officers)); } catch(e){}
         renderOfficerSelectDropdowns(data.officers);
       }
     }
@@ -10399,10 +10411,10 @@ async function renderAdminPasswordTable() {
     <table class="table" style="width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 5px;">
       <thead>
         <tr style="background: #edf2f7; color: #2d3748; border-bottom: 2px solid #cbd5e0;">
-          <th style="padding: 10px 12px; text-align: left; width: 35%;">Họ và tên cán bộ</th>
-          <th style="padding: 10px 12px; text-align: left; width: 25%;">Chức danh / Vị trí</th>
-          <th style="padding: 10px 12px; text-align: center; width: 20%;">Trạng thái mật khẩu</th>
-          <th style="padding: 10px 12px; text-align: center; width: 20%;">Thao tác</th>
+          <th style="padding: 10px 12px; text-align: left; width: 30%;">Họ và tên cán bộ</th>
+          <th style="padding: 10px 12px; text-align: left; width: 24%;">Chức danh / Vị trí</th>
+          <th style="padding: 10px 12px; text-align: center; width: 18%;">Trạng thái mật khẩu</th>
+          <th style="padding: 10px 12px; text-align: center; width: 28%;">Thao tác</th>
         </tr>
       </thead>
       <tbody>
@@ -10420,7 +10432,10 @@ async function renderAdminPasswordTable() {
 
     const safeName = (off.name || offId).replace(/'/g, "\\'");
     
-    // Nút Đổi/Đặt mật khẩu luôn hiển thị cho MỌI cán bộ (kể cả 16 cán bộ mới bổ sung)
+    // Nút Sửa thông tin cá nhân cán bộ
+    const editBtn = `<button type="button" class="btn btn-primary btn-sm" onclick="openEditOfficerModal('${offId}')" style="font-size:11.5px; padding:3px 8px; font-weight:700; background:#2b6cb0; color:#fff; border:none; border-radius:4px; margin-right:4px; display:inline-flex; align-items:center; gap:2px;" title="Chỉnh sửa họ tên, chức danh, phân công nhiệm vụ của cán bộ này">✏️ Sửa TT</button>`;
+
+    // Nút Đổi/Đặt mật khẩu luôn hiển thị cho MỌI cán bộ
     const setBtn = `<button type="button" class="btn btn-warning btn-sm" onclick="adminDirectSetPasswordPrompt('${offId}', '${safeName}')" style="font-size:11.5px; padding:3px 8px; font-weight:700; background:#d69e2e; color:#fff; border:none; border-radius:4px; margin-right:4px;" title="Đặt hoặc đổi mật khẩu mới cho cán bộ này">🔑 Đổi MK</button>`;
 
     // Nút Xóa/Đặt lại mật khẩu
@@ -10437,6 +10452,7 @@ async function renderAdminPasswordTable() {
         <td style="padding: 10px 12px;">${roleBadge}</td>
         <td style="padding: 10px 12px; text-align: center;">${statusBadge}</td>
         <td style="padding: 10px 12px; text-align: center; white-space: nowrap;">
+          ${editBtn}
           ${setBtn}
           ${resetBtn}
         </td>
@@ -10448,11 +10464,170 @@ async function renderAdminPasswordTable() {
       </tbody>
     </table>
     <div style="margin-top: 14px; font-size: 11.5px; color: #718096; text-align: right;">
-      * Nút <b>"🔑 Đổi MK"</b> cho phép Quản trị viên cấp/đổi trực tiếp mật khẩu cho bất kỳ cán bộ nào. Nút <b>"🔄 Xóa MK"</b> sẽ đặt lại để cán bộ tự đặt mật khẩu khi đăng nhập.
+      * Nút <b>"✏️ Sửa TT"</b> để cập nhật họ tên, chức danh, phân công nhiệm vụ, người duyệt. Nút <b>"🔑 Đổi MK"</b> cấp/đổi mật khẩu. Nút <b>"🔄 Xóa MK"</b> đặt lại để cán bộ tự đặt khi đăng nhập.
     </div>
   `;
 
   container.innerHTML = html;
+}
+
+// --- QUẢN LÝ CHỈNH SỬA THÔNG TIN CÁ NHÂN CÁN BỘ (ADMIN & LÃNH ĐẠO) ---
+function openEditOfficerModal(officerId) {
+  const off = (window.OFFICERS_ASSIGNMENTS && window.OFFICERS_ASSIGNMENTS[officerId]) || {};
+  const modal = document.getElementById('editOfficerInfoModal');
+  if (!modal) return;
+
+  const idInput = document.getElementById('editOffId');
+  const idDisplay = document.getElementById('editOffIdDisplay');
+  const nameInput = document.getElementById('editOffName');
+  const roleInput = document.getElementById('editOffRole');
+  const titleInput = document.getElementById('editOffTitle');
+  const groupInput = document.getElementById('editOffGroup');
+  const specialtyInput = document.getElementById('editOffSpecialty');
+  const approverTitleInput = document.getElementById('editOffApproverTitle');
+  const approverNameInput = document.getElementById('editOffApproverName');
+
+  if (idInput) idInput.value = officerId;
+  if (idDisplay) idDisplay.value = officerId;
+  if (nameInput) nameInput.value = off.name || '';
+  if (roleInput) roleInput.value = off.role || 'GDV';
+  if (titleInput) titleInput.value = off.title || (ROLE_NAME[off.role] || 'Giao dịch viên');
+  if (groupInput) groupInput.value = off.group || (off.role === 'TP' || off.role === 'PTP' ? 'Lãnh đạo phòng' : 'Tổ Kế toán');
+  if (specialtyInput) specialtyInput.value = off.specialty || '';
+  if (approverTitleInput) approverTitleInput.value = off.approverTitle || (off.role === 'TP' ? 'PHÓ GIÁM ĐỐC' : 'TRƯỞNG PHÒNG');
+  if (approverNameInput) approverNameInput.value = off.approverName || (off.role === 'TP' ? 'Trịnh Khắc Chính' : 'Hoàng Anh Sơn');
+
+  modal.style.display = 'flex';
+  setTimeout(() => {
+    if (nameInput) nameInput.focus();
+  }, 100);
+}
+
+function closeEditOfficerModal() {
+  const modal = document.getElementById('editOfficerInfoModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function onEditOfficerRoleChange(role) {
+  const titleInput = document.getElementById('editOffTitle');
+  const groupInput = document.getElementById('editOffGroup');
+  const appTitleInput = document.getElementById('editOffApproverTitle');
+  const appNameInput = document.getElementById('editOffApproverName');
+
+  if (role === 'TP') {
+    if (!titleInput.value || titleInput.value.includes('Phó Trưởng phòng') || titleInput.value === 'Giao dịch viên') {
+      titleInput.value = 'Kế toán trưởng - Trưởng phòng KTNN';
+    }
+    if (!groupInput.value || groupInput.value.includes('Tổ')) groupInput.value = 'Lãnh đạo phòng';
+    if (!appTitleInput.value || appTitleInput.value === 'TRƯỞNG PHÒNG') appTitleInput.value = 'PHÓ GIÁM ĐỐC';
+    if (!appNameInput.value || appNameInput.value === 'Hoàng Anh Sơn') appNameInput.value = 'Trịnh Khắc Chính';
+  } else if (role === 'PTP') {
+    if (!titleInput.value || titleInput.value.includes('Trưởng phòng KTNN') || titleInput.value === 'Giao dịch viên') {
+      titleInput.value = 'Phó Trưởng phòng Kế toán Nhà nước';
+    }
+    if (!groupInput.value || groupInput.value.includes('Tổ')) groupInput.value = 'Lãnh đạo phòng';
+    if (!appTitleInput.value || appTitleInput.value === 'PHÓ GIÁM ĐỐC') appTitleInput.value = 'TRƯỞNG PHÒNG';
+    if (!appNameInput.value || appNameInput.value === 'Trịnh Khắc Chính') appNameInput.value = 'Hoàng Anh Sơn';
+  } else {
+    if (!titleInput.value || titleInput.value.includes('Trưởng phòng')) {
+      titleInput.value = 'Giao dịch viên';
+    }
+    if (!appTitleInput.value) appTitleInput.value = 'TRƯỞNG PHÒNG';
+    if (!appNameInput.value) appNameInput.value = 'Hoàng Anh Sơn';
+  }
+}
+
+async function saveOfficerInfoFromModal() {
+  const offId = (document.getElementById('editOffId').value || '').trim();
+  const name = (document.getElementById('editOffName').value || '').trim();
+  const role = document.getElementById('editOffRole').value;
+  const title = (document.getElementById('editOffTitle').value || '').trim();
+  const group = (document.getElementById('editOffGroup').value || '').trim();
+  const specialty = (document.getElementById('editOffSpecialty').value || '').trim();
+  const approverTitle = (document.getElementById('editOffApproverTitle').value || '').trim();
+  const approverName = (document.getElementById('editOffApproverName').value || '').trim();
+
+  if (!offId) {
+    alert('Lỗi: Thiếu mã cán bộ (officerId)!');
+    return;
+  }
+  if (!name) {
+    alert('Họ và tên cán bộ không được để trống!');
+    document.getElementById('editOffName').focus();
+    return;
+  }
+
+  const requesterId = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || 'hoang';
+
+  showToast(`⏳ Đang lưu thông tin cán bộ [${name}]...`);
+  try {
+    const res = await fetch(`${CURRENT_SERVER_HOST}/api/officer/update`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        officerId: offId,
+        name,
+        role,
+        title,
+        group,
+        specialty,
+        approverTitle,
+        approverName,
+        requesterId
+      })
+    });
+    const json = await res.json();
+    if (!json.success) {
+      alert('Lỗi cập nhật thông tin cán bộ: ' + (json.error || ''));
+      return;
+    }
+
+    // Cập nhật bộ nhớ window.OFFICERS_ASSIGNMENTS
+    if (!window.OFFICERS_ASSIGNMENTS) window.OFFICERS_ASSIGNMENTS = {};
+    window.OFFICERS_ASSIGNMENTS[offId] = Object.assign(
+      {},
+      window.OFFICERS_ASSIGNMENTS[offId] || {},
+      json.officer || {
+        id: offId, name, role, title, group, specialty, approverTitle, approverName,
+        isLeader: (role === 'TP' || role === 'PTP')
+      }
+    );
+
+    // Lưu LocalStorage dự phòng Offline
+    try {
+      localStorage.setItem('KBXV_OFFICERS_CUSTOM', JSON.stringify(window.OFFICERS_ASSIGNMENTS));
+    } catch(e) {}
+
+    // Nếu cán bộ đang chọn chính là cán bộ vừa sửa -> Cập nhật appState
+    if (appState.officer && appState.officer.officerId === offId) {
+      appState.officer.name = name;
+      appState.officer.role = role;
+      appState.officer.title = title;
+      if (typeof saveState === 'function') saveState();
+      if (typeof renderProfileForm === 'function') renderProfileForm();
+    }
+
+    // Cập nhật các dropdown chọn cán bộ
+    if (typeof renderOfficerSelectDropdowns === 'function') {
+      renderOfficerSelectDropdowns(window.OFFICERS_ASSIGNMENTS);
+    }
+
+    // Render lại bảng quản lý tài khoản để cập nhật tức thì
+    if (typeof renderAdminPasswordTable === 'function') {
+      await renderAdminPasswordTable();
+    }
+
+    // Nếu bảng tổng hợp đang mở, làm mới bảng tổng hợp
+    if (typeof loadDepartmentSummary === 'function') {
+      loadDepartmentSummary(false, true);
+    }
+
+    // Đóng Modal
+    closeEditOfficerModal();
+    showToast(`✅ Đã cập nhật thành công thông tin cán bộ: ${name}!`);
+  } catch(e) {
+    alert('Lỗi kết nối khi lưu thông tin cán bộ: ' + e.message);
+  }
 }
 
 async function adminResetOfficerPassword(targetOfficerId, officerName) {
@@ -14144,12 +14319,12 @@ async function rollbackToSnapshot(snapshotId, timeLabel) {
     </div>
   </div>
 
-  <!-- Modal Quản lý Mật khẩu Cán bộ (Dành riêng cho Quản trị viên Hoàng) -->
+  <!-- Modal Quản lý Mật khẩu & Thông tin Cán bộ (Dành riêng cho Quản trị viên Hoàng) -->
   <div id="adminPasswordModal" class="modal-backdrop" onclick="if(event.target === this) closeAdminPasswordModal()">
-    <div class="modal-container" style="max-width: 780px; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.25);">
+    <div class="modal-container" style="max-width: 880px; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.25);">
       <div class="modal-header" style="background: linear-gradient(135deg, #1a365d, #2b6cb0); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;">
         <h3 style="margin: 0; font-size: 15.5px; color: #fefcbf; display: flex; align-items: center; gap: 8px;">
-          <span>🔑</span> QUẢN LÝ MẬT KHẨU CÁN BỘ PHÒNG KTNN (QUẢN TRỊ VIÊN)
+          <span>🔑</span> QUẢN LÝ MẬT KHẨU & TÀI KHOẢN CÁN BỘ PHÒNG KTNN (QUẢN TRỊ VIÊN)
         </h3>
         <button class="modal-close-btn" onclick="closeAdminPasswordModal()" title="Đóng" style="color: #fff; font-size: 20px; background: none; border: none; cursor: pointer;">&times;</button>
       </div>
@@ -14157,7 +14332,7 @@ async function rollbackToSnapshot(snapshotId, timeLabel) {
         <div style="background: #ebf8ff; border: 1px solid #bee3f8; border-radius: 8px; padding: 12px 16px; font-size: 12.5px; color: #2b6cb0; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px; line-height: 1.5;">
           <span style="font-size: 18px;">ℹ️</span> 
           <div>
-            <b>Quyền hạn Quản trị viên (Hoàng):</b> Xem trạng thái mật khẩu của từng cán bộ trong phòng. Khi cán bộ quên mật khẩu, đồng chí bấm <b>"🔄 Đặt lại mật khẩu"</b>. Hệ thống sẽ xóa mật khẩu hiện tại để cán bộ tự thiết lập mật khẩu mới trong lần đăng nhập kế tiếp.
+            <b>Quyền hạn Quản trị viên (Hoàng):</b> Xem và cập nhật trực tiếp thông tin cá nhân (họ tên, vị trí, chức danh, phân công nhiệm vụ, lãnh đạo duyệt) qua nút <b>"✏️ Sửa TT"</b>; cấp hoặc đặt lại mật khẩu cán bộ qua nút <b>"🔑 Đổi MK"</b> / <b>"🔄 Xóa MK"</b>.
           </div>
         </div>
 
@@ -14167,6 +14342,97 @@ async function rollbackToSnapshot(snapshotId, timeLabel) {
       </div>
       <div style="padding: 12px 20px; background: #f7fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end;">
         <button type="button" class="btn btn-secondary" onclick="closeAdminPasswordModal()" style="font-weight: 600; padding: 6px 18px;">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Chỉnh sửa Thông tin Cá nhân Cán bộ -->
+  <div id="editOfficerInfoModal" class="modal-backdrop" onclick="if(event.target === this) closeEditOfficerModal()" style="display: none; z-index: 105000;">
+    <div class="modal-container" style="max-width: 650px; border-radius: 12px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); background: #ffffff;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #1a365d, #2b6cb0); color: #fff; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #3182ce;">
+        <h3 style="margin: 0; font-size: 15.5px; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+          <span>✏️</span> CHỈNH SỬA THÔNG TIN CÁ NHÂN CÁN BỘ
+        </h3>
+        <button class="modal-close-btn" onclick="closeEditOfficerModal()" title="Đóng" style="color: #fff; font-size: 22px; background: none; border: none; cursor: pointer; line-height: 1;">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px 24px; max-height: 80vh; overflow-y: auto;">
+        <form id="editOfficerForm" onsubmit="event.preventDefault(); saveOfficerInfoFromModal();">
+          <input type="hidden" id="editOffId">
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+            <div>
+              <label style="display: block; font-size: 12px; font-weight: 700; color: #2d3748; margin-bottom: 5px;">
+                Mã tài khoản (ID):
+              </label>
+              <input type="text" id="editOffIdDisplay" class="form-control" style="background: #edf2f7; color: #4a5568; font-weight: 600; cursor: not-allowed;" readonly>
+            </div>
+            <div>
+              <label style="display: block; font-size: 12px; font-weight: 700; color: #2d3748; margin-bottom: 5px;">
+                Vị trí / Vai trò (Role): <span style="color: #e53e3e;">*</span>
+              </label>
+              <select id="editOffRole" class="form-control" style="font-weight: 600;" onchange="onEditOfficerRoleChange(this.value)">
+                <option value="GDV">Giao dịch viên (GDV)</option>
+                <option value="PTP">Phó Trưởng phòng (PTP)</option>
+                <option value="TP">Trưởng phòng (TP)</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 14px;">
+            <label style="display: block; font-size: 12px; font-weight: 700; color: #2d3748; margin-bottom: 5px;">
+              Họ và tên cán bộ: <span style="color: #e53e3e;">*</span>
+            </label>
+            <input type="text" id="editOffName" class="form-control" placeholder="Nhập đầy đủ họ và tên..." style="font-weight: 600;" required>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+            <div>
+              <label style="display: block; font-size: 12px; font-weight: 700; color: #2d3748; margin-bottom: 5px;">
+                Chức danh đầy đủ:
+              </label>
+              <input type="text" id="editOffTitle" class="form-control" placeholder="Ví dụ: Phó Trưởng phòng Kế toán Nhà nước">
+            </div>
+            <div>
+              <label style="display: block; font-size: 12px; font-weight: 700; color: #2d3748; margin-bottom: 5px;">
+                Tổ / Nhóm công tác:
+              </label>
+              <input type="text" id="editOffGroup" class="form-control" placeholder="Ví dụ: Tổ Kế toán, Tổ Thanh toán...">
+            </div>
+          </div>
+
+          <div style="margin-bottom: 14px;">
+            <label style="display: block; font-size: 12px; font-weight: 700; color: #2d3748; margin-bottom: 5px;">
+              Nhiệm vụ chuyên trách / Phân công công việc:
+            </label>
+            <textarea id="editOffSpecialty" class="form-control" rows="3" placeholder="Mô tả tóm tắt các mảng công việc chính được phân công phụ trách..."></textarea>
+          </div>
+
+          <div style="background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px;">
+            <div style="font-size: 12px; font-weight: 700; color: #2b6cb0; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+              <span>📋</span> THÔNG TIN LÃNH ĐẠO PHÊ DUYỆT BÁO CÁO KPI
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div>
+                <label style="display: block; font-size: 11.5px; font-weight: 600; color: #4a5568; margin-bottom: 4px;">
+                  Chức danh cấp duyệt:
+                </label>
+                <input type="text" id="editOffApproverTitle" class="form-control" placeholder="Ví dụ: TRƯỞNG PHÒNG">
+              </div>
+              <div>
+                <label style="display: block; font-size: 11.5px; font-weight: 600; color: #4a5568; margin-bottom: 4px;">
+                  Họ tên người duyệt:
+                </label>
+                <input type="text" id="editOffApproverName" class="form-control" placeholder="Ví dụ: Hoàng Anh Sơn">
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div style="padding: 12px 20px; background: #f7fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" class="btn btn-secondary" onclick="closeEditOfficerModal()" style="font-weight: 600; padding: 7px 18px;">Hủy bỏ</button>
+        <button type="button" class="btn btn-primary" onclick="saveOfficerInfoFromModal()" style="font-weight: 700; padding: 7px 20px; background: #2b6cb0; border-color: #2b6cb0; display: inline-flex; align-items: center; gap: 6px;">
+          💾 Lưu thông tin
+        </button>
       </div>
     </div>
   </div>
