@@ -1,4 +1,5 @@
 {
+  "regions": ["sin1"],
   "functions": {
     "api/index.js": {
       "includeFiles": "data/**,seed_data.json.gz",

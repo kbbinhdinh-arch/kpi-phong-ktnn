@@ -68,7 +68,7 @@
       cursor: pointer;
       font-size: 11.5px;
       font-weight: 600;
-      transition: all 0.2s ease;
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     }
     .btn-zoom:hover {
       background: rgba(255, 255, 255, 0.2);
@@ -127,7 +127,7 @@
       font-weight: 600;
       cursor: pointer;
       border: 1px solid transparent;
-      transition: all 0.2s ease;
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
       text-decoration: none;
     }
 
@@ -286,7 +286,7 @@
       background: var(--bg-subtle);
       color: var(--text-muted);
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
       display: flex;
       align-items: center;
       gap: 6px;
@@ -335,7 +335,7 @@
       background: transparent;
       color: #4a5568;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -650,7 +650,7 @@
       font-weight: 600;
       cursor: pointer;
       border: 1px solid transparent;
-      transition: all 0.2s ease;
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
       text-decoration: none;
     }
 
@@ -744,7 +744,7 @@
       text-decoration: none;
       font-size: 13px;
       font-weight: 500;
-      transition: all 0.2s ease;
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
       border-left: 3px solid transparent;
     }
 
@@ -789,7 +789,7 @@
       background: #fff;
       cursor: pointer;
       text-align: left;
-      transition: all 0.2s ease;
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
       font-weight: 500;
     }
     .role-btn:hover {
@@ -1759,7 +1759,7 @@
       border: 1px solid #d69e2e !important;
       border-radius: 4px;
       padding: 3px 6px;
-      transition: all 0.2s;
+      transition: background-color 0.12s ease, border-color 0.12s ease;
     }
 
     .input-yellow:focus {
@@ -1775,7 +1775,7 @@
       border: 1px solid #cbd5e0 !important;
       border-radius: 4px;
       padding: 3px 6px;
-      transition: all 0.2s;
+      transition: background-color 0.12s ease, border-color 0.12s ease;
     }
 
     .input-neutral:focus {
@@ -2294,7 +2294,7 @@
       background-color: #f8fafc;
       border-radius: 3px;
       cursor: text;
-      transition: all 0.2s ease;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
     }
     .print-editable-field:hover {
       background-color: #e0f2fe;
@@ -4605,12 +4605,30 @@ window.APP_AUTHOR_INFO = {
   isAuthorizedDevice: true // Sẽ được kiểm tra thực tế qua API /api/license
 };
 
+let _licenseFetchInFlight = null;
+function fetchServerLicenseShared(force = false) {
+  if (!force && _licenseFetchInFlight) return _licenseFetchInFlight;
+  const host = CURRENT_SERVER_HOST || 'http://localhost:8080';
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 12000);
+  _licenseFetchInFlight = fetch(`${host}/api/license`, { method: 'GET', cache: 'no-cache', signal: controller.signal })
+    .then(async (res) => {
+      clearTimeout(timeoutId);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    })
+    .catch((err) => {
+      clearTimeout(timeoutId);
+      _licenseFetchInFlight = null;
+      throw err;
+    });
+  return _licenseFetchInFlight;
+}
+
 async function checkLicenseAndMachineLock() {
   try {
-    const host = CURRENT_SERVER_HOST || 'http://localhost:8080';
-    const res = await fetch(`${host}/api/license`, { cache: 'no-store' });
-    if (res.ok) {
-      const lic = await res.json();
+    const lic = await fetchServerLicenseShared(false);
+    if (lic) {
       window.APP_AUTHOR_INFO.isAuthorizedDevice = !!lic.isAuthorizedDevice;
       window.APP_AUTHOR_INFO.currentDevice = lic.currentDevice;
       if (!lic.isAuthorizedDevice) {
@@ -4661,22 +4679,24 @@ window.addEventListener('DOMContentLoaded', async () => {
   updateManagedUnitsStrip();
   updateDeptTabVisibility();
 
-  // 2. CHẠY NGẦM SONG SONG BẤT ĐỒNG BỘ (NON-BLOCKING BACKGROUND SYNC)
+  // 2. CHẠY NGẦM SONG SONG HOÀN TOÀN (ZERO-WATERFALL PARALLEL SYNC)
   setTimeout(() => {
-    // 2.1 Mở kết nối IndexedDB và đồng bộ dữ liệu an toàn chạy ngầm
     getKpiIndexedDB().catch(e => console.warn("[IndexedDB] Init error:", e));
+    const activeUser = loggedUser || 'hoang';
 
-    // 2.2 Đồng bộ bản quyền, máy chủ và cấu hình cán bộ song song
     Promise.allSettled([
       checkLicenseAndMachineLock(),
       checkServerStatus(false),
-      loadServerOfficersConfig()
-    ]).then(async () => {
-      const activeUser = loggedUser || 'hoang';
-      await loadSessionForOfficer(activeUser, loggedQ, loggedY);
-      preloadDepartmentSummary();
-    });
-  }, 30);
+      loadServerOfficersConfig().then(() => {
+        updateManagedUnitsStrip();
+        updateUserInterfaceByRole();
+      }),
+      loadSessionForOfficer(activeUser, loggedQ, loggedY),
+      typeof loadAllAuthStatusMap === 'function' ? loadAllAuthStatusMap(false) : Promise.resolve()
+    ]);
+
+    preloadDepartmentSummary();
+  }, 15);
 
   // 3. Lắng nghe phím tắt F9 để lưu phiên
   window.addEventListener('keydown', (e) => {
@@ -4804,6 +4824,7 @@ async function inheritFromPreviousQuarterLastMonth(isManual = false) {
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.data && json.data.months && json.data.months.length >= 3) {
+          expandSessionDeltaMonths(json.data);
           const m = json.data.months[2] || json.data.months[json.data.months.length - 1];
           if (m && m.rows && m.rows.length > 0) {
             sourceRows = m.rows;
@@ -4817,9 +4838,13 @@ async function inheritFromPreviousQuarterLastMonth(isManual = false) {
   // 3. Thử tìm trong appState.quartersData của quý trước
   if (!sourceRows && appState.quartersData && appState.quartersData[prevInfo.quarter]) {
     const qData = appState.quartersData[prevInfo.quarter];
-    if (Array.isArray(qData) && qData.length >= 3 && qData[2] && qData[2].rows && qData[2].rows.length > 0) {
-      sourceRows = qData[2].rows;
-      sourceMonthName = qData[2].name || prevInfo.lastMonthName;
+    if (Array.isArray(qData) && qData.length >= 3) {
+      expandMonthDeltaRows(qData[2] || qData[qData.length - 1]);
+      const srcM = qData[2] || qData[qData.length - 1];
+      if (srcM && srcM.rows && srcM.rows.length > 0) {
+        sourceRows = srcM.rows;
+        sourceMonthName = srcM.name || prevInfo.lastMonthName;
+      }
     }
   }
 
@@ -4836,7 +4861,7 @@ async function inheritFromPreviousQuarterLastMonth(isManual = false) {
       try {
         const raw = localStorage.getItem(k);
         if (raw) {
-          const parsed = JSON.parse(raw);
+          const parsed = expandSessionDeltaMonths(JSON.parse(raw));
           if (parsed && parsed.months && parsed.months.length >= 3) {
             const m = parsed.months[2] || parsed.months[parsed.months.length - 1];
             if (m && m.rows && m.rows.length > 0) {
@@ -4943,7 +4968,7 @@ async function switchQuarter(newQuarter) {
     };
   }
   if (hasAnyMonthlyData(appState) || appState.lastSaved) {
-    await saveActiveSession(false);
+    saveActiveSession(false, { backgroundCloud: true });
   }
 
   // 2. Gán quý mới và lưu vào sessionStorage
@@ -5000,9 +5025,9 @@ async function switchYear(newYear) {
 
   if (oldYear === targetYear) return;
 
-  // 1. Lưu dữ liệu của năm hiện tại nếu thực sự có công việc thực hiện
+  // 1. Lưu dữ liệu của năm hiện tại tức thì cục bộ + đẩy Cloud chạy nền không chặn chuyển năm
   if (hasAnyMonthlyData(appState)) {
-    await saveActiveSession(false);
+    saveActiveSession(false, { backgroundCloud: true });
   }
 
   // 2. Gán năm mới và lưu vào sessionStorage
@@ -5018,8 +5043,158 @@ async function switchYear(newYear) {
   if (appState.activeTab === 'tab-department-kpi') {
     currentDeptSummaryData = [];
     window._lastDeptSummaryStats = null;
-    loadDepartmentSummary(false, true);
   }
+}
+
+function expandMonthDeltaRows(m, defaultTemplate) {
+  if (!m) return m;
+  const tmpl = defaultTemplate || window.MAU02A_TEMPLATE_ROWS || [];
+  if (Array.isArray(m.deltaRows) && (!Array.isArray(m.rows) || m.rows.length === 0)) {
+    const fullRows = JSON.parse(JSON.stringify(tmpl));
+    const deltaByArrIdx = {};
+    const deltaByRowIdx = {};
+    const customRows = [];
+
+    m.deltaRows.forEach(dr => {
+      if (!dr) return;
+      if (dr.isCustom) {
+        customRows.push(dr);
+      } else if (dr.arrIdx !== undefined && dr.arrIdx !== null) {
+        deltaByArrIdx[Number(dr.arrIdx)] = dr;
+      } else if (dr.rowIndex !== undefined && dr.rowIndex !== null) {
+        deltaByRowIdx[dr.rowIndex] = dr;
+      }
+    });
+
+    fullRows.forEach((r, rIdx) => {
+      let dr = deltaByArrIdx[rIdx];
+      if (!dr) {
+        const idxKey = (r.rowIndex !== undefined) ? r.rowIndex : rIdx;
+        dr = deltaByRowIdx[idxKey];
+      }
+      if (dr) {
+        const p1 = r.parent_level1;
+        const p2 = r.parent_level2;
+        const ps = r.parent_section;
+        Object.assign(r, dr);
+        if (!r.parent_level1 && p1) r.parent_level1 = p1;
+        if (!r.parent_level2 && p2) r.parent_level2 = p2;
+        if (!r.parent_section && ps) r.parent_section = ps;
+        delete r.arrIdx;
+      } else if (r.isTask && !r.sp_chitiet && r.sp_daura) {
+        r.sp_chitiet = r.sp_daura;
+      }
+    });
+
+    customRows.forEach(cr => {
+      const cloneCr = { ...cr };
+      delete cloneCr.arrIdx;
+      fullRows.push(cloneCr);
+    });
+    m.rows = fullRows;
+    delete m.deltaRows;
+  }
+  return m;
+}
+
+function expandSessionDeltaMonths(sess) {
+  if (!sess || !sess.months) return sess;
+  const tmpl = window.MAU02A_TEMPLATE_ROWS || [];
+  const mArr = Array.isArray(sess.months) ? sess.months : Object.values(sess.months);
+  mArr.forEach(m => expandMonthDeltaRows(m, tmpl));
+  if (!Array.isArray(sess.months)) sess.months = mArr;
+  return sess;
+}
+
+const _DELTA_COMPUTED_OR_DEFAULT_KEYS = new Set([
+  'arrIdx', 'parent_level1', 'parent_level2', 'parent_section',
+  'he_so', 'diem_thang_chua_hs', 'diem_thang_da_hs', 'hoanthanh', 'khong_ht',
+  'diem_pct', 'cl_diem', 'cl_pct', 'td_diem', 'td_pct', 'sp_chitiet',
+  'depth', '_isCustomized', 'custom_he_so', '_hasCustomHeSo'
+]);
+
+function encodeMonthDeltaRows(m, defaultTemplate) {
+  if (!m) return m;
+  const tmpl = defaultTemplate || window.MAU02A_TEMPLATE_ROWS || [];
+  if (!Array.isArray(m.rows) || m.rows.length === 0) {
+    return { ...m };
+  }
+
+  const deltaRows = [];
+  for (let i = 0; i < m.rows.length; i++) {
+    const r = m.rows[i];
+    if (!r) continue;
+    const t = tmpl[i];
+    const isCustom = !!(r.isCustom || !t || (i >= tmpl.length));
+
+    if (isCustom) {
+      deltaRows.push({ ...r, arrIdx: i, isCustom: true });
+      continue;
+    }
+
+    const spChiTiet = String(r.sp_chitiet || '').trim();
+    const tSpChiTiet = String(t.sp_chitiet || '').trim();
+    const tSpDaura = String(t.sp_daura || '').trim();
+    const hasSpCustom = (spChiTiet !== '' && spChiTiet !== tSpChiTiet && spChiTiet !== tSpDaura);
+
+    const hasModifiedUserFields = (
+      r.co_thuchien === 'Có' ||
+      (r.co_thuchien && r.co_thuchien !== (t.co_thuchien || 'Không')) ||
+      (Number(r.soluong_tt) || 0) > 0 ||
+      (Number(r.cl_loi) || 0) > 0 ||
+      (Number(r.td_cham) || 0) > 0 ||
+      (r.col_u !== undefined && String(r.col_u) !== String(t.col_u !== undefined ? t.col_u : '100')) ||
+      (r.col_v !== undefined && String(r.col_v) !== String(t.col_v !== undefined ? t.col_v : '100')) ||
+      (r.col_w !== undefined && String(r.col_w) !== String(t.col_w !== undefined ? t.col_w : '100')) ||
+      (r.ghichu && String(r.ghichu).trim() !== '') ||
+      (r.note_sl && String(r.note_sl).trim() !== '') ||
+      (r.note_cl && String(r.note_cl).trim() !== '') ||
+      (r.note_td && String(r.note_td).trim() !== '') ||
+      (r.note_ghichu && String(r.note_ghichu).trim() !== '') ||
+      r._isCustomized === true ||
+      (Number(r.diem_tc) || 0) !== (Number(t.diem_tc) || 0) ||
+      hasSpCustom ||
+      (r.congviec !== undefined && String(r.congviec || '') !== String(t.congviec || '')) ||
+      (r.nhiemvu !== undefined && String(r.nhiemvu || '') !== String(t.nhiemvu || '')) ||
+      (r.sp_daura !== undefined && String(r.sp_daura || '') !== String(t.sp_daura || ''))
+    );
+
+    let hasExtraDiff = false;
+    if (!hasModifiedUserFields) {
+      const rKeys = Object.keys(r);
+      for (let kIdx = 0; kIdx < rKeys.length; kIdx++) {
+        const k = rKeys[kIdx];
+        if (_DELTA_COMPUTED_OR_DEFAULT_KEYS.has(k) || k === 'custom_he_so' || k === '_hasCustomHeSo') continue;
+        if (r[k] !== t[k] && !(r[k] == null && t[k] == null)) {
+          hasExtraDiff = true;
+          break;
+        }
+      }
+    }
+
+    if (hasModifiedUserFields || hasExtraDiff) {
+      const dr = { ...r, arrIdx: i };
+      if (i > 6 && dr.parent_level1 === t.parent_level1) delete dr.parent_level1;
+      if (dr.parent_level2 === t.parent_level2) delete dr.parent_level2;
+      if (dr.parent_section === t.parent_section) delete dr.parent_section;
+      deltaRows.push(dr);
+    }
+  }
+
+  const compactMonth = { ...m, deltaRows };
+  delete compactMonth.rows;
+  return compactMonth;
+}
+
+function encodeSessionForTransfer(stateObj) {
+  if (!stateObj || typeof stateObj !== 'object') return stateObj;
+  const tmpl = window.MAU02A_TEMPLATE_ROWS || [];
+  const compact = { ...stateObj };
+  if (compact.quartersData) delete compact.quartersData;
+  if (Array.isArray(compact.months)) {
+    compact.months = compact.months.map(m => encodeMonthDeltaRows(m, tmpl));
+  }
+  return compact;
 }
 
 function initMonthsDataIfEmpty() {
@@ -5033,26 +5208,7 @@ function initMonthsDataIfEmpty() {
   }
 
   // Nếu tháng có deltaRows (nén Delta) mà chưa có rows đầy đủ, giải nén ngay từ defaultTemplate
-  if (appState.months && Array.isArray(appState.months)) {
-    appState.months.forEach(m => {
-      if (m && Array.isArray(m.deltaRows) && (!m.rows || m.rows.length === 0)) {
-        const fullRows = JSON.parse(JSON.stringify(defaultTemplate));
-        const deltaMap = {};
-        const customRows = [];
-        m.deltaRows.forEach(dr => {
-          if (dr.isCustom) customRows.push(dr);
-          else deltaMap[dr.rowIndex] = dr;
-        });
-        fullRows.forEach((r, rIdx) => {
-          const idxKey = (r.rowIndex !== undefined) ? r.rowIndex : rIdx;
-          if (deltaMap[idxKey]) Object.assign(r, deltaMap[idxKey]);
-        });
-        customRows.forEach(cr => fullRows.push(cr));
-        m.rows = fullRows;
-        delete m.deltaRows;
-      }
-    });
-  }
+  expandSessionDeltaMonths(appState);
 
   if (!appState.months || appState.months.length < 3 || !appState.months[0].rows || appState.months[0].rows.length === 0) {
     appState.months = createFreshQuarterMonths(curQ, curY, defaultTemplate);
@@ -5169,7 +5325,7 @@ function loadSavedState() {
       
     const saved = localStorage.getItem(storageKey);
     if (saved) {
-      const parsed = JSON.parse(saved);
+      const parsed = expandSessionDeltaMonths(JSON.parse(saved));
       if (parsed && parsed.officer && (typeof countClientSessionActiveTasks !== 'function' || countClientSessionActiveTasks(parsed) > 0)) {
         appState = parsed;
       }
@@ -5179,6 +5335,7 @@ function loadSavedState() {
   }
 }
 
+let _localStorageSaveTimer = null;
 function saveState() {
   try {
     if (typeof countClientSessionActiveTasks === 'function' && countClientSessionActiveTasks(appState) === 0) {
@@ -5191,17 +5348,23 @@ function saveState() {
       ? getSessionStorageKey(offId, q, y) 
       : ('KBXV_KPI_SESS_' + offId + '_' + q + '_' + y);
 
-    const cleanCopy = { ...appState };
-    if (cleanCopy.quartersData) delete cleanCopy.quartersData;
-    localStorage.setItem(storageKey, JSON.stringify(cleanCopy));
+    clearTimeout(_localStorageSaveTimer);
+    _localStorageSaveTimer = setTimeout(() => {
+      try {
+        const compactLocal = (typeof encodeSessionForTransfer === 'function')
+          ? encodeSessionForTransfer(appState)
+          : (() => { const c = { ...appState }; delete c.quartersData; return c; })();
+        localStorage.setItem(storageKey, JSON.stringify(compactLocal));
+      } catch (err) {}
+    }, 150);
 
-    // Debounced automatic save to local web server
+    // Debounced automatic sync lên Cloud (dạng delta ~3-5KB gzip)
     clearTimeout(_debouncedSaveTimer);
     _debouncedSaveTimer = setTimeout(() => {
       if (typeof saveActiveSession === 'function') {
-        saveActiveSession(false);
+        saveActiveSession(false, { backgroundCloud: true });
       }
-    }, 1200);
+    }, 1500);
   } catch(e) {
     console.error("Error saving state", e);
   }
@@ -5803,11 +5966,15 @@ function onMonthlyCategoryFilterChange(val) {
   renderMonthTable24();
 }
 
+let _monthlySearchDebounceTimer = null;
 function onMonthlySearchInput(val) {
   appState.monthlySearchTerm = val;
   const btnClear = document.getElementById('btnClearMonthlySearch');
   if (btnClear) btnClear.style.display = val ? 'inline-block' : 'none';
-  renderMonthTable24();
+  clearTimeout(_monthlySearchDebounceTimer);
+  _monthlySearchDebounceTimer = setTimeout(() => {
+    renderMonthTable24();
+  }, 120);
 }
 
 function clearMonthlySearch() {
@@ -5897,6 +6064,7 @@ function computeOfflineLocalLeaderGdvAggregate(offId, curQ, curY, gdvIds) {
     let hasData = false;
     let activeTasksCount = 0;
     if (st && Array.isArray(st.months)) {
+      expandSessionDeltaMonths(st);
       for (let mIdx = 0; mIdx < 3; mIdx++) {
         const mObj = st.months[mIdx];
         if (!mObj || !Array.isArray(mObj.rows)) continue;
@@ -5905,13 +6073,14 @@ function computeOfflineLocalLeaderGdvAggregate(offId, curQ, curY, gdvIds) {
           const isCo = (r.co_thuchien === 'Có');
           const qty = Number(r.soluong_tt) || 0;
           if (!isCo || qty <= 0) return;
+          const actualIdx = (r.arrIdx !== undefined && r.arrIdx !== null) ? Number(r.arrIdx) : rIdx;
           hasData = true;
           if (mIdx === 0) activeTasksCount++;
-          if (!monthsAgg[mIdx].rowsByIdx[rIdx]) {
-            monthsAgg[mIdx].rowsByIdx[rIdx] = { totalQty: 0, stt: r.stt || '', breakdown: [] };
+          if (!monthsAgg[mIdx].rowsByIdx[actualIdx]) {
+            monthsAgg[mIdx].rowsByIdx[actualIdx] = { totalQty: 0, stt: r.stt || '', breakdown: [] };
           }
-          monthsAgg[mIdx].rowsByIdx[rIdx].totalQty += qty;
-          monthsAgg[mIdx].rowsByIdx[rIdx].breakdown.push({ gdvId: gid, shortName, fullName, qty });
+          monthsAgg[mIdx].rowsByIdx[actualIdx].totalQty += qty;
+          monthsAgg[mIdx].rowsByIdx[actualIdx].breakdown.push({ gdvId: gid, shortName, fullName, qty });
           const sttKey = String(r.stt || '').trim();
           const workKey = `${sttKey}||${String(r.congviec || '').trim()}`;
           if (sttKey) {
@@ -6071,11 +6240,19 @@ function applyRowGdvAggregation(mIdx, rIdx, rowAgg, addMode = false) {
     row._isCustomized = true;
   }
 
+  const mult = getRoleMultiplier();
+  const c = calculateMonth24(month, mult);
+  month.completionPercent = c.finalMonthPct;
+  month.quantityPct = c.quantityPct;
+  month.qualityPct = c.qualityPct;
+  month.progressPct = c.progressPct;
+
   saveState();
   if (typeof triggerLocalDraftAutosave === 'function') triggerLocalDraftAutosave();
-  renderMonthTable24();
-  renderDashboard();
-  renderPrintForms();
+  if (!patchSingleMonthRowDom(rIdx, row, mult, c)) {
+    renderMonthTable24();
+  }
+  scheduleSecondaryRenders();
 
   showToast(`✅ Mục [${row.stt}]: Đã cộng gộp ${newQty} ${row.sp_daura || 'SP'} (${breakdownStr})!`, 3500);
 }
@@ -6666,7 +6843,7 @@ function renderMonthTable24() {
     const c = calculateRow24(r, mult);
 
     bodyHtml += `
-      <tr class="${isCo ? 'row-active' : ''}" style="${isCo ? 'background: #fffdf5;' : ''}">
+      <tr data-row-idx="${rIdx}" class="${isCo ? 'row-active' : ''}" style="${isCo ? 'background: #fffdf5;' : ''}">
         <!-- H1: Cố định 3 cột đầu tiên -->
         <td class="col-sticky-1" style="text-align: center; font-weight: 600;">${escapeHtml(r.stt)}</td>
         <td class="col-sticky-2" style="font-weight: 600; color: var(--primary); font-size: 11.5px; line-height: 1.35;">${escapeHtml(nhiemvuText)}</td>
@@ -6676,18 +6853,18 @@ function renderMonthTable24() {
         <td style="text-align: center; font-size: 11px;">${escapeHtml(r.sp_daura || '')}</td>
 
         <!-- Cột (5) Sản phẩm đầu ra chi tiết (Khóa cố định dạng text tĩnh) -->
-        <td style="font-size: 11.5px; color: #2d3748; line-height: 1.35;">
+        <td data-cell="sp_chitiet" style="font-size: 11.5px; color: #2d3748; line-height: 1.35;">
           ${escapeHtml(r.sp_chitiet || '')}
         </td>
 
-        <td style="text-align: center; font-weight: 600;">${c.diem_tc}</td>
-        <td style="text-align: center;">${c.diem_thang_chua_hs}</td>
-        <td style="text-align: center; font-weight: bold; color: var(--primary);">${c.diem_thang_da_hs}</td>
+        <td data-cell="diem_tc" style="text-align: center; font-weight: 600;">${c.diem_tc}</td>
+        <td data-cell="diem_thang_chua_hs" style="text-align: center;">${c.diem_thang_chua_hs}</td>
+        <td data-cell="diem_thang_da_hs" style="text-align: center; font-weight: bold; color: var(--primary);">${c.diem_thang_da_hs}</td>
         <td style="text-align: center;">${c.he_so}</td>
 
         <!-- Cột (10) [Bôi vàng khi Có]: Thực hiện (Có / Không) -->
         <td style="text-align: center;">
-          <select ${isLocked ? 'disabled' : ''} onchange="updateRow24(${rIdx}, 'co_thuchien', this.value)" class="${isCo ? 'input-yellow' : 'input-neutral'}" style="width: 72px; font-weight: ${isCo ? '700' : '600'}; color: ${isCo ? '#22543d' : '#718096'}; cursor: pointer;">
+          <select data-field="co_thuchien" ${isLocked ? 'disabled' : ''} onchange="updateRow24(${rIdx}, 'co_thuchien', this.value)" class="${isCo ? 'input-yellow' : 'input-neutral'}" style="width: 72px; font-weight: ${isCo ? '700' : '600'}; color: ${isCo ? '#22543d' : '#718096'}; cursor: pointer;">
             <option value="Có" ${isCo ? 'selected' : ''}>Có</option>
             <option value="Không" ${!isCo ? 'selected' : ''}>Không</option>
           </select>
@@ -6696,7 +6873,7 @@ function renderMonthTable24() {
         <!-- Cột (11) [Bôi vàng khi Có]: Số lượng thực tế kèm Nút Cộng gộp GDV (dành cho Lãnh đạo ở Mục II) & Ghi chú Tooltip Excel -->
         <td style="text-align: center;">
           <div class="cell-note-wrapper ${r.note_sl ? 'has-note' : ''}" style="display: inline-flex; align-items: center; justify-content: center; gap: 2px;">
-            <input ${isLocked ? 'disabled' : ''} type="number" min="0" value="${r.soluong_tt || 0}" class="${isCo ? 'input-yellow' : 'input-neutral'}" onchange="updateRow24(${rIdx}, 'soluong_tt', Number(this.value))" style="width: ${(role === 'TP' || role === 'PTP') && !isSec1 ? '52px' : '58px'}; text-align: center; ${!isCo ? 'color: #a0aec0;' : ''}">
+            <input data-field="soluong_tt" ${isLocked ? 'disabled' : ''} type="number" min="0" value="${r.soluong_tt || 0}" class="${isCo ? 'input-yellow' : 'input-neutral'}" onchange="updateRow24(${rIdx}, 'soluong_tt', Number(this.value))" style="width: ${(role === 'TP' || role === 'PTP') && !isSec1 ? '52px' : '58px'}; text-align: center; ${!isCo ? 'color: #a0aec0;' : ''}">
             ${(() => {
               if ((role !== 'TP' && role !== 'PTP') || isSec1) return '';
               const gdvAgg = getLeaderGdvRowAgg(mIdx, rIdx, r);
@@ -6704,7 +6881,7 @@ function renderMonthTable24() {
                 const isSynced = (Number(r.soluong_tt) === gdvAgg.totalQty && isCo);
                 const bdText = (gdvAgg.breakdown || []).map(b => `${b.fullName}: ${b.qty}`).join(' | ');
                 const tip = `📥 Cộng gộp từ GDV phụ trách: Tổng = ${gdvAgg.totalQty} (${bdText}).\n👉 Bấm chuột trái để điền ${gdvAgg.totalQty} vào ô Số lượng.\n👉 Giữ phím Shift + Bấm để cộng dồn (+${gdvAgg.totalQty}) vào số hiện có.`;
-                return `<button type="button" ${isLocked ? 'disabled' : ''} onclick="aggregateSingleRowFromGdv(event, ${rIdx})" style="height: 22px; padding: 0 5px; font-size: 10px; font-weight: 800; border-radius: 3px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; border: 1px solid ${isSynced ? '#68d391' : '#38bdf8'}; background: ${isSynced ? '#dcfce7' : '#e0f2fe'}; color: ${isSynced ? '#166534' : '#0369a1'}; box-shadow: 0 1px 2px rgba(0,0,0,0.06);" title="${escapeHtml(tip)}">${isSynced ? '✓∑' : '+∑'}${gdvAgg.totalQty}</button>`;
+                return `<button type="button" data-gdv-agg-total="${gdvAgg.totalQty}" ${isLocked ? 'disabled' : ''} onclick="aggregateSingleRowFromGdv(event, ${rIdx})" style="height: 22px; padding: 0 5px; font-size: 10px; font-weight: 800; border-radius: 3px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; border: 1px solid ${isSynced ? '#68d391' : '#38bdf8'}; background: ${isSynced ? '#dcfce7' : '#e0f2fe'}; color: ${isSynced ? '#166534' : '#0369a1'}; box-shadow: 0 1px 2px rgba(0,0,0,0.06);" title="${escapeHtml(tip)}">${isSynced ? '✓∑' : '+∑'}${gdvAgg.totalQty}</button>`;
               }
               return `<button type="button" ${isLocked ? 'disabled' : ''} onclick="aggregateSingleRowFromGdv(event, ${rIdx})" style="height: 22px; padding: 0 4px; font-size: 10px; font-weight: 700; border-radius: 3px; cursor: pointer; border: 1px solid #cbd5e0; background: #f8fafc; color: #64748b;" title="Bấm để kiểm tra & cộng gộp số lượng từ các GDV phụ trách cho công việc này">∑GDV</button>`;
             })()}
@@ -6713,46 +6890,46 @@ function renderMonthTable24() {
           </div>
         </td>
 
-        <td style="text-align: center; font-weight: bold; color: green;">${c.hoanthanh}</td>
-        <td style="text-align: center;">${c.khong_ht}</td>
-        <td style="text-align: center; font-weight: bold;">${c.diem_pct}%</td>
+        <td data-cell="hoanthanh" style="text-align: center; font-weight: bold; color: green;">${c.hoanthanh}</td>
+        <td data-cell="khong_ht" style="text-align: center;">${c.khong_ht}</td>
+        <td data-cell="diem_pct" style="text-align: center; font-weight: bold;">${c.diem_pct}%</td>
 
         <!-- Cột (15) [Bôi vàng khi Có]: Số lần lỗi Chất lượng kèm Tooltip Excel -->
         <td style="text-align: center;">
           <div class="cell-note-wrapper ${r.note_cl ? 'has-note' : ''}">
-            <input ${isLocked ? 'disabled' : ''} type="number" min="0" max="4" value="${r.cl_loi || 0}" class="${isCo ? 'input-yellow' : 'input-neutral'}" onchange="updateRow24(${rIdx}, 'cl_loi', Number(this.value))" style="width: 42px; text-align: center; ${!isCo ? 'color: #a0aec0;' : ''} ${r.cl_loi > 0 ? 'background: #feb2b2 !important; color: #9b2c2c !important;' : ''}">
+            <input data-field="cl_loi" ${isLocked ? 'disabled' : ''} type="number" min="0" max="4" value="${r.cl_loi || 0}" class="${isCo ? 'input-yellow' : 'input-neutral'}" onchange="updateRow24(${rIdx}, 'cl_loi', Number(this.value))" style="width: 42px; text-align: center; ${!isCo ? 'color: #a0aec0;' : ''} ${r.cl_loi > 0 ? 'background: #feb2b2 !important; color: #9b2c2c !important;' : ''}">
             <button type="button" class="btn-note-trigger ${r.note_cl ? 'active' : ''}" onclick="openExcelNotePopover(event, ${rIdx}, 'note_cl', 'Lỗi chất lượng (Mục ${escapeHtml(r.stt)})')" title="${r.note_cl ? escapeHtml(r.note_cl) : 'Thêm ghi chú ô tính'}">💬</button>
             ${r.note_cl ? `<div class="excel-note-tooltip"><strong>📌 Ghi chú lỗi:</strong><br>${escapeHtml(r.note_cl)}</div>` : ''}
           </div>
         </td>
-        <td style="text-align: center;">${c.cl_diem}</td>
-        <td style="text-align: center; font-weight: bold; color: ${c.cl_pct < 100 ? 'red' : 'green'};">${c.cl_pct}%</td>
+        <td data-cell="cl_diem" style="text-align: center;">${c.cl_diem}</td>
+        <td data-cell="cl_pct" style="text-align: center; font-weight: bold; color: ${c.cl_pct < 100 ? 'red' : 'green'};">${c.cl_pct}%</td>
 
         <!-- Cột (18) [Bôi vàng khi Có]: Số lần chậm Tiến độ kèm Tooltip Excel -->
         <td style="text-align: center;">
           <div class="cell-note-wrapper ${r.note_td ? 'has-note' : ''}">
-            <input ${isLocked ? 'disabled' : ''} type="number" min="0" max="4" value="${r.td_cham || 0}" class="${isCo ? 'input-yellow' : 'input-neutral'}" onchange="updateRow24(${rIdx}, 'td_cham', Number(this.value))" style="width: 42px; text-align: center; ${!isCo ? 'color: #a0aec0;' : ''} ${r.td_cham > 0 ? 'background: #feb2b2 !important; color: #9b2c2c !important;' : ''}">
+            <input data-field="td_cham" ${isLocked ? 'disabled' : ''} type="number" min="0" max="4" value="${r.td_cham || 0}" class="${isCo ? 'input-yellow' : 'input-neutral'}" onchange="updateRow24(${rIdx}, 'td_cham', Number(this.value))" style="width: 42px; text-align: center; ${!isCo ? 'color: #a0aec0;' : ''} ${r.td_cham > 0 ? 'background: #feb2b2 !important; color: #9b2c2c !important;' : ''}">
             <button type="button" class="btn-note-trigger ${r.note_td ? 'active' : ''}" onclick="openExcelNotePopover(event, ${rIdx}, 'note_td', 'Chậm tiến độ (Mục ${escapeHtml(r.stt)})')" title="${r.note_td ? escapeHtml(r.note_td) : 'Thêm ghi chú ô tính'}">💬</button>
             ${r.note_td ? `<div class="excel-note-tooltip"><strong>📌 Ghi chú chậm:</strong><br>${escapeHtml(r.note_td)}</div>` : ''}
           </div>
         </td>
-        <td style="text-align: center;">${c.td_diem}</td>
-        <td style="text-align: center; font-weight: bold; color: ${c.td_pct < 100 ? 'red' : 'green'};">${c.td_pct}%</td>
+        <td data-cell="td_diem" style="text-align: center;">${c.td_diem}</td>
+        <td data-cell="td_pct" style="text-align: center; font-weight: bold; color: ${c.td_pct < 100 ? 'red' : 'green'};">${c.td_pct}%</td>
 
         <td style="text-align: center;">
-          <select onchange="updateRow24(${rIdx}, 'col_u', this.value)" style="width: 55px; font-size: 11px;">
+          <select data-field="col_u" onchange="updateRow24(${rIdx}, 'col_u', this.value)" style="width: 55px; font-size: 11px;">
             <option value="100" ${r.col_u != '50' ? 'selected' : ''}>100%</option>
             <option value="50" ${r.col_u == '50' ? 'selected' : ''}>50%</option>
           </select>
         </td>
         <td style="text-align: center;">
-          <select onchange="updateRow24(${rIdx}, 'col_v', this.value)" style="width: 55px; font-size: 11px;">
+          <select data-field="col_v" onchange="updateRow24(${rIdx}, 'col_v', this.value)" style="width: 55px; font-size: 11px;">
             <option value="100" ${r.col_v != '50' ? 'selected' : ''}>100%</option>
             <option value="50" ${r.col_v == '50' ? 'selected' : ''}>50%</option>
           </select>
         </td>
         <td style="text-align: center;">
-          <select onchange="updateRow24(${rIdx}, 'col_w', this.value)" style="width: 55px; font-size: 11px;">
+          <select data-field="col_w" onchange="updateRow24(${rIdx}, 'col_w', this.value)" style="width: 55px; font-size: 11px;">
             <option value="100" ${r.col_w != '50' ? 'selected' : ''}>100%</option>
             <option value="50" ${r.col_w == '50' ? 'selected' : ''}>50%</option>
           </select>
@@ -6761,7 +6938,7 @@ function renderMonthTable24() {
         <!-- Cột (24) [Bôi vàng khi Có]: Ghi chú / Giải trình (Đã bỏ nội dung mặc định, có kèm Tooltip Excel) -->
         <td>
           <div class="cell-note-wrapper ${r.note_ghichu ? 'has-note' : ''}">
-            <input type="text" value="${escapeHtml(r.ghichu || '')}" placeholder="Ghi chú / giải trình..." class="${isCo ? 'input-yellow' : 'input-neutral'}" onchange="updateRow24(${rIdx}, 'ghichu', this.value)" style="font-size: 11px; width: 100%; text-align: left; font-weight: normal; ${!isCo ? 'color: #a0aec0;' : ''}">
+            <input data-field="ghichu" type="text" value="${escapeHtml(r.ghichu || '')}" placeholder="Ghi chú / giải trình..." class="${isCo ? 'input-yellow' : 'input-neutral'}" onchange="updateRow24(${rIdx}, 'ghichu', this.value)" style="font-size: 11px; width: 100%; text-align: left; font-weight: normal; ${!isCo ? 'color: #a0aec0;' : ''}">
             <button type="button" class="btn-note-trigger ${r.note_ghichu ? 'active' : ''}" onclick="openExcelNotePopover(event, ${rIdx}, 'note_ghichu', 'Giải trình (Mục ${escapeHtml(r.stt)})')" title="${r.note_ghichu ? escapeHtml(r.note_ghichu) : 'Thêm ghi chú ô tính'}">💬</button>
             ${r.note_ghichu ? `<div class="excel-note-tooltip"><strong>📌 Ghi chú:</strong><br>${escapeHtml(r.note_ghichu)}</div>` : ''}
           </div>
@@ -6821,6 +6998,140 @@ function updateRowOutputDetail(r) {
   }
 }
 
+let _secondaryRenderTimer = null;
+let _hasPendingSecondaryRender = false;
+
+function scheduleSecondaryRenders() {
+  _hasPendingSecondaryRender = true;
+  clearTimeout(_secondaryRenderTimer);
+  _secondaryRenderTimer = setTimeout(() => {
+    _hasPendingSecondaryRender = false;
+    renderDashboard();
+    renderPrintForms();
+  }, 180);
+}
+
+function flushPendingSecondaryRenders() {
+  if (!_hasPendingSecondaryRender) return;
+  clearTimeout(_secondaryRenderTimer);
+  _hasPendingSecondaryRender = false;
+  renderDashboard();
+  renderPrintForms();
+}
+
+function patchSingleMonthRowDom(rowIdx, row, mult, monthCalc) {
+  const tr = document.querySelector(`#monthTableBody24 tr[data-row-idx="${rowIdx}"]`);
+  if (!tr) return false;
+
+  const isCo = (row.co_thuchien === 'Có');
+  const c = calculateRow24(row, mult);
+
+  tr.className = isCo ? 'row-active' : '';
+  tr.style.background = isCo ? '#fffdf5' : '';
+
+  const setCellText = (cellName, txt, colorVal) => {
+    const el = tr.querySelector(`[data-cell="${cellName}"]`);
+    if (!el) return;
+    if (el.textContent !== String(txt)) el.textContent = String(txt);
+    if (colorVal !== undefined) el.style.color = colorVal;
+  };
+
+  setCellText('sp_chitiet', row.sp_chitiet || '');
+  setCellText('diem_tc', c.diem_tc);
+  setCellText('diem_thang_chua_hs', c.diem_thang_chua_hs);
+  setCellText('diem_thang_da_hs', c.diem_thang_da_hs);
+  setCellText('hoanthanh', c.hoanthanh);
+  setCellText('khong_ht', c.khong_ht);
+  setCellText('diem_pct', c.diem_pct + '%');
+  setCellText('cl_diem', c.cl_diem);
+  setCellText('cl_pct', c.cl_pct + '%', c.cl_pct < 100 ? 'red' : 'green');
+  setCellText('td_diem', c.td_diem);
+  setCellText('td_pct', c.td_pct + '%', c.td_pct < 100 ? 'red' : 'green');
+
+  const selCo = tr.querySelector('select[data-field="co_thuchien"]');
+  if (selCo) {
+    selCo.value = row.co_thuchien || 'Không';
+    selCo.className = isCo ? 'input-yellow' : 'input-neutral';
+    selCo.style.fontWeight = isCo ? '700' : '600';
+    selCo.style.color = isCo ? '#22543d' : '#718096';
+  }
+
+  const inpSl = tr.querySelector('input[data-field="soluong_tt"]');
+  if (inpSl) {
+    if (document.activeElement !== inpSl) inpSl.value = row.soluong_tt || 0;
+    inpSl.className = isCo ? 'input-yellow' : 'input-neutral';
+    inpSl.style.color = isCo ? '' : '#a0aec0';
+  }
+
+  const gdvBtn = tr.querySelector('button[data-gdv-agg-total]');
+  if (gdvBtn) {
+    const gdvTotal = Number(gdvBtn.getAttribute('data-gdv-agg-total')) || 0;
+    const isSynced = (Number(row.soluong_tt) === gdvTotal && isCo);
+    gdvBtn.style.borderColor = isSynced ? '#68d391' : '#38bdf8';
+    gdvBtn.style.background = isSynced ? '#dcfce7' : '#e0f2fe';
+    gdvBtn.style.color = isSynced ? '#166534' : '#0369a1';
+    gdvBtn.textContent = (isSynced ? '✓∑' : '+∑') + gdvTotal;
+  }
+
+  const inpCl = tr.querySelector('input[data-field="cl_loi"]');
+  if (inpCl) {
+    if (document.activeElement !== inpCl) inpCl.value = row.cl_loi || 0;
+    inpCl.className = isCo ? 'input-yellow' : 'input-neutral';
+    inpCl.style.color = (Number(row.cl_loi) > 0) ? '#9b2c2c' : (isCo ? '' : '#a0aec0');
+    inpCl.style.background = (Number(row.cl_loi) > 0) ? '#feb2b2' : '';
+  }
+
+  const inpTd = tr.querySelector('input[data-field="td_cham"]');
+  if (inpTd) {
+    if (document.activeElement !== inpTd) inpTd.value = row.td_cham || 0;
+    inpTd.className = isCo ? 'input-yellow' : 'input-neutral';
+    inpTd.style.color = (Number(row.td_cham) > 0) ? '#9b2c2c' : (isCo ? '' : '#a0aec0');
+    inpTd.style.background = (Number(row.td_cham) > 0) ? '#feb2b2' : '';
+  }
+
+  ['col_u', 'col_v', 'col_w'].forEach(f => {
+    const sel = tr.querySelector(`select[data-field="${f}"]`);
+    if (sel) sel.value = (row[f] == '50') ? '50' : '100';
+  });
+
+  const inpGc = tr.querySelector('input[data-field="ghichu"]');
+  if (inpGc) {
+    if (document.activeElement !== inpGc) inpGc.value = row.ghichu || '';
+    inpGc.className = isCo ? 'input-yellow' : 'input-neutral';
+    inpGc.style.color = isCo ? '' : '#a0aec0';
+  }
+
+  if (monthCalc) {
+    const elAlloc = document.getElementById('mTotalAllocated');
+    const elDone = document.getElementById('mTotalDone');
+    const elQty = document.getElementById('mQuantityPct');
+    const elQual = document.getElementById('mQualityPct');
+    const elProg = document.getElementById('mProgressPct');
+    const elScore = document.getElementById('mFinalMonthScore');
+    if (elAlloc) elAlloc.innerText = monthCalc.totalAllocated + " đ";
+    if (elDone) elDone.innerText = monthCalc.totalDone + " đ";
+    if (elQty) elQty.innerText = monthCalc.quantityPct + "%";
+    if (elQual) elQual.innerText = monthCalc.qualityPct + "%";
+    if (elProg) elProg.innerText = monthCalc.progressPct + "%";
+    if (elScore) elScore.innerText = monthCalc.finalMonthPct + "%";
+  }
+
+  const countBadge = document.getElementById('monthlyFilterCountBadge');
+  const activeMonth = appState.months && appState.months[appState.activeMonthIdx];
+  if (countBadge && activeMonth && Array.isArray(activeMonth.rows) && monthCalc) {
+    const activeTrs = document.querySelectorAll('#monthTableBody24 tr[data-row-idx]').length;
+    const totalTasks = activeMonth.rows.filter(r => r && r.isTask).length;
+    if (appState.filterActiveOnly) {
+      countBadge.innerText = `Hiển thị: ${activeTrs} việc đang làm (trong ${totalTasks} việc)`;
+    } else if ((appState.monthlyCategoryFilter && appState.monthlyCategoryFilter !== 'ALL') || (appState.monthlySearchTerm && appState.monthlySearchTerm.trim() !== '')) {
+      countBadge.innerText = `Hiển thị: ${activeTrs}/${totalTasks} việc (Có làm: ${monthCalc.activeTaskCount})`;
+    } else {
+      countBadge.innerText = `Hiển thị: ${totalTasks}/${totalTasks} việc (Có làm: ${monthCalc.activeTaskCount})`;
+    }
+  }
+  return true;
+}
+
 function updateRow24(rowIdx, field, value) {
   const activeMIdx = appState.activeMonthIdx;
   const currentMonth = appState.months[activeMIdx];
@@ -6856,9 +7167,12 @@ function updateRow24(rowIdx, field, value) {
   if (typeof triggerLocalDraftAutosave === 'function') {
     triggerLocalDraftAutosave();
   }
-  renderMonthTable24();
-  renderDashboard();
-  renderPrintForms();
+
+  const mustRebuildForFilter = (appState.filterActiveOnly && row.co_thuchien !== 'Có');
+  if (mustRebuildForFilter || !patchSingleMonthRowDom(rowIdx, row, mult, c)) {
+    renderMonthTable24();
+  }
+  scheduleSecondaryRenders();
 }
 
 function toggleFilterActiveOnly(checked) {
@@ -7760,7 +8074,7 @@ window.addEventListener('online', () => {
   });
 });
 
-// Kiem tra ket noi voi may chu
+// Kiểm tra kết nối với máy chủ (dùng chung promise /api/license khi khởi động)
 async function checkServerStatus(isManual = false) {
   const badge = document.getElementById('serverStatusBadge');
   const dot = document.getElementById('serverDot');
@@ -7768,28 +8082,21 @@ async function checkServerStatus(isManual = false) {
 
   try {
     const isCloud = CURRENT_SERVER_HOST.includes('vercel.app') || CURRENT_SERVER_HOST.includes('https://');
-    const checkEndpoint = CURRENT_SERVER_HOST + '/api/license';
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    await fetchServerLicenseShared(isManual);
 
-    const res = await fetch(checkEndpoint, { method: 'GET', cache: 'no-cache', signal: controller.signal });
-    clearTimeout(timeoutId);
-
-    if (res.ok) {
-      isServerConnected = true;
-      if (badge) {
-        badge.style.background = '#e6fffa';
-        badge.style.color = '#234e52';
-        badge.style.borderColor = '#b2f5ea';
-        badge.title = `Máy chủ đang hoạt động: ${CURRENT_SERVER_HOST} (Nhấn để đổi máy chủ)`;
-      }
-      if (dot) dot.style.background = '#38b2ac';
-      if (text) {
-        text.innerText = isCloud ? 'Cloud: Đã kết nối' : `LAN: ${CURRENT_SERVER_HOST.replace(/^https?:\/\//, '')}`;
-      }
-      if (isManual) showToast(`✅ Đã kết nối máy chủ (${CURRENT_SERVER_HOST}) thành công!`);
-      return true;
+    isServerConnected = true;
+    if (badge) {
+      badge.style.background = '#e6fffa';
+      badge.style.color = '#234e52';
+      badge.style.borderColor = '#b2f5ea';
+      badge.title = `Máy chủ đang hoạt động: ${CURRENT_SERVER_HOST} (Nhấn để đổi máy chủ)`;
     }
+    if (dot) dot.style.background = '#38b2ac';
+    if (text) {
+      text.innerText = isCloud ? 'Cloud: Đã kết nối' : `LAN: ${CURRENT_SERVER_HOST.replace(/^https?:\/\//, '')}`;
+    }
+    if (isManual) showToast(`✅ Đã kết nối máy chủ (${CURRENT_SERVER_HOST}) thành công!`);
+    return true;
   } catch (err) {
     isServerConnected = false;
     if (badge) {
@@ -8113,7 +8420,7 @@ function countClientSessionRealWorkTasks(sess) {
     if (Number(m.completionPercent) > 0) hasScore = true;
     const rows = (Array.isArray(m.rows) && m.rows.length > 0) ? m.rows : (Array.isArray(m.deltaRows) ? m.deltaRows : []);
     rows.forEach(r => {
-      if (r && (Number(r.soluong_tt) > 0 || Number(r.hoanthanh) > 0 || Number(r.thuchien_thang) > 0 || Number(r.diem_thang_da_hs) > 0 || (r.co_thuchien === 'Có' && Number(r.soluong_tt) > 0))) {
+      if (r && r.co_thuchien !== 'Không' && (r.co_thuchien === 'Có' || Number(r.soluong_tt) > 0 || Number(r.hoanthanh) > 0 || Number(r.thuchien_thang) > 0 || Number(r.diem_thang_da_hs) > 0)) {
         count++;
       }
     });
@@ -8133,7 +8440,7 @@ function getClientSessionScoreMetrics(sess) {
     if (!m) return;
     const rows = (Array.isArray(m.rows) && m.rows.length > 0) ? m.rows : (Array.isArray(m.deltaRows) ? m.deltaRows : []);
     rows.forEach(r => {
-      if (r) {
+      if (r && r.co_thuchien !== 'Không') {
         const sl = Number(r.soluong_tt) || 0;
         const ht = Number(r.hoanthanh) || Number(r.diem_thang_da_hs) || 0;
         if (sl > 0) totalQty += sl;
@@ -8194,7 +8501,7 @@ async function loadSessionForOfficer(officerId, quarter, year, ramCandidate = nu
   try {
     const cached = localStorage.getItem(storageKey);
     if (cached) {
-      const parsed = JSON.parse(cached);
+      const parsed = expandSessionDeltaMonths(JSON.parse(cached));
       if (parsed && parsed.officer) {
         localCandidate = parsed;
       }
@@ -8205,7 +8512,7 @@ async function loadSessionForOfficer(officerId, quarter, year, ramCandidate = nu
   try {
     const db = await getKpiIndexedDB();
     if (db) {
-      idbCandidate = await getSessionFromIndexedDB(db, offId, q, y);
+      idbCandidate = expandSessionDeltaMonths(await getSessionFromIndexedDB(db, offId, q, y));
     }
   } catch (err) {
     console.warn('[IndexedDB] Đọc phiên đệm lỗi:', err);
@@ -8223,7 +8530,7 @@ async function loadSessionForOfficer(officerId, quarter, year, ramCandidate = nu
   // 2. Tải bản mới nhất từ Server API chạy nền (Background Revalidation)
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    const timeoutId = setTimeout(() => controller.abort(), 9000);
     const res = await fetch(`${CURRENT_SERVER_HOST}/api/session?officerId=${encodeURIComponent(offId)}&quarter=${encodeURIComponent(q)}&year=${encodeURIComponent(y)}`, { 
       cache: 'no-cache',
       signal: controller.signal
@@ -8233,13 +8540,16 @@ async function loadSessionForOfficer(officerId, quarter, year, ramCandidate = nu
     if (res.ok) {
       const json = await res.json();
       if (json.success && json.data) {
-        const serverCandidate = json.data;
+        const serverCandidate = expandSessionDeltaMonths(json.data);
         const winner = pickBestClientSession(bestLocal, serverCandidate);
 
         if (winner === serverCandidate && !json.isNew && countClientSessionRealWorkTasks(serverCandidate) > 0) {
           // Server thực sự có bản mới hơn hoặc đầy đủ hơn -> Áp dụng bản Server
           applyLoadedSession(serverCandidate, offId, q, y);
-          try { localStorage.setItem(storageKey, JSON.stringify(appState)); } catch(e){}
+          try {
+            const compactLocal = (typeof encodeSessionForTransfer === 'function') ? encodeSessionForTransfer(appState) : appState;
+            localStorage.setItem(storageKey, JSON.stringify(compactLocal));
+          } catch(e){}
           try {
             const db = await getKpiIndexedDB();
             if (db) saveSessionToIndexedDB(db, offId, q, y, appState, false);
@@ -8247,11 +8557,10 @@ async function loadSessionForOfficer(officerId, quarter, year, ramCandidate = nu
           updateLastSavedTime(serverCandidate.lastSaved || new Date().toISOString(), false);
           return;
         } else if (hadLocalCache) {
-          // Bản local máy trạm có dữ liệu đầy đủ hơn Server (ví dụ local có 60k điểm, server trả bản cũ hoặc bảng trắng)
-          // -> BẢO VỆ TUYỆT ĐỐI BẢN LOCAL, KHÔNG GHI ĐÈ, và đồng bộ ngược lên Server!
+          // Bản local máy trạm có dữ liệu đầy đủ hơn Server -> BẢO VỆ TUYỆT ĐỐI BẢN LOCAL & đồng bộ ngầm lên Server
           console.log('[CACHE-PROTECT] Bản máy trạm đầy đủ hơn Server, bảo vệ và đồng bộ ngược lên Server:', storageKey);
           if (typeof saveActiveSession === 'function') {
-            saveActiveSession(false);
+            saveActiveSession(false, { backgroundCloud: true });
           }
           return;
         }
@@ -8273,6 +8582,9 @@ async function loadSessionForOfficer(officerId, quarter, year, ramCandidate = nu
 
 function applyLoadedSession(data, offId, q, y) {
   const officerCfg = (window.OFFICERS_ASSIGNMENTS && window.OFFICERS_ASSIGNMENTS[offId]) || {};
+  if (data && typeof expandSessionDeltaMonths === 'function') {
+    expandSessionDeltaMonths(data);
+  }
   
   // Xác định trạng thái chính xác từ phiên nạp vào, dập tắt mọi rò rỉ cờ nộp từ phiên trước
   const isSubmittedClean = !!(data && (data.isSubmitted || data.status === 'da_nop' || data.status === 'da_duyet'));
@@ -8421,17 +8733,19 @@ async function saveCurrentScreenData(screenName = '') {
 let _pendingServerSync = false;
 let _isSyncingToServer = false;
 
-async function saveActiveSession(showNotification = true) {
+async function saveActiveSession(showNotification = true, options = {}) {
+  const backgroundCloud = !!(options && options.backgroundCloud);
   if (!appState || !appState.officer) return;
   const isLocked = (appState.status === 'da_nop' || appState.status === 'da_duyet');
   const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || 'hoang';
   const isLeader = (loggedUser === 'son' || loggedUser === 'hoang' || loggedUser === 'tuan' || loggedUser === 'anh');
   if (isLocked && !isLeader) {
-    showToast('🔒 Báo cáo đã nộp hoặc đã được phê duyệt! Bảng tính đang bị khóa để bảo toàn số liệu.', 4000);
+    if (showNotification) showToast('🔒 Báo cáo đã nộp hoặc đã được phê duyệt! Bảng tính đang bị khóa để bảo toàn số liệu.', 4000);
     return;
   }
 
   const offId = appState.officer.officerId || 'hoang';
+  const offNameSnapshot = appState.officer.name || offId;
   const q = appState.officer.quarter || 'Quý III';
   const y = appState.officer.year || 2026;
   const storageKey = getSessionStorageKey(offId, q, y);
@@ -8448,7 +8762,7 @@ async function saveActiveSession(showNotification = true) {
   // Tự động tính toán & gán completionPercent cho từng tháng trong appState.months
   if (appState.months && Array.isArray(appState.months)) {
     const mult = getRoleMultiplier();
-    appState.months.forEach((m, idx) => {
+    appState.months.forEach((m) => {
       const c = calculateMonth24(m, mult);
       m.completionPercent = c.finalMonthPct;
       m.quantityPct = c.quantityPct;
@@ -8457,9 +8771,10 @@ async function saveActiveSession(showNotification = true) {
     });
   }
 
-  // 1. Luôn lưu trực tiếp an toàn tại máy người dùng (LocalStorage riêng theo từng kỳ 3 chiều & IndexedDB CSDL)
-  const statePayload = { ...appState };
-  if (statePayload.quartersData) delete statePayload.quartersData;
+  // 1. Nén Delta thông minh (~25-45KB thô / ~3-5KB gzip thay vì 550KB) nhưng GIỮ NGUYÊN 100% appState.months trong RAM
+  const statePayload = (typeof encodeSessionForTransfer === 'function')
+    ? encodeSessionForTransfer(appState)
+    : (() => { const c = { ...appState }; delete c.quartersData; return c; })();
 
   try {
     if (countClientSessionActiveTasks(statePayload) > 0) {
@@ -8469,7 +8784,7 @@ async function saveActiveSession(showNotification = true) {
     console.error("Loi luu localStorage:", err);
   }
 
-  // 1.1 Lưu bền vững vào CSDL IndexedDB (Native DB - không giới hạn 5MB & lưu lịch sử snapshot)
+  // 1.1 Lưu bền vững vào CSDL IndexedDB bất đồng bộ
   try {
     getKpiIndexedDB().then(db => {
       if (db) saveSessionToIndexedDB(db, offId, q, y, statePayload, true);
@@ -8481,71 +8796,7 @@ async function saveActiveSession(showNotification = true) {
   _hasUnsavedLocalChanges = false;
   updateLastSavedTime(saveTime, true);
 
-  // ĐỒNG BỘ BẢN NHÁP HYBRID AN TOÀN (HYBRID SAFE DRAFT SYNC):
-  // 1. Luôn lưu tức thì vào máy trạm (LocalStorage & IndexedDB) ở trên.
-  // 2. Gửi đồng bộ lên Cloud/Server nhưng BẢO TOÀN trạng thái 'da_luu', isSubmitted: false.
-  // 3. KHÔNG KHÓA BẢNG TÍNH. Người dùng sang máy khác vẫn tải được bản nháp để làm tiếp.
-  // 4. Chỉ khi bấm 'Nộp báo cáo KPI quý', hệ thống mới chuyển thành 'da_nop' và khóa bảng.
-  const isDraftMode = (appState.status !== 'da_nop' && appState.status !== 'da_duyet');
-
-  let serverSaved = false;
-  try {
-    const res = await fetch(`${CURRENT_SERVER_HOST}/api/session`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        officerId: offId,
-        quarter: q,
-        year: y,
-        state: statePayload
-      })
-    });
-    if (res.ok) {
-      const resJson = await res.json().catch(() => ({}));
-      if (resJson && resJson.restoredOriginal && resJson.data) {
-        applyLoadedSession(resJson.data, offId, q, y);
-        try { localStorage.setItem(storageKey, JSON.stringify(resJson.data)); } catch(e){}
-        try {
-          const db = await getKpiIndexedDB();
-          if (db) saveSessionToIndexedDB(db, offId, q, y, resJson.data, false);
-        } catch(e){}
-        return;
-      }
-      _pendingServerSync = false;
-      serverSaved = true;
-      _hasUnsavedLocalChanges = false;
-      updateLastSavedTime(saveTime, false);
-      if (typeof updateAutosaveIndicator === 'function') {
-        const timeNow = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        updateAutosaveIndicator(`🟢 Đã đồng bộ Cloud (${timeNow})`);
-      }
-      if (showNotification) {
-        if (isDraftMode) {
-          showToast('💾 Đã lưu an toàn bản nháp vào CSDL máy tính & Cloud! (Sẵn sàng mở trên mọi máy tính)', 4000);
-        } else {
-          showToast('💾 Đã lưu thành công kết quả thẩm định lên CSDL máy tính & Cloud!', 4000);
-        }
-      }
-    } else {
-      console.warn("Server tra ve ma loi:", res.status);
-    }
-  } catch (err) {
-    console.warn("Lỗi kết nối máy chủ Cloud:", err);
-  }
-
-  if (!serverSaved) {
-    _pendingServerSync = true;
-    _hasUnsavedLocalChanges = true;
-    updateLastSavedTime(saveTime, true);
-    if (typeof updateAutosaveIndicator === 'function') {
-      updateAutosaveIndicator('⚠️ Đã lưu máy tính (Ngoại tuyến - chờ mạng)');
-    }
-    if (showNotification) {
-      showToast(`⚠️ Không thể kết nối Cloud! Dữ liệu của ${appState.officer.name} đã được lưu an toàn 100% trong CSDL máy tính (IndexedDB).`, 5000);
-    }
-  }
-
-  // ⚡ TỰ ĐỘNG CẬP NHẬT TỨC THỜI (0ms) DỮ LIỆU BẢNG TỔNG HỢP TOÀN PHÒNG CHO CÁN BỘ NÀY (DÙ CHƯA BẤM NỘP)
+  // ⚡ CẬP NHẬT TỨC THÌ (0ms) DỮ LIỆU BẢNG TỔNG HỢP TOÀN PHÒNG TRƯỚC KHI CHỜ CLOUD
   try {
     let sumM = 0;
     let cntM = 0;
@@ -8577,9 +8828,8 @@ async function saveActiveSession(showNotification = true) {
     else if (totScore > 0) calcRate = "Không hoàn thành nhiệm vụ";
 
     const isSubmittedNow = !!(appState.isSubmitted || appState.status === 'da_nop' || appState.status === 'da_duyet');
-    const myStatus = isSubmittedNow ? 'da_nop' : ((avgVal > 0 || totScore > 0 || appState.lastSaved) ? 'da_luu' : 'chua_nop');
+    const myStatus = isSubmittedNow ? appState.status : ((avgVal > 0 || totScore > 0 || appState.lastSaved) ? 'da_luu' : 'chua_nop');
 
-    // Cập nhật ngay vào currentDeptSummaryData trong RAM
     if (Array.isArray(currentDeptSummaryData) && currentDeptSummaryData.length > 0) {
       const existingIdx = currentDeptSummaryData.findIndex(item => item.id === offId);
       if (existingIdx >= 0) {
@@ -8597,9 +8847,11 @@ async function saveActiveSession(showNotification = true) {
         item.isSubmitted = isSubmittedNow;
         item.lastSaved = saveTime;
       }
+      if (typeof recomputeDeptSummaryStatsLocal === 'function') {
+        window._lastDeptSummaryStats = recomputeDeptSummaryStatsLocal(currentDeptSummaryData);
+      }
     }
 
-    // Xóa cờ cache để lần tới mở Tab 3 hoặc fetch server luôn đồng bộ mới
     _lastDeptSummaryFetchTime = 0;
     const cacheKey = `KBXV_SUMMARY_CACHE_${q}_${y}`;
     try {
@@ -8608,15 +8860,91 @@ async function saveActiveSession(showNotification = true) {
       }
     } catch(e) {}
 
-    // Nếu tab hiện tại đang mở là Tab 3 (Tổng hợp toàn phòng), render lại ngay tức thì
     const tabDeptEl = document.getElementById('tab-department-kpi');
     if (tabDeptEl && tabDeptEl.classList.contains('active')) {
       renderDeptSummaryTable(currentDeptSummaryData);
-      renderDeptSummaryStats();
+      renderDeptSummaryStats(window._lastDeptSummaryStats);
+      updateDeptFilterCounters(currentDeptSummaryData);
     }
   } catch(sumSyncErr) {
     console.warn('Lỗi cập nhật nhanh bảng tổng hợp:', sumSyncErr);
   }
+
+  const isDraftMode = (appState.status !== 'da_nop' && appState.status !== 'da_duyet');
+  const syncCloudTask = async () => {
+    let serverSaved = false;
+    try {
+      const res = await fetch(`${CURRENT_SERVER_HOST}/api/session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          officerId: offId,
+          quarter: q,
+          year: y,
+          state: statePayload
+        })
+      });
+      if (res.ok) {
+        const resJson = await res.json().catch(() => ({}));
+        const isStillSameSession = !!(appState && appState.officer && appState.officer.officerId === offId && appState.officer.quarter === q && Number(appState.officer.year || 2026) === Number(y));
+        if (resJson && resJson.restoredOriginal && resJson.data) {
+          const expandedRestored = (typeof expandSessionDeltaMonths === 'function') ? expandSessionDeltaMonths(resJson.data) : resJson.data;
+          if (isStillSameSession) applyLoadedSession(expandedRestored, offId, q, y);
+          try {
+            const compactRestored = (typeof encodeSessionForTransfer === 'function') ? encodeSessionForTransfer(expandedRestored) : expandedRestored;
+            localStorage.setItem(storageKey, JSON.stringify(compactRestored));
+          } catch(e){}
+          try {
+            const db = await getKpiIndexedDB();
+            if (db) saveSessionToIndexedDB(db, offId, q, y, expandedRestored, false);
+          } catch(e){}
+          return;
+        }
+        serverSaved = true;
+        if (isStillSameSession) {
+          _pendingServerSync = false;
+          _hasUnsavedLocalChanges = false;
+          updateLastSavedTime(saveTime, false);
+          if (typeof updateAutosaveIndicator === 'function') {
+            const timeNow = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            updateAutosaveIndicator(`🟢 Đã đồng bộ Cloud (${timeNow})`);
+          }
+        }
+        if (showNotification) {
+          if (isDraftMode) {
+            showToast('💾 Đã lưu an toàn bản nháp vào CSDL máy tính & Cloud! (Sẵn sàng mở trên mọi máy tính)', 4000);
+          } else {
+            showToast('💾 Đã lưu thành công kết quả thẩm định lên CSDL máy tính & Cloud!', 4000);
+          }
+        }
+      } else {
+        console.warn("Server tra ve ma loi:", res.status);
+      }
+    } catch (err) {
+      console.warn("Lỗi kết nối máy chủ Cloud:", err);
+    }
+
+    if (!serverSaved) {
+      const isStillSameSession = !!(appState && appState.officer && appState.officer.officerId === offId && appState.officer.quarter === q && Number(appState.officer.year || 2026) === Number(y));
+      _pendingServerSync = true;
+      if (isStillSameSession) {
+        _hasUnsavedLocalChanges = true;
+        updateLastSavedTime(saveTime, true);
+        if (typeof updateAutosaveIndicator === 'function') {
+          updateAutosaveIndicator('⚠️ Đã lưu máy tính (Ngoại tuyến - chờ mạng)');
+        }
+      }
+      if (showNotification) {
+        showToast(`⚠️ Không thể kết nối Cloud! Dữ liệu của ${offNameSnapshot} đã được lưu an toàn 100% trong CSDL máy tính (IndexedDB).`, 5000);
+      }
+    }
+  };
+
+  if (backgroundCloud) {
+    syncCloudTask();
+    return;
+  }
+  await syncCloudTask();
 }
 
 // Chon can bo moi
@@ -8624,8 +8952,8 @@ async function onSelectOfficer(officerId) {
   clearTimeout(_debouncedSaveTimer);
   const currentOffId = appState.officer && appState.officer.officerId;
   if (currentOffId && currentOffId !== officerId && hasAnyMonthlyData(appState)) {
-    // Chỉ tự động lưu phiên cũ trước khi chuyển nếu thực sự có dữ liệu công việc
-    await saveActiveSession(false);
+    // Lưu cục bộ ngay 0ms + đồng bộ ngầm lên Cloud để không chặn chuyển cán bộ
+    saveActiveSession(false, { backgroundCloud: true });
   }
 
   const curQ = (appState.officer && appState.officer.quarter) || "Quý III";
@@ -9026,13 +9354,80 @@ function renderDeptSummaryStats(stats) {
 
 // Render bang tong hop
 
-// Cập nhật và lưu đề xuất xếp loại của Lãnh đạo cho từng cán bộ
+function recomputeDeptSummaryStatsLocal(officersList) {
+  if (!Array.isArray(officersList)) return null;
+  let subCount = 0, excCount = 0, gdCount = 0, cmpCount = 0, notCount = 0;
+  officersList.forEach(item => {
+    if (!item) return;
+    const tot = Number(item.totalScore) || 0;
+    const avg = Number(item.avgPct) || 0;
+    const hasProgress = tot > 0 || avg > 0 || item.isSubmitted || item.isApproved || item.status === 'da_nop' || item.status === 'da_duyet' || item.status === 'da_luu' || item.status === 'tra_lai' || !!item.lastSaved;
+    if (hasProgress) subCount++;
+    if (tot > 0) {
+      const rStr = String(item.rating || item.proposedRating || '').toLowerCase();
+      if (rStr.includes('xuất sắc')) excCount++;
+      else if (rStr.includes('tốt')) gdCount++;
+      else if (rStr.includes('không hoàn thành')) notCount++;
+      else cmpCount++;
+    }
+  });
+  const maxExc = Math.round(officersList.length * 0.2);
+  return {
+    totalOfficers: officersList.length,
+    submittedCount: subCount,
+    excellentCount: excCount,
+    maxExcellentAllowed: maxExc,
+    isExcellentExceeded: excCount > maxExc,
+    goodCount: gdCount,
+    completedCount: cmpCount,
+    notCompletedCount: notCount
+  };
+}
+
+function syncDeptSummaryCacheAndUI(curQ, curY) {
+  if (!Array.isArray(currentDeptSummaryData)) return;
+  const stats = recomputeDeptSummaryStatsLocal(currentDeptSummaryData);
+  if (stats) window._lastDeptSummaryStats = stats;
+  try {
+    const normQ = (typeof normalizeQuarter === 'function') ? normalizeQuarter(curQ) : curQ.replace(/\s+/g, '');
+    const payloadStr = JSON.stringify({ officers: currentDeptSummaryData, stats: window._lastDeptSummaryStats });
+    localStorage.setItem(`KBXV_SUMMARY_CACHE_${curQ}_${curY}`, payloadStr);
+    if (normQ !== curQ) localStorage.setItem(`KBXV_SUMMARY_CACHE_${normQ}_${curY}`, payloadStr);
+  } catch (e) {}
+  updateDeptFilterCounters(currentDeptSummaryData);
+  renderDeptSummaryStats(window._lastDeptSummaryStats);
+  renderDeptSummaryTable(currentDeptSummaryData);
+}
+
+function patchActiveSessionStatusIfSame(offId, curQ, curY, patchFn) {
+  if (!appState || !appState.officer) return;
+  const activeId = appState.officer.officerId || appState.officer.id;
+  const normCurQ = (typeof normalizeQuarter === 'function') ? normalizeQuarter(curQ) : curQ;
+  const normActiveQ = (typeof normalizeQuarter === 'function') ? normalizeQuarter(appState.officer.quarter) : appState.officer.quarter;
+  if (activeId === offId && normActiveQ === normCurQ && Number(appState.officer.year || 2026) === Number(curY)) {
+    patchFn(appState);
+    saveState();
+    const lockBanner = document.getElementById('approvalStatusBannerContainer');
+    if (lockBanner) renderAll();
+  }
+}
+
+// Cập nhật và lưu đề xuất xếp loại của Lãnh đạo cho từng cán bộ (Optimistic 0ms + Atomic API)
 window.updateLeaderProposal = async function(officerId, val) {
-  const curQ = (appState.officer && appState.officer.quarter) || "Quý III";
-  const curY = (appState.officer && appState.officer.year) || 2026;
+  const qSelect = document.getElementById('deptSummaryQuarterSelect');
+  const ySelect = document.getElementById('deptSummaryYearSelect');
+  const curQ = (qSelect && qSelect.value) || (appState.officer && appState.officer.quarter) || "Quý III";
+  const curY = (ySelect && ySelect.value) ? Number(ySelect.value) : ((appState.officer && appState.officer.year) || 2026);
+  let prevVal;
   if (Array.isArray(currentDeptSummaryData)) {
     const it = currentDeptSummaryData.find(x => x.id === officerId);
-    if (it) it.leaderRatingProposal = val;
+    if (it) {
+      prevVal = it.leaderRatingProposal;
+      it.leaderRatingProposal = val;
+    }
+    try {
+      localStorage.setItem(`KBXV_SUMMARY_CACHE_${curQ}_${curY}`, JSON.stringify({ officers: currentDeptSummaryData, stats: window._lastDeptSummaryStats }));
+    } catch (e) {}
   }
   if (appState.officer && appState.officer.officerId === officerId) {
     appState.leaderRatingProposal = val;
@@ -9048,13 +9443,17 @@ window.updateLeaderProposal = async function(officerId, val) {
       }
     } catch(e){}
   }
+  showToast("Đã lưu đề xuất xếp loại của Lãnh đạo!");
   try {
-    await fetch(`${CURRENT_SERVER_HOST}/api/leader-proposal`, {
+    const res = await fetch(`${CURRENT_SERVER_HOST}/api/leader-proposal`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ officerId, quarter: curQ, year: curY, leaderRatingProposal: val })
     });
-    showToast("Đã lưu đề xuất xếp loại của Lãnh đạo!");
+    if (!res.ok && prevVal !== undefined && Array.isArray(currentDeptSummaryData)) {
+      const it = currentDeptSummaryData.find(x => x.id === officerId);
+      if (it) { it.leaderRatingProposal = prevVal; renderDeptSummaryTable(currentDeptSummaryData); }
+    }
   } catch(e) {}
 };
 
@@ -9366,7 +9765,29 @@ async function quickApproveFromTable(offId) {
     return;
   }
 
-  showToast(`⏳ Đang phê duyệt hồ sơ của ${offName}...`);
+  // ⚡ OPTIMISTIC UI (0ms): Cập nhật bảng, stats, cache & banner ngay tức thì
+  let prevSnapshot = null;
+  const it = Array.isArray(currentDeptSummaryData) ? currentDeptSummaryData.find(x => x.id === offId) : null;
+  if (it) {
+    prevSnapshot = { status: it.status, isSubmitted: it.isSubmitted, isApproved: it.isApproved, approvedAt: it.approvedAt, approvedBy: it.approvedBy };
+    it.status = 'da_duyet';
+    it.isSubmitted = true;
+    it.isApproved = true;
+    it.approvedAt = new Date().toISOString();
+    it.approvedBy = loggedUser;
+    syncDeptSummaryCacheAndUI(curQ, curY);
+  }
+
+  patchActiveSessionStatusIfSame(offId, curQ, curY, (st) => {
+    st.status = 'da_duyet';
+    st.isSubmitted = true;
+    st.isApproved = true;
+    st.approvedAt = new Date().toISOString();
+    st.approvedBy = loggedUser;
+  });
+
+  showToast(`✅ Đã phê duyệt chính thức kết quả KPI của ${offName}!`);
+
   try {
     const res = await fetch(`${CURRENT_SERVER_HOST}/api/session/approve`, {
       method: 'POST',
@@ -9380,38 +9801,22 @@ async function quickApproveFromTable(offId) {
     });
     const json = await res.json();
     if (json.success) {
-      showToast(`✅ Đã phê duyệt chính thức kết quả KPI của ${offName}!`);
-      // Xóa cache localStorage để không bị giật lại dữ liệu cũ
-      const normQ = (typeof normalizeQuarter === 'function') ? normalizeQuarter(curQ) : curQ.replace(/\s+/g, '');
-      try {
-        localStorage.removeItem(`KBXV_SUMMARY_CACHE_${curQ}_${curY}`);
-        localStorage.removeItem(`KBXV_SUMMARY_CACHE_${normQ}_${curY}`);
-      } catch (e) {}
-
-      if (appState.officer && appState.officer.id === offId) {
-        appState.officer.status = 'da_duyet';
-        appState.officer.isSubmitted = true;
-        appState.officer.isApproved = true;
-        saveState();
+      if (it && json.approvedAt) {
+        it.approvedAt = json.approvedAt;
       }
-
-      // Cập nhật tức thì trên bảng (Optimistic UI)
-      if (Array.isArray(currentDeptSummaryData)) {
-        const it = currentDeptSummaryData.find(x => x.id === offId);
-        if (it) {
-          it.status = 'da_duyet';
-          it.isSubmitted = true;
-          it.isApproved = true;
-          it.approvedAt = json.approvedAt || new Date().toISOString();
-          it.approvedBy = loggedUser;
-        }
-        renderDeptSummaryTable(currentDeptSummaryData);
-      }
-      await loadDepartmentSummary(false, true);
+      _lastDeptSummaryFetchTime = Date.now();
     } else {
-      alert('Lỗi phê duyệt: ' + (json.error || ''));
+      if (it && prevSnapshot) {
+        Object.assign(it, prevSnapshot);
+        syncDeptSummaryCacheAndUI(curQ, curY);
+      }
+      alert('Lỗi phê duyệt (đã khôi phục trạng thái cũ): ' + (json.error || ''));
     }
   } catch(e) {
+    if (it && prevSnapshot) {
+      Object.assign(it, prevSnapshot);
+      syncDeptSummaryCacheAndUI(curQ, curY);
+    }
     alert('Lỗi kết nối khi phê duyệt: ' + e.message);
   }
 }
@@ -9441,7 +9846,27 @@ async function quickRejectFromTable(offId) {
   const reason = prompt(`Nhập lý do hoặc yêu cầu chỉnh sửa gửi tới đồng chí [${offName}]:`, 'Yêu cầu rà soát, giải trình lại số lượng và lỗi chất lượng.');
   if (reason === null) return;
 
-  showToast(`⏳ Đang gửi yêu cầu chỉnh sửa tới ${offName}...`);
+  // ⚡ OPTIMISTIC UI (0ms): Cập nhật bảng, mở khóa nút & cache ngay tức thì
+  let prevSnapshot = null;
+  const it = Array.isArray(currentDeptSummaryData) ? currentDeptSummaryData.find(x => x.id === offId) : null;
+  if (it) {
+    prevSnapshot = { status: it.status, isSubmitted: it.isSubmitted, isApproved: it.isApproved, rejectReason: it.rejectReason };
+    it.status = 'tra_lai';
+    it.isSubmitted = false;
+    it.isApproved = false;
+    it.rejectReason = reason;
+    syncDeptSummaryCacheAndUI(curQ, curY);
+  }
+
+  patchActiveSessionStatusIfSame(offId, curQ, curY, (st) => {
+    st.status = 'tra_lai';
+    st.isSubmitted = false;
+    st.isApproved = false;
+    st.rejectReason = reason;
+  });
+
+  showToast(`↩️ Đã trả lại / mở khóa hồ sơ cho ${offName} chỉnh sửa!`);
+
   try {
     const res = await fetch(`${CURRENT_SERVER_HOST}/api/session/reject`, {
       method: 'POST',
@@ -9456,37 +9881,19 @@ async function quickRejectFromTable(offId) {
     });
     const json = await res.json();
     if (json.success) {
-      showToast(`↩️ Đã trả lại hồ sơ cho ${offName} chỉnh sửa!`);
-      // Xóa cache localStorage để không bị giật lại dữ liệu cũ
-      const normQ = (typeof normalizeQuarter === 'function') ? normalizeQuarter(curQ) : curQ.replace(/\s+/g, '');
-      try {
-        localStorage.removeItem(`KBXV_SUMMARY_CACHE_${curQ}_${curY}`);
-        localStorage.removeItem(`KBXV_SUMMARY_CACHE_${normQ}_${curY}`);
-      } catch (e) {}
-
-      if (appState.officer && appState.officer.id === offId) {
-        appState.officer.status = 'tra_lai';
-        appState.officer.isSubmitted = false;
-        appState.officer.isApproved = false;
-        appState.officer.rejectReason = reason;
-        saveState();
-      }
-
-      if (Array.isArray(currentDeptSummaryData)) {
-        const it = currentDeptSummaryData.find(x => x.id === offId);
-        if (it) {
-          it.status = 'tra_lai';
-          it.isSubmitted = false;
-          it.isApproved = false;
-          it.rejectReason = reason;
-        }
-        renderDeptSummaryTable(currentDeptSummaryData);
-      }
-      await loadDepartmentSummary(false, true);
+      _lastDeptSummaryFetchTime = Date.now();
     } else {
-      alert('Lỗi trả lại hồ sơ: ' + (json.error || ''));
+      if (it && prevSnapshot) {
+        Object.assign(it, prevSnapshot);
+        syncDeptSummaryCacheAndUI(curQ, curY);
+      }
+      alert('Lỗi trả lại hồ sơ (đã khôi phục trạng thái cũ): ' + (json.error || ''));
     }
   } catch(e) {
+    if (it && prevSnapshot) {
+      Object.assign(it, prevSnapshot);
+      syncDeptSummaryCacheAndUI(curQ, curY);
+    }
     alert('Lỗi kết nối khi trả lại hồ sơ: ' + e.message);
   }
 }
@@ -9498,7 +9905,7 @@ function closeOfficerQuarterModal() {
   if (modal) modal.style.display = 'none';
 }
 
-// Lãnh đạo duyệt KPI của cán bộ ngay trong Modal xem tổng hợp Quý
+// Lãnh đạo duyệt KPI của cán bộ ngay trong Modal xem tổng hợp Quý (Optimistic 0ms)
 async function approveOfficerFromModal(offId) {
   const cfg = (window.OFFICERS_ASSIGNMENTS && window.OFFICERS_ASSIGNMENTS[offId]) || {};
   const offName = cfg.name || offId;
@@ -9511,6 +9918,27 @@ async function approveOfficerFromModal(offId) {
   if (!confirm(`PHÊ DUYỆT KẾT QUẢ KPI QUÝ:\n\nĐồng chí có chắc chắn muốn phê duyệt chính thức kết quả đánh giá của [${offName}] trong ${curQ}/${curY}?\n\nHồ sơ sau khi duyệt sẽ được khóa cứng vĩnh viễn theo quy định.`)) {
     return;
   }
+
+  let prevSnapshot = null;
+  const it = Array.isArray(currentDeptSummaryData) ? currentDeptSummaryData.find(x => x.id === offId) : null;
+  if (it) {
+    prevSnapshot = { status: it.status, isSubmitted: it.isSubmitted, isApproved: it.isApproved, approvedAt: it.approvedAt, approvedBy: it.approvedBy };
+    it.status = 'da_duyet';
+    it.isSubmitted = true;
+    it.isApproved = true;
+    it.approvedAt = new Date().toISOString();
+    it.approvedBy = loggedUser;
+    syncDeptSummaryCacheAndUI(curQ, curY);
+  }
+  patchActiveSessionStatusIfSame(offId, curQ, curY, (st) => {
+    st.status = 'da_duyet';
+    st.isSubmitted = true;
+    st.isApproved = true;
+    st.approvedAt = new Date().toISOString();
+    st.approvedBy = loggedUser;
+  });
+  closeOfficerQuarterModal();
+  showToast(`✅ Đã phê duyệt chính thức kết quả KPI của ${offName}!`);
 
   try {
     const res = await fetch(`${CURRENT_SERVER_HOST}/api/session/approve`, {
@@ -9525,31 +9953,25 @@ async function approveOfficerFromModal(offId) {
     });
     const json = await res.json();
     if (json.success) {
-      showToast(`✅ Đã phê duyệt chính thức kết quả KPI của ${offName}!`);
-      const normQ = (typeof normalizeQuarter === 'function') ? normalizeQuarter(curQ) : curQ.replace(/\s+/g, '');
-      try {
-        localStorage.removeItem(`KBXV_SUMMARY_CACHE_${curQ}_${curY}`);
-        localStorage.removeItem(`KBXV_SUMMARY_CACHE_${normQ}_${curY}`);
-      } catch (e) {}
-
-      if (appState.officer && appState.officer.id === offId) {
-        appState.officer.status = 'da_duyet';
-        appState.officer.isSubmitted = true;
-        appState.officer.isApproved = true;
-        saveState();
-      }
-
-      closeOfficerQuarterModal();
-      if (typeof loadDepartmentSummary === 'function') await loadDepartmentSummary(false, true);
+      if (it && json.approvedAt) it.approvedAt = json.approvedAt;
+      _lastDeptSummaryFetchTime = Date.now();
     } else {
+      if (it && prevSnapshot) {
+        Object.assign(it, prevSnapshot);
+        syncDeptSummaryCacheAndUI(curQ, curY);
+      }
       alert('Lỗi phê duyệt: ' + (json.error || ''));
     }
   } catch(e) {
+    if (it && prevSnapshot) {
+      Object.assign(it, prevSnapshot);
+      syncDeptSummaryCacheAndUI(curQ, curY);
+    }
     alert('Lỗi kết nối khi phê duyệt: ' + e.message);
   }
 }
 
-// Lãnh đạo trả lại KPI của cán bộ ngay trong Modal xem tổng hợp Quý
+// Lãnh đạo trả lại / mở khóa KPI của cán bộ ngay trong Modal xem tổng hợp Quý (Optimistic 0ms)
 async function rejectOfficerFromModal(offId) {
   const cfg = (window.OFFICERS_ASSIGNMENTS && window.OFFICERS_ASSIGNMENTS[offId]) || {};
   const offName = cfg.name || offId;
@@ -9561,6 +9983,25 @@ async function rejectOfficerFromModal(offId) {
 
   const reason = prompt(`Nhập lý do hoặc yêu cầu chỉnh sửa gửi tới đồng chí [${offName}]:`, 'Yêu cầu rà soát, giải trình lại số lượng và lỗi chất lượng.');
   if (reason === null) return;
+
+  let prevSnapshot = null;
+  const it = Array.isArray(currentDeptSummaryData) ? currentDeptSummaryData.find(x => x.id === offId) : null;
+  if (it) {
+    prevSnapshot = { status: it.status, isSubmitted: it.isSubmitted, isApproved: it.isApproved, rejectReason: it.rejectReason };
+    it.status = 'tra_lai';
+    it.isSubmitted = false;
+    it.isApproved = false;
+    it.rejectReason = reason;
+    syncDeptSummaryCacheAndUI(curQ, curY);
+  }
+  patchActiveSessionStatusIfSame(offId, curQ, curY, (st) => {
+    st.status = 'tra_lai';
+    st.isSubmitted = false;
+    st.isApproved = false;
+    st.rejectReason = reason;
+  });
+  closeOfficerQuarterModal();
+  showToast(`↩️ Đã trả lại / mở khóa hồ sơ cho ${offName} chỉnh sửa!`);
 
   try {
     const res = await fetch(`${CURRENT_SERVER_HOST}/api/session/reject`, {
@@ -9576,27 +10017,19 @@ async function rejectOfficerFromModal(offId) {
     });
     const json = await res.json();
     if (json.success) {
-      showToast(`↩️ Đã trả lại hồ sơ cho ${offName} chỉnh sửa!`);
-      const normQ = (typeof normalizeQuarter === 'function') ? normalizeQuarter(curQ) : curQ.replace(/\s+/g, '');
-      try {
-        localStorage.removeItem(`KBXV_SUMMARY_CACHE_${curQ}_${curY}`);
-        localStorage.removeItem(`KBXV_SUMMARY_CACHE_${normQ}_${curY}`);
-      } catch (e) {}
-
-      if (appState.officer && appState.officer.id === offId) {
-        appState.officer.status = 'tra_lai';
-        appState.officer.isSubmitted = false;
-        appState.officer.isApproved = false;
-        appState.officer.rejectReason = reason;
-        saveState();
-      }
-
-      closeOfficerQuarterModal();
-      if (typeof loadDepartmentSummary === 'function') await loadDepartmentSummary(false, true);
+      _lastDeptSummaryFetchTime = Date.now();
     } else {
+      if (it && prevSnapshot) {
+        Object.assign(it, prevSnapshot);
+        syncDeptSummaryCacheAndUI(curQ, curY);
+      }
       alert('Lỗi trả lại hồ sơ: ' + (json.error || ''));
     }
   } catch(e) {
+    if (it && prevSnapshot) {
+      Object.assign(it, prevSnapshot);
+      syncDeptSummaryCacheAndUI(curQ, curY);
+    }
     alert('Lỗi kết nối khi trả lại hồ sơ: ' + e.message);
   }
 }
@@ -9680,6 +10113,9 @@ async function viewOfficerQuarterSummary(officerId) {
   const curLogged = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || 'hoang';
   if ((!sess || !sess.months) && officerId === curLogged && appState.officer && appState.officer.officerId === officerId) {
     sess = JSON.parse(JSON.stringify(appState));
+  }
+  if (sess && typeof expandSessionDeltaMonths === 'function') {
+    expandSessionDeltaMonths(sess);
   }
 
   currentViewingOfficerSession = sess;
@@ -10564,13 +11000,45 @@ function saveLocalAuthMap(map) {
   try { localStorage.setItem('KBXV_AUTH_PASSWORDS', JSON.stringify(map)); } catch(e) {}
 }
 
-// Kiểm tra trạng thái mật khẩu của cán bộ (lần đầu hay từ lần 2 trở đi)
+let _cachedAuthStatusMap = null;
+let _authStatusInFlight = null;
+
+async function loadAllAuthStatusMap(force = false) {
+  if (!force && _cachedAuthStatusMap) return _cachedAuthStatusMap;
+  if (!force && _authStatusInFlight) return _authStatusInFlight;
+  _authStatusInFlight = fetch(`${CURRENT_SERVER_HOST}/api/auth/status`, { cache: 'no-cache' })
+    .then(async (res) => {
+      if (!res.ok) return null;
+      const json = await res.json();
+      if (json && json.success && json.statusMap) {
+        _cachedAuthStatusMap = json.statusMap;
+        return _cachedAuthStatusMap;
+      }
+      return null;
+    })
+    .catch(() => null)
+    .finally(() => { _authStatusInFlight = null; });
+  return _authStatusInFlight;
+}
+
+// Kiểm tra trạng thái mật khẩu của cán bộ (ưu tiên bản đồ tổng hợp 0ms, fallback single request)
 async function checkOfficerPasswordStatus(officerId) {
+  if (_cachedAuthStatusMap && Object.prototype.hasOwnProperty.call(_cachedAuthStatusMap, officerId)) {
+    return !!_cachedAuthStatusMap[officerId];
+  }
+  const map = await loadAllAuthStatusMap(false);
+  if (map && Object.prototype.hasOwnProperty.call(map, officerId)) {
+    return !!map[officerId];
+  }
   try {
     const res = await fetch(`${CURRENT_SERVER_HOST}/api/auth/status?officerId=${encodeURIComponent(officerId)}`, { cache: 'no-cache' });
     if (res.ok) {
       const json = await res.json();
-      if (json.success) return !!json.hasPassword;
+      if (json.success) {
+        if (!_cachedAuthStatusMap) _cachedAuthStatusMap = {};
+        _cachedAuthStatusMap[officerId] = !!json.hasPassword;
+        return !!json.hasPassword;
+      }
     }
   } catch(e) {}
 
@@ -10584,6 +11052,8 @@ async function setOfficerPassword(officerId, password) {
   const localMap = getLocalAuthMap();
   localMap[officerId] = { hash, updatedAt: new Date().toISOString() };
   saveLocalAuthMap(localMap);
+  if (!_cachedAuthStatusMap) _cachedAuthStatusMap = {};
+  _cachedAuthStatusMap[officerId] = true;
 
   try {
     await fetch(`${CURRENT_SERVER_HOST}/api/auth/set-password`, {
@@ -11253,6 +11723,7 @@ async function openQuickAdminResetPrompt() {
 function openLoginModal() {
   const modal = document.getElementById('loginModalOverlay');
   if (!modal) return;
+  if (typeof loadAllAuthStatusMap === 'function') loadAllAuthStatusMap(false);
 
   const curId = (appState.officer && appState.officer.officerId) || 'hoang';
   const sel = document.getElementById('loginOfficerSelect');
@@ -11415,6 +11886,9 @@ async function submitKpiForQuarter() {
 
   try {
     showToast('⏳ Đang gửi kết quả nộp bài lên hệ thống...', 2000);
+    const compactSubmitState = (typeof encodeSessionForTransfer === 'function')
+      ? encodeSessionForTransfer(appState)
+      : (() => { const c = { ...appState }; delete c.quartersData; return c; })();
     const res = await fetch(`${CURRENT_SERVER_HOST}/api/session/submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -11422,7 +11896,7 @@ async function submitKpiForQuarter() {
         officerId: offId,
         quarter: q,
         year: y,
-        state: appState
+        state: compactSubmitState
       })
     });
     const json = await res.json();
@@ -11434,24 +11908,29 @@ async function submitKpiForQuarter() {
     console.warn('Lỗi kết nối máy chủ khi nộp bài:', e);
   }
 
-  // Lưu bản sao vào LocalStorage
+  // Lưu bản sao gọn nhẹ vào LocalStorage
   const storageKey = getSessionStorageKey(offId, q, y);
   try {
-    localStorage.setItem(storageKey, JSON.stringify(appState));
+    const compactLocal = (typeof encodeSessionForTransfer === 'function') ? encodeSessionForTransfer(appState) : appState;
+    localStorage.setItem(storageKey, JSON.stringify(compactLocal));
   } catch(e) {}
 
   _hasUnsavedLocalChanges = false;
   renderAll();
 
-  // Tải lại dữ liệu tổng hợp nếu đang xem tab tổng hợp
-  if (typeof loadDepartmentSummary === 'function') {
-    loadDepartmentSummary(false);
+  if (Array.isArray(currentDeptSummaryData) && currentDeptSummaryData.length > 0) {
+    const it = currentDeptSummaryData.find(x => x.id === offId);
+    if (it) {
+      it.status = 'da_nop';
+      it.isSubmitted = true;
+      syncDeptSummaryCacheAndUI(q, y);
+    }
   }
 
   showToast(`🎉 Đã nộp thành công KPI ${q}/${y} của ${offName}! Báo cáo đã được khóa an toàn.`, 4000);
 }
 
-// Lãnh đạo phê duyệt
+// Lãnh đạo phê duyệt (Optimistic 0ms + Atomic API)
 async function approveCurrentOfficerKpi() {
   if (!appState || !appState.officer) return;
   const offId = appState.officer.officerId;
@@ -11469,6 +11948,31 @@ async function approveCurrentOfficerKpi() {
     return;
   }
 
+  const prevAppSnap = { status: appState.status, isApproved: appState.isApproved, isSubmitted: appState.isSubmitted, approvedAt: appState.approvedAt, approvedBy: appState.approvedBy };
+  appState.status = 'da_duyet';
+  appState.isApproved = true;
+  appState.isSubmitted = true;
+  appState.approvedAt = new Date().toISOString();
+  appState.approvedBy = loggedUser;
+  const storageKey = getSessionStorageKey(offId, q, y);
+  try {
+    const compactLocal = (typeof encodeSessionForTransfer === 'function') ? encodeSessionForTransfer(appState) : appState;
+    localStorage.setItem(storageKey, JSON.stringify(compactLocal));
+  } catch(e){}
+  if (Array.isArray(currentDeptSummaryData)) {
+    const it = currentDeptSummaryData.find(x => x.id === offId);
+    if (it) {
+      it.status = 'da_duyet';
+      it.isSubmitted = true;
+      it.isApproved = true;
+      it.approvedAt = appState.approvedAt;
+      it.approvedBy = loggedUser;
+      syncDeptSummaryCacheAndUI(q, y);
+    }
+  }
+  renderAll();
+  showToast(`✅ Đã phê duyệt chính thức kết quả KPI của ${offName}!`);
+
   try {
     const res = await fetch(`${CURRENT_SERVER_HOST}/api/session/approve`, {
       method: 'POST',
@@ -11481,27 +11985,21 @@ async function approveCurrentOfficerKpi() {
       })
     });
     const json = await res.json();
-    if (json.success) {
-      appState.status = 'da_duyet';
-      appState.isApproved = true;
-      appState.approvedAt = json.approvedAt || new Date().toISOString();
-      appState.approvedBy = loggedUser;
-      
-      const storageKey = getSessionStorageKey(offId, q, y);
-      try { localStorage.setItem(storageKey, JSON.stringify(appState)); } catch(e){}
-
+    if (!json.success) {
+      Object.assign(appState, prevAppSnap);
       renderAll();
-      if (typeof loadDepartmentSummary === 'function') loadDepartmentSummary(false);
-      showToast(`✅ Đã phê duyệt chính thức kết quả KPI của ${offName}!`);
-    } else {
       alert('Lỗi phê duyệt: ' + (json.error || ''));
+    } else if (json.approvedAt) {
+      appState.approvedAt = json.approvedAt;
     }
   } catch(e) {
+    Object.assign(appState, prevAppSnap);
+    renderAll();
     alert('Lỗi kết nối khi phê duyệt: ' + e.message);
   }
 }
 
-// Lãnh đạo trả lại
+// Lãnh đạo trả lại / mở khóa (Optimistic 0ms + Atomic API)
 async function promptRejectCurrentOfficerKpi() {
   if (!appState || !appState.officer) return;
   const offId = appState.officer.officerId;
@@ -11518,6 +12016,29 @@ async function promptRejectCurrentOfficerKpi() {
   const reason = prompt(`Nhập lý do hoặc yêu cầu chỉnh sửa gửi tới đồng chí [${offName}]:`, 'Yêu cầu rà soát, giải trình lại số lượng và lỗi chất lượng.');
   if (reason === null) return;
 
+  const prevAppSnap = { status: appState.status, isApproved: appState.isApproved, isSubmitted: appState.isSubmitted, rejectReason: appState.rejectReason };
+  appState.status = 'tra_lai';
+  appState.isSubmitted = false;
+  appState.isApproved = false;
+  appState.rejectReason = reason;
+  const storageKey = getSessionStorageKey(offId, q, y);
+  try {
+    const compactLocal = (typeof encodeSessionForTransfer === 'function') ? encodeSessionForTransfer(appState) : appState;
+    localStorage.setItem(storageKey, JSON.stringify(compactLocal));
+  } catch(e){}
+  if (Array.isArray(currentDeptSummaryData)) {
+    const it = currentDeptSummaryData.find(x => x.id === offId);
+    if (it) {
+      it.status = 'tra_lai';
+      it.isSubmitted = false;
+      it.isApproved = false;
+      it.rejectReason = reason;
+      syncDeptSummaryCacheAndUI(q, y);
+    }
+  }
+  renderAll();
+  showToast(`↩️ Đã trả lại / mở khóa hồ sơ cho ${offName} chỉnh sửa!`);
+
   try {
     const res = await fetch(`${CURRENT_SERVER_HOST}/api/session/reject`, {
       method: 'POST',
@@ -11531,22 +12052,14 @@ async function promptRejectCurrentOfficerKpi() {
       })
     });
     const json = await res.json();
-    if (json.success) {
-      appState.status = 'tra_lai';
-      appState.isSubmitted = false;
-      appState.isApproved = false;
-      appState.rejectReason = reason;
-
-      const storageKey = getSessionStorageKey(offId, q, y);
-      try { localStorage.setItem(storageKey, JSON.stringify(appState)); } catch(e){}
-
+    if (!json.success) {
+      Object.assign(appState, prevAppSnap);
       renderAll();
-      if (typeof loadDepartmentSummary === 'function') loadDepartmentSummary(false);
-      showToast(`↩️ Đã trả lại hồ sơ cho ${offName} chỉnh sửa!`);
-    } else {
       alert('Lỗi trả lại hồ sơ: ' + (json.error || ''));
     }
   } catch(e) {
+    Object.assign(appState, prevAppSnap);
+    renderAll();
     alert('Lỗi kết nối khi trả lại hồ sơ: ' + e.message);
   }
 }
@@ -12105,6 +12618,9 @@ function switchMonthlySubTab(subTabId) {
 
 // Navigation & Tab Switching thông minh, hỗ trợ cả tab cha và sub-tab
 function switchAppTab(tabId) {
+  if (typeof flushPendingSecondaryRenders === 'function') {
+    flushPendingSecondaryRenders();
+  }
   const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || (appState.officer && appState.officer.officerId) || 'hoang';
   const loggedCfg = (window.OFFICERS_ASSIGNMENTS && window.OFFICERS_ASSIGNMENTS[loggedUser]) || {};
   const userRole = (appState.officer && appState.officer.role) || loggedCfg.role || 'GDV';
@@ -14597,25 +15113,22 @@ function triggerLocalDraftAutosave() {
   }, 1500);
 }
 
-// Lưu bản nháp vào LocalStorage an toàn
+// Lưu bản nháp gọn nhẹ (~30KB dạng Delta) vào IndexedDB & LocalStorage không chặn UI
 function saveLocalDraftToMachine() {
   if (!appState || !appState.officer) return;
   const offId = appState.officer.officerId || 'hoang';
   const q = appState.officer.quarter || 'Quý III';
   const y = appState.officer.year || 2026;
-  const draftKey = `KBXV_DRAFT_${offId}_${q}_${y}`;
+  const compactState = (typeof encodeSessionForTransfer === 'function')
+    ? encodeSessionForTransfer(appState)
+    : (() => { const c = { ...appState }; delete c.quartersData; return c; })();
   try {
-    const draftPayload = {
-      savedAt: new Date().toISOString(),
-      officerId: offId,
-      quarter: q,
-      year: y,
-      state: appState
-    };
-    localStorage.setItem(draftKey, JSON.stringify(draftPayload));
+    getKpiIndexedDB().then(db => {
+      if (db) saveSessionToIndexedDB(db, offId, q, y, compactState, false);
+    }).catch(() => {});
     updateAutosaveIndicator('🟢 Đã lưu tạm an toàn trên máy');
   } catch (e) {
-    console.warn('[AUTOSAVE] Không thể lưu draft vào localStorage:', e);
+    console.warn('[AUTOSAVE] Không thể lưu draft:', e);
   }
 }
 
