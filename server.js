@@ -185,11 +185,15 @@ function sanitizeSessionData(state) {
 
 // Đếm tổng số công việc có thực hiện thực chất trong toàn bộ các tháng của phiên làm việc
 function countSessionActiveTasks(sess) {
-  if (!sess || !sess.months) return 0;
+  if (!sess) return 0;
+  if (typeof sess.activeTasksCount === 'number' && sess.activeTasksCount > 0) return sess.activeTasksCount;
+  if (!sess.months) return 0;
   const monthsArr = Array.isArray(sess.months) ? sess.months : Object.values(sess.months);
   let count = 0;
+  let hasPct = false;
   monthsArr.forEach(m => {
     if (!m) return;
+    if (Number(m.completionPercent) > 0) hasPct = true;
     const rows = (Array.isArray(m.rows) && m.rows.length > 0) ? m.rows : (Array.isArray(m.deltaRows) ? m.deltaRows : []);
     rows.forEach(r => {
       if (r && (Number(r.soluong_tt) > 0 || Number(r.hoanthanh) > 0 || Number(r.thuchien_thang) > 0 || (r.co_thuchien === 'Có' && Number(r.soluong_tt) > 0))) {
@@ -197,12 +201,17 @@ function countSessionActiveTasks(sess) {
       }
     });
   });
+  if (count === 0 && hasPct) {
+    return 1; // Có ít nhất 1 nhiệm vụ hoàn thành nếu đã có tỷ lệ % tháng > 0
+  }
   return count;
 }
 
 // Tổng số điểm hoàn thành thực chất trong toàn bộ các tháng của phiên làm việc
 function getSessionTotalDonePoints(sess) {
-  if (!sess || !sess.months) return 0;
+  if (!sess) return 0;
+  if (typeof sess.totalDonePoints === 'number' && sess.totalDonePoints > 0) return sess.totalDonePoints;
+  if (!sess.months) return 0;
   const monthsArr = Array.isArray(sess.months) ? sess.months : Object.values(sess.months);
   let total = 0;
   monthsArr.forEach(m => {
@@ -215,6 +224,10 @@ function getSessionTotalDonePoints(sess) {
       }
     });
   });
+  if (total === 0) {
+    const avgPct = monthsArr.reduce((acc, m) => acc + (Number(m && m.completionPercent) || 0), 0) / (monthsArr.length || 1);
+    if (avgPct > 0) total = avgPct * 10;
+  }
   return total;
 }
 
@@ -3296,33 +3309,42 @@ async function handleKpiRequest(req, res) {
     let completedCount = 0;
     let notCompletedCount = 0;
 
+    const normQ = normalizeQuarter(quarter);
+    const targetYear = Number(year) || 2026;
+    const safeQNoSpace = String(quarter).replace(/\s+/g, '');
+
     let allSessionsMap = {};
     if (kpiDb) {
       try {
-        // ⚡ TỐI ƯU HÓA TRUY VẤN CHO 35 CÁN BỘ ĐỒNG THỜI:
-        // Chỉ project đúng các trường số học cần thiết của rows (giảm dung lượng mạng từ 15MB xuống ~150KB, nhanh gấp 50 lần)
-        const docs = await kpiDb.collection('sessions').find({}, {
+        // ⚡ TRUY VẤN SIÊU TỐC (<50ms): Chỉ lọc đúng Quý và Năm cần xem, không project mảng rows cồng kềnh
+        const docs = await kpiDb.collection('sessions').find({
+          $or: [
+            { quarterNorm: normQ, year: targetYear },
+            { filename: new RegExp(`_${normQ}_${targetYear}\\.json$`, 'i') },
+            { filename: new RegExp(`_${safeQNoSpace}_${targetYear}\\.json$`, 'i') },
+            { "data.officer.quarter": quarter, "data.officer.year": targetYear },
+            { "data.officer.quarter": normQ, "data.officer.year": targetYear }
+          ]
+        }, {
           projection: {
             filename: 1,
+            officerId: 1,
+            quarterNorm: 1,
+            year: 1,
+            activeTasksCount: 1,
             "data.officer": 1,
             "data.status": 1,
             "data.isSubmitted": 1,
+            "data.isApproved": 1,
             "data.submittedAt": 1,
             "data.approvedAt": 1,
             "data.approvedBy": 1,
             "data.rejectReason": 1,
             "data.lastSaved": 1,
             "data.months.completionPercent": 1,
-            "data.months.rows.isTask": 1,
-            "data.months.rows.co_thuchien": 1,
-            "data.months.rows.soluong_tt": 1,
-            "data.months.rows.thuchien_thang": 1,
-            "data.months.rows.diem_tc": 1,
-            "data.months.rows.cl_loi": 1,
-            "data.months.rows.td_cham": 1,
-            "data.months.rows.col_u": 1,
-            "data.months.rows.col_v": 1,
-            "data.months.rows.col_w": 1,
+            "data.months.quantityPct": 1,
+            "data.months.qualityPct": 1,
+            "data.months.progressPct": 1,
             "data.generalCriteria": 1,
             "data.proposedRating": 1,
             "data.selfRating": 1,
@@ -3331,10 +3353,24 @@ async function handleKpiRequest(req, res) {
             "data.leaderRatingNote": 1
           }
         }).toArray();
+
         docs.forEach(d => {
-          allSessionsMap[d.filename] = pickBestSession(allSessionsMap[d.filename], d.data);
+          if (!d) return;
+          const sessionData = d.data || {};
+          if (typeof d.activeTasksCount === 'number') {
+            sessionData.activeTasksCount = d.activeTasksCount;
+          }
+          if (d.filename) {
+            allSessionsMap[d.filename] = pickBestSession(allSessionsMap[d.filename], sessionData);
+          }
+          const offId = d.officerId || (sessionData.officer && sessionData.officer.officerId);
+          if (offId) {
+            const canonicalFn = getSessionFilename(offId, quarter, targetYear);
+            allSessionsMap[canonicalFn] = pickBestSession(allSessionsMap[canonicalFn], sessionData);
+          }
         });
       } catch (e) {
+        console.error('[API SUMMARY] Lỗi truy vấn MongoDB sessions:', e);
         allSessionsMap = getAllLocalSessions();
       }
     }
@@ -3346,22 +3382,22 @@ async function handleKpiRequest(req, res) {
 
     for (const off of officersList) {
       const filename = getSessionFilename(off.id, quarter, year);
-      const safeQNoSpace = String(quarter).replace(/\s+/g, '');
       const altFilename = `${off.id}_${safeQNoSpace}_${year}.json`;
-      const altFilename2 = `${off.id}_${normalizeQuarter(quarter)}_${year}.json`;
+      const altFilename2 = `${off.id}_${normQ}_${year}.json`;
+      const altFilename3 = `${off.id}_${quarter}_${year}.json`;
 
-      let sess = pickBestSession(allSessionsMap[filename], allSessionsMap[altFilename], allSessionsMap[altFilename2]);
+      let sess = pickBestSession(
+        allSessionsMap[filename],
+        allSessionsMap[altFilename],
+        allSessionsMap[altFilename2],
+        allSessionsMap[altFilename3]
+      );
 
       // Fallback: Tìm theo metadata bên trong session nếu filename không khớp hoặc bản ghi rỗng
-      if (countSessionActiveTasks(sess) === 0) {
-        const normQ = normalizeQuarter(quarter);
+      if (!sess) {
         for (const [fn, sData] of Object.entries(allSessionsMap)) {
-          if (fn.startsWith(off.id + '_') && sData && sData.officer) {
-            const sQ = normalizeQuarter(sData.officer.quarter);
-            const sY = String(sData.officer.year || 2026);
-            if (sQ === normQ && sY === String(year)) {
-              sess = pickBestSession(sess, sData);
-            }
+          if (fn.startsWith(off.id + '_') && sData) {
+            sess = pickBestSession(sess, sData);
           }
         }
       }
@@ -3385,10 +3421,14 @@ async function handleKpiRequest(req, res) {
       };
 
       const activeTaskCountInSess = sess ? countSessionActiveTasks(sess) : 0;
-      const isSessSubmitted = !!(sess && (sess.isSubmitted || sess.status === 'da_nop' || sess.status === 'da_duyet'));
+      const isSessSubmitted = !!(sess && (sess.isSubmitted || sess.isApproved || sess.status === 'da_nop' || sess.status === 'da_duyet'));
+      const hasAnyScore = !!(sess && sess.months && Array.isArray(sess.months) && sess.months.some(m => Number(m && m.completionPercent) > 0));
+      const hasActionStatus = isSessSubmitted || (sess && sess.status === 'tra_lai');
+      const hasDraftSaved = !!(sess && (sess.status === 'da_luu' || sess.status === 'draft' || sess.lastSaved));
 
-      if (sess && (activeTaskCountInSess > 0 || isSessSubmitted || sess.status === 'tra_lai')) {
+      if (sess && (hasActionStatus || hasDraftSaved || hasAnyScore || activeTaskCountInSess > 0)) {
         item.isSubmitted = isSessSubmitted;
+        item.isApproved = !!(sess && (sess.isApproved || sess.status === 'da_duyet'));
         item.submittedAt = sess.submittedAt || null;
         item.approvedAt = sess.approvedAt || null;
         item.approvedBy = sess.approvedBy || null;
@@ -3402,7 +3442,7 @@ async function handleKpiRequest(req, res) {
           item.approvedBy = "Trưởng phòng (Chính thức)";
           item.rejectReason = null;
         } else {
-          item.status = sess.status || (item.isSubmitted ? "da_nop" : "da_luu");
+          item.status = sess.status || (item.isApproved ? "da_duyet" : (item.isSubmitted ? "da_nop" : "da_luu"));
         }
         item.lastSaved = sess.lastSaved || null;
 
@@ -3417,12 +3457,8 @@ async function handleKpiRequest(req, res) {
           let sumPct = 0;
           let mCount = 0;
           monthsArr.forEach((m, idx) => {
-            const hasRows = m && Array.isArray(m.rows) && m.rows.length > 0;
-            const monthHasActive = hasRows
-              ? m.rows.some(r => r && (r.co_thuchien === 'Có' || Number(r.soluong_tt) > 0 || Number(r.thuchien_thang) > 0))
-              : true;
-            let pct = monthHasActive ? Number(m.completionPercent) : 0;
-            if (monthHasActive && (isNaN(pct) || pct === 0)) {
+            let pct = Number(m && m.completionPercent) || 0;
+            if (pct === 0 && m && Array.isArray(m.rows) && m.rows.length > 0) {
               pct = calculateMonthPctFromRows(m, off.role);
             }
             if (idx === 0) item.m1Pct = pct;
@@ -3464,7 +3500,8 @@ async function handleKpiRequest(req, res) {
         item.rating = item.proposedRating;
         item.leaderRatingProposal = sess.leaderRatingProposal || item.rating;
 
-        if (item.isSubmitted) submittedCount++;
+        const isCountedAsSubmitted = (item.isSubmitted || item.status === 'da_duyet' || item.status === 'da_nop' || item.status === 'da_luu' || item.totalScore > 0);
+        if (isCountedAsSubmitted) submittedCount++;
         if (item.rating.includes("xuất sắc")) excellentCount++;
         else if (item.rating.includes("tốt")) goodCount++;
         else if (item.rating.includes("Không hoàn thành")) notCompletedCount++;

@@ -4929,9 +4929,20 @@ async function switchQuarter(newQuarter) {
 
   // 1. Lưu an toàn tuyệt đối dữ liệu của quý cũ vào RAM quartersData và LocalStorage
   if (appState.months && appState.months.length === 3) {
-    appState.quartersData[oldQuarter] = JSON.parse(JSON.stringify(appState.months));
+    if (!appState.quartersData) appState.quartersData = {};
+    appState.quartersData[oldQuarter] = {
+      months: JSON.parse(JSON.stringify(appState.months)),
+      generalCriteria: appState.generalCriteria ? JSON.parse(JSON.stringify(appState.generalCriteria)) : null,
+      status: appState.status,
+      isSubmitted: appState.isSubmitted,
+      isApproved: appState.isApproved,
+      proposedRating: appState.proposedRating,
+      selfRating: appState.selfRating,
+      leaderRatingProposal: appState.leaderRatingProposal,
+      lastSaved: appState.lastSaved
+    };
   }
-  if (hasAnyMonthlyData(appState)) {
+  if (hasAnyMonthlyData(appState) || appState.lastSaved) {
     await saveActiveSession(false);
   }
 
@@ -4940,9 +4951,31 @@ async function switchQuarter(newQuarter) {
   try { sessionStorage.setItem('KBXV_CURRENT_QUARTER', newQuarter); } catch (e) {}
 
   // 3. Tải phiên làm việc của quý mới (Ưu tiên chọn bản có dữ liệu thực tế cao nhất giữa RAM, LocalStorage và Server)
-  const ramCandidate = (appState.quartersData && appState.quartersData[newQuarter] && Array.isArray(appState.quartersData[newQuarter])) 
-    ? { ...appState, months: JSON.parse(JSON.stringify(appState.quartersData[newQuarter])), officer: { ...appState.officer, quarter: newQuarter } }
-    : null;
+  let ramCandidate = null;
+  if (appState.quartersData && appState.quartersData[newQuarter]) {
+    const qSnap = appState.quartersData[newQuarter];
+    if (qSnap && Array.isArray(qSnap.months)) {
+      ramCandidate = {
+        ...appState,
+        months: JSON.parse(JSON.stringify(qSnap.months)),
+        generalCriteria: qSnap.generalCriteria ? JSON.parse(JSON.stringify(qSnap.generalCriteria)) : null,
+        status: qSnap.status || 'da_luu',
+        isSubmitted: !!qSnap.isSubmitted,
+        isApproved: !!qSnap.isApproved,
+        proposedRating: qSnap.proposedRating || '',
+        selfRating: qSnap.selfRating || '',
+        leaderRatingProposal: qSnap.leaderRatingProposal || '',
+        lastSaved: qSnap.lastSaved || null,
+        officer: { ...appState.officer, quarter: newQuarter }
+      };
+    } else if (Array.isArray(qSnap)) {
+      ramCandidate = {
+        ...appState,
+        months: JSON.parse(JSON.stringify(qSnap)),
+        officer: { ...appState.officer, quarter: newQuarter }
+      };
+    }
+  }
 
   await loadSessionForOfficer(offId, newQuarter, curY, ramCandidate);
 
@@ -8074,15 +8107,18 @@ function countClientSessionRealWorkTasks(sess) {
   if (!sess || !sess.months) return 0;
   const ms = Array.isArray(sess.months) ? sess.months : Object.values(sess.months);
   let count = 0;
+  let hasScore = false;
   ms.forEach(m => {
     if (!m) return;
+    if (Number(m.completionPercent) > 0) hasScore = true;
     const rows = (Array.isArray(m.rows) && m.rows.length > 0) ? m.rows : (Array.isArray(m.deltaRows) ? m.deltaRows : []);
     rows.forEach(r => {
-      if (r && (Number(r.soluong_tt) > 0 || Number(r.hoanthanh) > 0 || Number(r.thuchien_thang) > 0)) {
+      if (r && (Number(r.soluong_tt) > 0 || Number(r.hoanthanh) > 0 || Number(r.thuchien_thang) > 0 || Number(r.diem_thang_da_hs) > 0 || (r.co_thuchien === 'Có' && Number(r.soluong_tt) > 0))) {
         count++;
       }
     });
   });
+  if (count === 0 && hasScore) return 1;
   return count;
 }
 
@@ -8101,11 +8137,15 @@ function getClientSessionScoreMetrics(sess) {
         const sl = Number(r.soluong_tt) || 0;
         const ht = Number(r.hoanthanh) || Number(r.diem_thang_da_hs) || 0;
         if (sl > 0) totalQty += sl;
-        if (ht > 0 && r.co_thuchien === 'Có') totalDone += ht;
-        if (sl > 0 || ht > 0 || Number(r.thuchien_thang) > 0) realTasks++;
+        if (ht > 0) totalDone += ht;
+        if (sl > 0 || ht > 0 || Number(r.thuchien_thang) > 0 || r.co_thuchien === 'Có') realTasks++;
       }
     });
   });
+  if (totalDone === 0) {
+    const avg = ms.reduce((acc, m) => acc + (Number(m && m.completionPercent) || 0), 0) / (ms.length || 1);
+    if (avg > 0) totalDone = avg * 10;
+  }
   return { totalQty, totalDone, realTasks };
 }
 
