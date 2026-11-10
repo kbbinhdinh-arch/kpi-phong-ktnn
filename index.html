@@ -8370,11 +8370,19 @@ function triggerImportPersonalBackup() {
 // Tao Storage Key duy nhat theo can bo, quy va nam
 function normalizeQuarter(qStr) {
   if (!qStr) return 'QuyIII';
-  const s = String(qStr).toLowerCase().replace(/\s+/g, '');
-  if (s.includes('iv') || s.includes('4')) return 'QuyIV';
-  if (s.includes('iii') || s.includes('3')) return 'QuyIII';
-  if (s.includes('ii') || s.includes('2')) return 'QuyII';
-  if (s.includes('i') || s.includes('1')) return 'QuyI';
+  let raw = String(qStr).trim();
+  const fnMatch = raw.match(/(?:^|_)(qu[yý]\s*(?:iv|iii|ii|i|[1-4]))(?:_|\.|$)/i);
+  if (fnMatch) raw = fnMatch[1];
+  const s = raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+  const qToken = s.replace(/^quy/, '').replace(/^q/, '');
+  if (qToken === 'iv' || qToken === '4') return 'QuyIV';
+  if (qToken === 'iii' || qToken === '3') return 'QuyIII';
+  if (qToken === 'ii' || qToken === '2') return 'QuyII';
+  if (qToken === 'i' || qToken === '1') return 'QuyI';
+  if (/\b(?:iv|4)\b/i.test(raw)) return 'QuyIV';
+  if (/\b(?:iii|3)\b/i.test(raw)) return 'QuyIII';
+  if (/\b(?:ii|2)\b/i.test(raw)) return 'QuyII';
+  if (/\b(?:i|1)\b/i.test(raw)) return 'QuyI';
   return 'QuyIII';
 }
 
@@ -8564,7 +8572,10 @@ async function loadSessionForOfficer(officerId, quarter, year, ramCandidate = nu
           // Bản local máy trạm có dữ liệu đầy đủ hơn Server -> BẢO VỆ TUYỆT ĐỐI BẢN LOCAL & đồng bộ ngầm lên Server
           console.log('[CACHE-PROTECT] Bản máy trạm đầy đủ hơn Server, bảo vệ và đồng bộ ngược lên Server:', storageKey);
           if (typeof saveActiveSession === 'function') {
-            saveActiveSession(false, { backgroundCloud: true });
+            saveActiveSession(false, {
+              backgroundCloud: true,
+              recoverMissingOnCloud: !!(json && json.isNew && bestLocal && bestLocal.status === 'da_nop' && bestLocal.submittedAt)
+            });
           }
           return;
         }
@@ -8739,11 +8750,12 @@ let _isSyncingToServer = false;
 
 async function saveActiveSession(showNotification = true, options = {}) {
   const backgroundCloud = !!(options && options.backgroundCloud);
+  const recoverMissingOnCloud = !!(options && options.recoverMissingOnCloud);
   if (!appState || !appState.officer) return;
   const isLocked = (appState.status === 'da_nop' || appState.status === 'da_duyet');
   const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || 'hoang';
   const isLeader = (loggedUser === 'son' || loggedUser === 'hoang' || loggedUser === 'tuan' || loggedUser === 'anh');
-  if (isLocked && !isLeader) {
+  if (isLocked && !isLeader && !recoverMissingOnCloud) {
     if (showNotification) showToast('🔒 Báo cáo đã nộp hoặc đã được phê duyệt! Bảng tính đang bị khóa để bảo toàn số liệu.', 4000);
     return;
   }
@@ -8885,6 +8897,7 @@ async function saveActiveSession(showNotification = true, options = {}) {
           officerId: offId,
           quarter: q,
           year: y,
+          action: recoverMissingOnCloud ? 'recover_submitted' : undefined,
           state: statePayload
         })
       });
@@ -9084,7 +9097,7 @@ async function loadDepartmentSummary(showNotification = false, forceRefresh = fa
     updateDeptFilterCounters(currentDeptSummaryData);
 
     const now = Date.now();
-    if (now - _lastDeptSummaryFetchTime < 20000 && !showNotification) {
+    if (now - _lastDeptSummaryFetchTime < 3000 && !showNotification) {
       return;
     }
   } else {
@@ -9114,7 +9127,7 @@ async function loadDepartmentSummary(showNotification = false, forceRefresh = fa
   let stats = null;
 
   try {
-    const refreshParam = (forceRefresh || isQuarterChanged) ? '&refresh=1' : '';
+    const refreshParam = '&refresh=1';
     const res = await fetch(`${CURRENT_SERVER_HOST}/api/summary?quarter=${encodeURIComponent(curQ)}&year=${encodeURIComponent(curY)}${refreshParam}`, { cache: 'no-cache' });
     if (res.ok) {
       const json = await res.json();
@@ -12203,7 +12216,7 @@ function updateUserInterfaceByRole() {
   const normQ = (typeof normalizeQuarter === 'function') ? normalizeQuarter(curQ) : String(curQ || '').toLowerCase().replace(/[\s_]/g, '');
   const isQ3 = (normQ === 'QuyIII' || normQ === 'quyiii' || normQ.includes('iii') || normQ.includes('3'));
   if (!isQ3) {
-    if (appState.status === 'da_nop' || appState.status === 'da_duyet' || appState.isSubmitted || (appState.submittedAt && String(appState.submittedAt).includes('2026-09'))) {
+    if ((appState.submittedAt && String(appState.submittedAt).includes('2026-09')) || (appState.approvedAt && String(appState.approvedAt).includes('2026-09'))) {
       console.warn('[SELF-HEAL UI] Phát hiện rò rỉ trạng thái nộp Quý III sang ' + curQ + ', đưa về chế độ soạn thảo.');
       appState.status = 'draft';
       appState.isSubmitted = false;

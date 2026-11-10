@@ -1001,14 +1001,36 @@ async function getOfficersConfig() {
   return {};
 }
 
+function extractQuarterFromFilename(fn) {
+  if (!fn) return null;
+  const m = String(fn).match(/_(qu[yý]\s*(?:iv|iii|ii|i|[1-4]))_\d{4}\.json$/i);
+  if (!m) return null;
+  return normalizeQuarter(m[1]);
+}
+
 function normalizeQuarter(qStr) {
   if (!qStr) return 'QuyIII';
-  const s = String(qStr).toLowerCase().replace(/\s+/g, '');
-  if (s.includes('iv') || s.includes('4')) return 'QuyIV';
-  if (s.includes('iii') || s.includes('3')) return 'QuyIII';
-  if (s.includes('ii') || s.includes('2')) return 'QuyII';
-  if (s.includes('i') || s.includes('1')) return 'QuyI';
+  let raw = String(qStr).trim();
+  const fnMatch = raw.match(/(?:^|_)(qu[yý]\s*(?:iv|iii|ii|i|[1-4]))(?:_|\.|$)/i);
+  if (fnMatch) raw = fnMatch[1];
+  const s = raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+  const qToken = s.replace(/^quy/, '').replace(/^q/, '');
+  if (qToken === 'iv' || qToken === '4') return 'QuyIV';
+  if (qToken === 'iii' || qToken === '3') return 'QuyIII';
+  if (qToken === 'ii' || qToken === '2') return 'QuyII';
+  if (qToken === 'i' || qToken === '1') return 'QuyI';
+  if (/\b(?:iv|4)\b/i.test(raw)) return 'QuyIV';
+  if (/\b(?:iii|3)\b/i.test(raw)) return 'QuyIII';
+  if (/\b(?:ii|2)\b/i.test(raw)) return 'QuyII';
+  if (/\b(?:i|1)\b/i.test(raw)) return 'QuyI';
   return 'QuyIII';
+}
+
+function quarterNormToLabel(qNorm) {
+  if (qNorm === 'QuyI') return 'Quý I';
+  if (qNorm === 'QuyII') return 'Quý II';
+  if (qNorm === 'QuyIV') return 'Quý IV';
+  return 'Quý III';
 }
 
 function getSessionFilename(officerId, quarter, year) {
@@ -1016,6 +1038,22 @@ function getSessionFilename(officerId, quarter, year) {
   const safeQ = normalizeQuarter(quarter);
   const safeY = String(year || 2026).replace(/[^0-9]/g, '');
   return `${safeOfficer}_${safeQ}_${safeY}.json`;
+}
+
+function getSameQuarterAltFilenames(officerId, quarter, year) {
+  const filename = getSessionFilename(officerId, quarter, year);
+  const targetNormQ = normalizeQuarter(quarter);
+  const qLabel = quarterNormToLabel(targetNormQ);
+  const qNoSpaceUnicode = qLabel.replace(/\s+/g, '');
+  const safeQNoSpace = String(quarter || '').replace(/\s+/g, '');
+  const yearNum = Number(year) || 2026;
+  return Array.from(new Set([
+    filename.includes('Quy') ? filename.replace(/Quy/g, 'Quý') : filename.replace(/Quý/g, 'Quy'),
+    `${officerId}_${qNoSpaceUnicode}_${yearNum}.json`,
+    `${officerId}_${qLabel}_${yearNum}.json`,
+    `${officerId}_${safeQNoSpace}_${yearNum}.json`,
+    `${officerId}_${targetNormQ}_${yearNum}.json`
+  ].filter(fn => fn && fn !== filename && extractQuarterFromFilename(fn) === targetNormQ)));
 }
 
 // HTML Cache RAM & Gzip
@@ -2019,7 +2057,8 @@ async function handleKpiRequest(req, res) {
     if (kpiDb) {
       try {
         // 1. Truy vấn chuẩn theo Index { filename: 1 } (tránh COLLSCAN 80MB của nhánh $or không index)
-        let docs = await querySessionDocs({ filename: { $in: [filename, altFilename] } });
+        const sameQuarterFns = [filename, ...getSameQuarterAltFilenames(officerId, quarter, year)];
+        let docs = await querySessionDocs({ filename: { $in: sameQuarterFns } });
         // 2. Fallback theo Compound Index { officerId: 1, quarterNorm: 1, year: 1 }
         if (!docs || docs.length === 0) {
           docs = await querySessionDocs({ officerId, quarterNorm: normQ, year: yNum });
@@ -2034,6 +2073,8 @@ async function handleKpiRequest(req, res) {
         }
         for (const d of docs) {
           if (d && d.data) {
+            const fnQ = extractQuarterFromFilename(d.filename);
+            if (fnQ && fnQ !== normQ) continue;
             if (typeof d.activeTasksCount === 'number' && !d.data.activeTasksCount) {
               d.data.activeTasksCount = d.activeTasksCount;
             }
@@ -2135,10 +2176,13 @@ async function handleKpiRequest(req, res) {
               }
             };
             const docs = await kpiDb.collection('sessions').find({
-              filename: { $in: [filename, altFilename] }
+              filename: { $in: [filename, ...getSameQuarterAltFilenames(officerId, quarter, year)] }
             }, findOpts).toArray();
+            const targetNormSave = normalizeQuarter(quarter);
             for (const d of docs) {
               if (d && d.data) {
+                const fnQ = extractQuarterFromFilename(d.filename);
+                if (fnQ && fnQ !== targetNormSave) continue;
                 if (typeof d.activeTasksCount === 'number') d.data.activeTasksCount = d.activeTasksCount;
                 if (typeof d.totalDonePoints === 'number') d.data.totalDonePoints = d.totalDonePoints;
                 existingSession = pickBestSession(existingSession, d.data);
@@ -2209,7 +2253,8 @@ async function handleKpiRequest(req, res) {
         // TUYỆT ĐỐI KHÔNG ĐƯỢC gán trạng thái 'da_nop' (tránh rò rỉ cờ isSubmitted từ phiên cũ).
         // Chỉ có thao tác nộp bài chính thức (/api/session/submit hoặc action: 'submit') mới được mang trạng thái 'da_nop'.
         const isOfficiallySubmitted = existingSession && (existingSession.isSubmitted || existingSession.status === 'da_nop' || existingSession.status === 'da_duyet');
-        if (!isOfficiallySubmitted && payload.action !== 'submit') {
+        const canRecoverSubmittedFromClient = !existingSession && payload.action === 'recover_submitted' && countIncomingActive > 0 && cleanState.status === 'da_nop' && cleanState.submittedAt;
+        if (!isOfficiallySubmitted && payload.action !== 'submit' && !canRecoverSubmittedFromClient) {
           if (existingSession && existingSession.status === 'tra_lai') {
             cleanState.status = 'tra_lai';
             cleanState.rejectedAt = existingSession.rejectedAt;
@@ -2220,6 +2265,10 @@ async function handleKpiRequest(req, res) {
           }
           cleanState.isSubmitted = false;
           cleanState.submittedAt = null;
+        } else if (canRecoverSubmittedFromClient) {
+          cleanState.status = 'da_nop';
+          cleanState.isSubmitted = true;
+          cleanState.isApproved = false;
         } else if (isOfficiallySubmitted && payload.action !== 'submit' && (cleanState.status === 'da_luu' || cleanState.status === 'draft')) {
           // Bảo vệ trạng thái đã nộp / đã duyệt: không để autosave 'da_luu' hạ cấp ngược trạng thái (chỉ mở khóa qua /api/session/reject)
           cleanState.status = existingSession.status;
@@ -2338,20 +2387,7 @@ async function handleKpiRequest(req, res) {
 
         const filename = getSessionFilename(officerId, quarter, year);
         const targetNormQ = normalizeQuarter(quarter);
-        const safeQNoSpace = String(quarter).replace(/\s+/g, '');
-        const altFilenames = Array.from(new Set([
-          filename.includes('Quy') ? filename.replace(/Quy/g, 'Quý') : filename.replace(/Quý/g, 'Quy'),
-          `${officerId}_${safeQNoSpace}_${year}.json`,
-          `${officerId}_${targetNormQ}_${year}.json`,
-          `${officerId}_QuýIII_${year}.json`,
-          `${officerId}_QuyIII_${year}.json`,
-          `${officerId}_QuýII_${year}.json`,
-          `${officerId}_QuyII_${year}.json`,
-          `${officerId}_QuýI_${year}.json`,
-          `${officerId}_QuyI_${year}.json`,
-          `${officerId}_QuýIV_${year}.json`,
-          `${officerId}_QuyIV_${year}.json`
-        ].filter(fn => fn && fn !== filename && normalizeQuarter(fn) === targetNormQ)));
+        const altFilenames = getSameQuarterAltFilenames(officerId, quarter, year);
         const submitTime = new Date().toISOString();
         let targetState = state ? sanitizeSessionData(state) : null;
 
@@ -2475,21 +2511,8 @@ async function handleKpiRequest(req, res) {
   async function patchSessionStatusAtomic({ officerId, quarter, year, setDocFields, setDataFields }) {
     const filename = getSessionFilename(officerId, quarter, year);
     const targetNormQ = normalizeQuarter(quarter);
-    const safeQNoSpace = String(quarter || '').replace(/\s+/g, '');
     const yearNum = Number(year) || 2026;
-    const altFilenames = Array.from(new Set([
-      filename.includes('Quy') ? filename.replace(/Quy/g, 'Quý') : filename.replace(/Quý/g, 'Quy'),
-      `${officerId}_${safeQNoSpace}_${yearNum}.json`,
-      `${officerId}_${targetNormQ}_${yearNum}.json`,
-      `${officerId}_QuýIII_${yearNum}.json`,
-      `${officerId}_QuyIII_${yearNum}.json`,
-      `${officerId}_QuýII_${yearNum}.json`,
-      `${officerId}_QuyII_${yearNum}.json`,
-      `${officerId}_QuýI_${yearNum}.json`,
-      `${officerId}_QuyI_${yearNum}.json`,
-      `${officerId}_QuýIV_${yearNum}.json`,
-      `${officerId}_QuyIV_${yearNum}.json`
-    ].filter(fn => fn && fn !== filename && normalizeQuarter(fn) === targetNormQ)));
+    const altFilenames = getSameQuarterAltFilenames(officerId, quarter, year);
 
     const queryFilenames = [filename, ...altFilenames];
     const nowIso = setDocFields.updatedAt || new Date().toISOString();
@@ -2514,7 +2537,11 @@ async function handleKpiRequest(req, res) {
       };
       let docs = await sessionsCol.find({ filename: { $in: queryFilenames } }, { projection: lightProjection }).toArray();
       if (!docs || docs.length === 0) {
-        docs = await sessionsCol.find({ officerId, quarterNorm: targetNormQ, year: yearNum }, { projection: lightProjection }).toArray();
+        const fbDocs = await sessionsCol.find({ officerId, quarterNorm: targetNormQ, year: yearNum }, { projection: lightProjection }).toArray();
+        docs = (fbDocs || []).filter(d => {
+          const fnQ = extractQuarterFromFilename(d && d.filename);
+          return !fnQ || fnQ === targetNormQ;
+        });
       }
 
       if (docs && docs.length > 0) {
@@ -2550,7 +2577,11 @@ async function handleKpiRequest(req, res) {
         });
 
         if (docs.length > 1) {
-          const loserIds = docs.filter(d => String(d._id) !== String(bestDoc._id)).map(d => d._id);
+          const loserIds = docs.filter(d => {
+            if (String(d._id) === String(bestDoc._id)) return false;
+            const fnQ = extractQuarterFromFilename(d && d.filename);
+            return fnQ === targetNormQ;
+          }).map(d => d._id);
           if (loserIds.length > 0) {
             sessionsCol.deleteMany({ _id: { $in: loserIds } }).catch(() => {});
           }
@@ -3422,9 +3453,9 @@ async function handleKpiRequest(req, res) {
         const sDocs = await kpiDb.collection('sessions').find({}, {
           projection: {
             _id: 1, filename: 1, officerId: 1, quarterNorm: 1, year: 1, activeTasksCount: 1, totalDonePoints: 1, updatedAt: 1,
-            "data.status": 1, "data.isSubmitted": 1, "data.isApproved": 1, "data.submittedAt": 1, "data.lastSaved": 1,
+            "data.status": 1, "data.isSubmitted": 1, "data.isApproved": 1, "data.submittedAt": 1, "data.approvedAt": 1, "data.approvedBy": 1, "data.lastSaved": 1,
             "data.officer.officerId": 1, "data.officer.quarter": 1, "data.officer.year": 1,
-            "data.months.completionPercent": 1, "data.generalCriteria": 1
+            "data.months.completionPercent": 1, "data.months.name": 1, "data.generalCriteria": 1
           }
         }).toArray();
         const snDocs = await kpiDb.collection('session_snapshots').find({}, {
@@ -3439,12 +3470,18 @@ async function handleKpiRequest(req, res) {
             filename: d.filename,
             officerId: d.officerId || (d.data && d.data.officer && d.data.officer.officerId),
             quarterNorm: d.quarterNorm,
+            officerQuarter: d.data && d.data.officer && d.data.officer.quarter,
             year: d.year,
             status: d.data && d.data.status,
             isSubmitted: d.data && d.data.isSubmitted,
+            isApproved: d.data && d.data.isApproved,
             submittedAt: d.data && d.data.submittedAt,
+            approvedAt: d.data && d.data.approvedAt,
+            approvedBy: d.data && d.data.approvedBy,
             lastSaved: d.data && d.data.lastSaved,
+            monthNames: d.data && Array.isArray(d.data.months) ? d.data.months.map(m => m && m.name) : null,
             pcts: d.data && Array.isArray(d.data.months) ? d.data.months.map(m => m && m.completionPercent) : null,
+            generalCriteria: d.data && d.data.generalCriteria,
             activeTasksCount: d.activeTasksCount
           })),
           snapshots: snDocs.map(s => ({
@@ -3660,6 +3697,119 @@ async function handleKpiRequest(req, res) {
     }
   }
 
+  // --- API Rà soát & Chuẩn hóa Metadata Toàn bộ Hồ sơ (KHÔNG XÓA DỮ LIỆU CÔNG VIỆC) ---
+  if (pathname === '/api/admin/audit-repair' && (req.method === 'POST' || req.method === 'GET')) {
+    const payload = (req.method === 'POST') ? await parseJsonBody(req) : {};
+    const adminOfficerId = searchParams.get('adminOfficerId') || payload.adminOfficerId;
+    if (adminOfficerId !== 'hoang') {
+      return sendJson(res, 403, { success: false, error: "Chỉ quản trị viên (Hoàng) mới có quyền thực hiện!" });
+    }
+    if (!kpiDb) {
+      return sendJson(res, 500, { success: false, error: "Chưa kết nối CSDL MongoDB" });
+    }
+    try {
+      const mode = searchParams.get('mode') || payload.mode || 'audit';
+      const customFixes = Array.isArray(payload.fixes) ? payload.fixes : [];
+      const sessionsCol = kpiDb.collection('sessions');
+      const allDocs = await sessionsCol.find({}, {
+        projection: {
+          _id: 1, filename: 1, officerId: 1, quarterNorm: 1, year: 1, activeTasksCount: 1, totalDonePoints: 1, updatedAt: 1,
+          "data.officer": 1, "data.status": 1, "data.isSubmitted": 1, "data.isApproved": 1,
+          "data.submittedAt": 1, "data.approvedAt": 1, "data.approvedBy": 1, "data.lastSaved": 1,
+          "data.months.name": 1, "data.months.completionPercent": 1, "data.months.deltaRows": 1,
+          "data.months.rows.co_thuchien": 1, "data.months.rows.soluong_tt": 1, "data.months.rows.cl_loi": 1, "data.months.rows.td_cham": 1
+        }
+      }).toArray();
+
+      const anomalies = [];
+      const repaired = [];
+      const expectedFirstMonthByQ = { QuyI: 'Tháng 1', QuyII: 'Tháng 4', QuyIII: 'Tháng 7', QuyIV: 'Tháng 10' };
+
+      for (const doc of allDocs) {
+        const fn = doc.filename || '';
+        const fnMatch = fn.match(/^(.+?)_(qu[yý]\s*(?:iv|iii|ii|i|[1-4]))_(\d{4})\.json$/i);
+        if (!fnMatch) continue;
+        const parsedOffId = fnMatch[1];
+        const parsedNormQ = normalizeQuarter(fnMatch[2]);
+        const parsedYear = Number(fnMatch[3]) || 2026;
+        const parsedLabelQ = quarterNormToLabel(parsedNormQ);
+
+        const d = doc.data || {};
+        const curOffQ = d.officer && d.officer.quarter;
+        const curNormQ = doc.quarterNorm;
+        const mArr = Array.isArray(d.months) ? d.months : (d.months ? Object.values(d.months) : []);
+        const firstMonthName = mArr[0] && mArr[0].name ? String(mArr[0].name) : '';
+        const expectedM1Prefix = expectedFirstMonthByQ[parsedNormQ] || '';
+        const monthsMatchFn = !firstMonthName || firstMonthName.startsWith(expectedM1Prefix);
+
+        const customFix = customFixes.find(f => f && f.filename === fn);
+        const needsIndexSync = (
+          doc.officerId !== parsedOffId ||
+          curNormQ !== parsedNormQ ||
+          Number(doc.year) !== parsedYear ||
+          !curOffQ || normalizeQuarter(curOffQ) !== parsedNormQ ||
+          typeof doc.activeTasksCount !== 'number'
+        );
+
+        if (curNormQ && curNormQ !== parsedNormQ || (curOffQ && normalizeQuarter(curOffQ) !== parsedNormQ) || !monthsMatchFn || customFix) {
+          anomalies.push({
+            filename: fn,
+            curNormQ,
+            expectedNormQ: parsedNormQ,
+            curOffQ,
+            firstMonthName,
+            monthsMatchFn,
+            status: d.status,
+            approvedAt: d.approvedAt,
+            lastSaved: d.lastSaved
+          });
+        }
+
+        if (mode === 'repair' && (needsIndexSync || customFix)) {
+          const updateSet = {
+            officerId: parsedOffId,
+            quarterNorm: parsedNormQ,
+            year: parsedYear
+          };
+          if (typeof doc.activeTasksCount !== 'number') {
+            updateSet.activeTasksCount = countSessionActiveTasks(d);
+          }
+          if (typeof doc.totalDonePoints !== 'number') {
+            updateSet.totalDonePoints = getSessionTotalDonePoints(d);
+          }
+          if (monthsMatchFn) {
+            updateSet['data.officer.officerId'] = parsedOffId;
+            updateSet['data.officer.quarter'] = parsedLabelQ;
+            updateSet['data.officer.year'] = parsedYear;
+          }
+          if (customFix && customFix.setFields && typeof customFix.setFields === 'object') {
+            for (const [k, v] of Object.entries(customFix.setFields)) {
+              updateSet[k] = v;
+            }
+          }
+          await sessionsCol.updateOne({ _id: doc._id }, { $set: updateSet });
+          repaired.push({ filename: fn, updatedKeys: Object.keys(updateSet) });
+        }
+      }
+
+      if (mode === 'repair' && repaired.length > 0) {
+        invalidateSummaryCache();
+      }
+
+      return sendJson(res, 200, {
+        success: true,
+        mode,
+        totalScanned: allDocs.length,
+        anomaliesCount: anomalies.length,
+        anomalies,
+        repairedCount: repaired.length,
+        repaired
+      });
+    } catch (err) {
+      return sendJson(res, 500, { success: false, error: err.message });
+    }
+  }
+
   // --- API Chuẩn hóa Chức danh trên Cloud (Thủ kho tiền: Thu Trang, GDV: Lệ Thủy) ---
   if (pathname === '/api/sync-roles' && (req.method === 'GET' || req.method === 'POST')) {
     await syncOfficerRolesMigration();
@@ -3676,7 +3826,7 @@ async function handleKpiRequest(req, res) {
     const cacheKey = `${quarter}_${year}`;
     const forceRefresh = (searchParams.get('refresh') === '1' || searchParams.get('refresh') === 'true');
 
-    if (!forceRefresh && summaryCache[cacheKey] && (Date.now() - summaryCache[cacheKey].timestamp < 60000)) {
+    if (!process.env.VERCEL && !forceRefresh && summaryCache[cacheKey] && (Date.now() - summaryCache[cacheKey].timestamp < 60000)) {
       return sendJson(res, 200, summaryCache[cacheKey].data);
     }
 
@@ -3737,9 +3887,12 @@ async function handleKpiRequest(req, res) {
 
         docs.forEach(d => {
           if (!d) return;
-          // Chống rò rỉ dữ liệu chéo Quý: nếu document đã gắn rõ quarterNorm khác với Quý đang xem thì bỏ qua
-          if (d.quarterNorm && normalizeQuarter(d.quarterNorm) !== normQ) return;
+          // Chống rò rỉ dữ liệu chéo Quý: kiểm tra cả quarter trong filename lẫn quarterNorm
+          const fnQ = extractQuarterFromFilename(d.filename);
+          if (fnQ && fnQ !== normQ) return;
+          if (!fnQ && d.quarterNorm && normalizeQuarter(d.quarterNorm) !== normQ) return;
           const sessionData = d.data || {};
+          if (!fnQ && !d.quarterNorm && sessionData.officer && sessionData.officer.quarter && normalizeQuarter(sessionData.officer.quarter) !== normQ) return;
           if (typeof d.activeTasksCount === 'number') {
             sessionData.activeTasksCount = d.activeTasksCount;
           }
