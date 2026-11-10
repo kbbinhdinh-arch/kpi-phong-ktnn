@@ -629,18 +629,15 @@ async function executeMongoWriteWithQuotaShield(writeFn) {
   }
 }
 
-// ⚡ Đảm bảo kết nối MongoDB trong môi trường Serverless (Vercel) trước khi xử lý request
+// ⚡ Đảm bảo kết nối MongoDB trong môi trường Serverless (Vercel) trước khi xử lý request (<150ms Cold Start)
 let mongoConnectingPromise = null;
 async function ensureMongoConnected() {
   if (kpiDb) {
     return kpiDb;
   }
   if (!mongoConnectingPromise) {
-    mongoConnectingPromise = connectMongo().then(async () => {
+    mongoConnectingPromise = connectMongo().then(() => {
       mongoConnectingPromise = null;
-      if (kpiDb) {
-        await autoHealMongoStorageQuota();
-      }
       return kpiDb;
     }).catch(err => {
       mongoConnectingPromise = null;

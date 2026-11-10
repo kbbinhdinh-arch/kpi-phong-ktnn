@@ -4630,62 +4630,55 @@ function verifyAuthorIntegrity() {
   }
 }
 
-// Initialize State on Load
+// Initialize State on Load - TỐC ĐỘ PHẢN HỒI 0MS (INSTANT ZERO-WAIT FIRST PAINT)
 window.addEventListener('DOMContentLoaded', async () => {
-  // 0. Khoi tao CSDL cuc bo IndexedDB & Di tru du lieu an toan tu dong
-  try {
-    await getKpiIndexedDB();
-  } catch (err) {
-    console.warn("[IndexedDB] Khoi tao IDB loi:", err);
-  }
-
-  // 0.1 Kiem tra ban quyen & Khoa thiet bi goc
-  await checkLicenseAndMachineLock();
-
-  // 1. Kiem tra ket noi Server Host & Nap cau hinh can bo tu server
-  await checkServerStatus(false);
-  await loadServerOfficersConfig();
-
-  // 2. Kiem tra trang thai dang nhap
+  // 1. TỨC THÌ 0MS: Nạp bản đệm máy trạm và vẽ toàn bộ giao diện ngay lập tức
+  loadSavedState();
   const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN');
   const loggedQ = sessionStorage.getItem('KBXV_CURRENT_QUARTER') || (appState.officer && appState.officer.quarter) || 'Quý III';
   const loggedY = Number(sessionStorage.getItem('KBXV_CURRENT_YEAR')) || (appState.officer && appState.officer.year) || 2026;
 
   if (!loggedUser) {
-    // Chua dang nhap -> Mo man hinh dang nhap bat buoc truoc khi vao app
     openLoginModal();
-    // Khoi tao du lieu ngam cho can bo mac dinh de phong
-    await loadSessionForOfficer('hoang', loggedQ, loggedY);
   } else {
-    // Da co session dang nhap
-    await loadSessionForOfficer(loggedUser, loggedQ, loggedY);
     closeLoginModal();
     if (loggedUser !== 'hoang' && loggedUser !== 'son') {
       switchAppTab('tab-monthly');
     }
   }
 
-  updateUserInterfaceByRole();
-
-  // 4. Dong bo cac thanh phan
+  // Khởi tạo và hiển thị cấu trúc ngay tại chỗ (0ms không chờ mạng)
   syncTemplateStructureToMonths();
   cleanCorruptedTasksFromPlan();
-  renderPlanTable();
   initMonthsDataIfEmpty();
   initPlanDataIfEmpty();
-
   initEventListeners();
+  updateUserInterfaceByRole();
   renderAll();
+  renderPlanTable();
   renderGeneralCatalog();
   renderDetailedCatalog();
-
-  // 5. Khoi tao thong tin GDV & Tab Tong hop
   updateManagedUnitsStrip();
   updateDeptTabVisibility();
-  // 5.1 Tải ngầm trước dữ liệu Bảng Tổng hợp Toàn phòng (Preload Background) để bấm mở tab là hiển thị ngay 0s
-  preloadDepartmentSummary();
 
-  // 6. Lang nghe phim tat F9 de luu phien
+  // 2. CHẠY NGẦM SONG SONG BẤT ĐỒNG BỘ (NON-BLOCKING BACKGROUND SYNC)
+  setTimeout(() => {
+    // 2.1 Mở kết nối IndexedDB và đồng bộ dữ liệu an toàn chạy ngầm
+    getKpiIndexedDB().catch(e => console.warn("[IndexedDB] Init error:", e));
+
+    // 2.2 Đồng bộ bản quyền, máy chủ và cấu hình cán bộ song song
+    Promise.allSettled([
+      checkLicenseAndMachineLock(),
+      checkServerStatus(false),
+      loadServerOfficersConfig()
+    ]).then(async () => {
+      const activeUser = loggedUser || 'hoang';
+      await loadSessionForOfficer(activeUser, loggedQ, loggedY);
+      preloadDepartmentSummary();
+    });
+  }, 30);
+
+  // 3. Lắng nghe phím tắt F9 để lưu phiên
   window.addEventListener('keydown', (e) => {
     if (e.key === 'F9') {
       e.preventDefault();
@@ -7838,6 +7831,8 @@ function getKpiIndexedDB() {
 // Tự động sao chép toàn bộ dữ liệu hiện có trong localStorage sang IndexedDB (Bảo toàn dữ liệu 100%)
 async function migrateLocalStorageToIndexedDB(db) {
   if (!db) return;
+  // Chỉ chạy 1 lần duy nhất để không làm chậm khởi động app
+  if (localStorage.getItem('KBXV_IDB_MIGRATED_DONE')) return;
   try {
     const keys = Object.keys(localStorage).filter(k => k.startsWith('KBXV_KPI_SESS_'));
     for (const key of keys) {
@@ -7853,6 +7848,7 @@ async function migrateLocalStorageToIndexedDB(db) {
         }
       } catch (err) {}
     }
+    localStorage.setItem('KBXV_IDB_MIGRATED_DONE', '1');
   } catch (e) {}
 }
 
@@ -8187,7 +8183,7 @@ async function loadSessionForOfficer(officerId, quarter, year, ramCandidate = nu
   // 2. Tải bản mới nhất từ Server API chạy nền (Background Revalidation)
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
     const res = await fetch(`${CURRENT_SERVER_HOST}/api/session?officerId=${encodeURIComponent(offId)}&quarter=${encodeURIComponent(q)}&year=${encodeURIComponent(y)}`, { 
       cache: 'no-cache',
       signal: controller.signal
