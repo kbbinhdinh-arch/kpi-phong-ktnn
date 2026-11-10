@@ -206,51 +206,92 @@ function countSessionActiveTasks(sess) {
 // 2. Bản đã chấm đầy đủ (tasks >= 5) LUÔN thắng bản nháp sơ suất (0 < tasks < 5).
 // 3. Khi cả 2 bản đều có dữ liệu thực chất (cùng >= 5 việc), ưu tiên bản có thời gian lưu (lastSaved) MỚI HƠN trên Cloud
 //    để không bao giờ lấy file tĩnh cũ ghi đè lùi dữ liệu mới của cán bộ!
+function getSessionActionTime(cand) {
+  if (!cand || typeof cand !== 'object') return 0;
+  const tSaved = cand.lastSaved ? (new Date(cand.lastSaved).getTime() || 0) : 0;
+  const tSub = cand.submittedAt ? (new Date(cand.submittedAt).getTime() || 0) : 0;
+  const tApp = cand.approvedAt ? (new Date(cand.approvedAt).getTime() || 0) : 0;
+  const tRej = cand.rejectedAt ? (new Date(cand.rejectedAt).getTime() || 0) : 0;
+  return Math.max(tSaved, tSub, tApp, tRej);
+}
+
 function pickBestSession(...candidates) {
   let best = null;
   let bestTasks = -1;
-  let bestSubmitted = -1;
-  let bestTime = -1;
+  let bestActionTime = -1;
+  let bestStatus = null;
 
   for (const cand of candidates) {
     if (!cand || typeof cand !== 'object' || (!cand.officer && !cand.months && !cand.status)) continue;
     const tasks = countSessionActiveTasks(cand);
-    const isSub = (cand.isSubmitted || cand.status === 'da_nop' || cand.status === 'da_duyet') ? 1 : 0;
-    const savedTime = cand.lastSaved ? (new Date(cand.lastSaved).getTime() || 0) : 0;
+    const candStatus = cand.status || (cand.isSubmitted ? 'da_nop' : 'da_luu');
+    const candActionTime = getSessionActionTime(cand);
 
     if (!best) {
       best = cand;
       bestTasks = tasks;
-      bestSubmitted = isSub;
-      bestTime = savedTime;
+      bestActionTime = candActionTime;
+      bestStatus = candStatus;
       continue;
     }
 
     let shouldReplace = false;
+
+    // Ưu tiên 1: Lọc dữ liệu có công việc vs rỗng hoàn toàn
     if (tasks > 0 && bestTasks === 0) {
       shouldReplace = true;
     } else if (tasks === 0 && bestTasks > 0) {
-      shouldReplace = false;
-    } else if (tasks >= 5 && bestTasks < 5) {
-      shouldReplace = true;
-    } else if (tasks < 5 && bestTasks >= 5) {
+      // Giữ bản có công việc, nhưng nếu cand có hành động trả lại hoặc duyệt mới hơn hẳn -> hợp nhất trạng thái
+      if ((candStatus === 'tra_lai' || candStatus === 'da_duyet') && candActionTime > bestActionTime + 2000) {
+        best.status = candStatus;
+        best.isSubmitted = !!cand.isSubmitted;
+        best.isApproved = !!cand.isApproved;
+        best.rejectedAt = cand.rejectedAt || best.rejectedAt;
+        best.rejectedBy = cand.rejectedBy || best.rejectedBy;
+        best.rejectReason = cand.rejectReason || best.rejectReason;
+        best.approvedAt = cand.approvedAt || best.approvedAt;
+        best.approvedBy = cand.approvedBy || best.approvedBy;
+        best.lastSaved = cand.lastSaved || best.lastSaved;
+        bestActionTime = candActionTime;
+        bestStatus = candStatus;
+      }
       shouldReplace = false;
     } else {
-      // Cả 2 cùng nhóm (cùng >= 5 việc hoặc cùng < 5 việc)
-      if (isSub > bestSubmitted && savedTime >= bestTime - 60000) {
-        shouldReplace = true;
-      } else if (savedTime > bestTime + 1000 && (isSub >= bestSubmitted || !bestSubmitted)) {
-        shouldReplace = true;
-      } else if (Math.abs(savedTime - bestTime) <= 1000 && tasks > bestTasks) {
-        shouldReplace = true;
+      // Cả 2 cùng mức dữ liệu công việc (cùng có hoặc cùng rỗng)
+      // XỬ LÝ ĐẶC BIỆT CHO TRẠNG THÁI 'tra_lai' (Mở khóa / Trả lại cho GDV)
+      if (candStatus === 'tra_lai') {
+        // Nếu cand là hồ sơ được Trả lại / Mở khóa và thời gian hành động >= thời gian duyệt/nộp cũ -> PHẢI THẮNG
+        if (candActionTime >= bestActionTime - 2000) {
+          shouldReplace = true;
+        }
+      } else if (bestStatus === 'tra_lai') {
+        // Nếu best đang là 'tra_lai', cand là 'da_nop' hoặc 'da_duyet' chỉ thắng nếu MỚI HƠN hẳn (cán bộ nộp lại sau)
+        if (candActionTime > bestActionTime + 1000) {
+          shouldReplace = true;
+        } else {
+          // Cand là bản duyệt/nộp cũ hơn hành động mở khóa -> Giữ nguyên 'tra_lai'
+          shouldReplace = false;
+        }
+      } else {
+        // Cả 2 không phải 'tra_lai'
+        const candIsSub = (cand.isSubmitted || candStatus === 'da_nop' || candStatus === 'da_duyet') ? 1 : 0;
+        const bestIsSub = (best.isSubmitted || bestStatus === 'da_nop' || bestStatus === 'da_duyet') ? 1 : 0;
+
+        if (candIsSub > bestIsSub && candActionTime >= bestActionTime - 60000) {
+          shouldReplace = true;
+        } else if (candActionTime > bestActionTime + 1000 && (candIsSub >= bestIsSub || !bestIsSub)) {
+          shouldReplace = true;
+        } else if (Math.abs(candActionTime - bestActionTime) <= 1000 && tasks > bestTasks) {
+          shouldReplace = true;
+        }
       }
     }
 
     if (shouldReplace) {
       best = cand;
       bestTasks = tasks;
-      bestSubmitted = isSub;
-      bestTime = savedTime;
+      bestActionTime = candActionTime;
+      bestStatus = candStatus;
     }
   }
   return best;
@@ -1811,7 +1852,14 @@ async function handleKpiRequest(req, res) {
         // Chỉ có thao tác nộp bài chính thức (/api/session/submit hoặc action: 'submit') mới được mang trạng thái 'da_nop'.
         const isOfficiallySubmitted = existingSession && (existingSession.isSubmitted || existingSession.status === 'da_nop' || existingSession.status === 'da_duyet');
         if (!isOfficiallySubmitted && payload.action !== 'submit') {
-          cleanState.status = 'da_luu';
+          if (existingSession && existingSession.status === 'tra_lai') {
+            cleanState.status = 'tra_lai';
+            cleanState.rejectedAt = existingSession.rejectedAt;
+            cleanState.rejectedBy = existingSession.rejectedBy;
+            cleanState.rejectReason = existingSession.rejectReason;
+          } else {
+            cleanState.status = 'da_luu';
+          }
           cleanState.isSubmitted = false;
           cleanState.submittedAt = null;
         }
@@ -1919,7 +1967,21 @@ async function handleKpiRequest(req, res) {
         if (!officerId) return sendJson(res, 400, { success: false, error: "Thiếu officerId" });
 
         const filename = getSessionFilename(officerId, quarter, year);
-        const altFilename = filename.includes('Quy') ? filename.replace(/Quy/g, 'Quý') : filename.replace(/Quý/g, 'Quy');
+        const targetNormQ = normalizeQuarter(quarter);
+        const safeQNoSpace = String(quarter).replace(/\s+/g, '');
+        const altFilenames = Array.from(new Set([
+          filename.includes('Quy') ? filename.replace(/Quy/g, 'Quý') : filename.replace(/Quý/g, 'Quy'),
+          `${officerId}_${safeQNoSpace}_${year}.json`,
+          `${officerId}_${targetNormQ}_${year}.json`,
+          `${officerId}_QuýIII_${year}.json`,
+          `${officerId}_QuyIII_${year}.json`,
+          `${officerId}_QuýII_${year}.json`,
+          `${officerId}_QuyII_${year}.json`,
+          `${officerId}_QuýI_${year}.json`,
+          `${officerId}_QuyI_${year}.json`,
+          `${officerId}_QuýIV_${year}.json`,
+          `${officerId}_QuyIV_${year}.json`
+        ].filter(fn => fn && fn !== filename && normalizeQuarter(fn) === targetNormQ)));
         const submitTime = new Date().toISOString();
         let targetState = state ? sanitizeSessionData(state) : null;
 
@@ -1927,11 +1989,15 @@ async function handleKpiRequest(req, res) {
           let mongoDoc = null;
           if (kpiDb) {
             try {
-              const docs = await kpiDb.collection('sessions').find({ $or: [{ filename }, { filename: altFilename }] }).toArray();
+              const queryFilenames = [filename, ...altFilenames];
+              const docs = await kpiDb.collection('sessions').find({ filename: { $in: queryFilenames } }).toArray();
               for (const d of docs) if (d && d.data) mongoDoc = pickBestSession(mongoDoc, d.data);
             } catch(e) {}
           }
-          targetState = pickBestSession(targetState, mongoDoc, getLocalSession(filename), getLocalSession(altFilename));
+          targetState = pickBestSession(targetState, mongoDoc, getLocalSession(filename));
+          for (const afn of altFilenames) {
+            targetState = pickBestSession(targetState, getLocalSession(afn));
+          }
         }
         if (!targetState) return sendJson(res, 404, { success: false, error: "Không tìm thấy dữ liệu phiên" });
 
@@ -1963,6 +2029,13 @@ async function handleKpiRequest(req, res) {
 
         // Lưu CSDL cục bộ bất đồng bộ
         await saveLocalSessionAsync(filename, targetState);
+        for (const altFn of altFilenames) {
+          try {
+            const altPath = path.join(DATA_DIR, altFn);
+            if (fs.existsSync(altPath)) fs.unlinkSync(altPath);
+          } catch (e) {}
+        }
+
         saveLocalSnapshotAsync(filename, {
           officerId,
           quarter: normalizeQuarter(quarter),
@@ -1991,6 +2064,9 @@ async function handleKpiRequest(req, res) {
               },
               { upsert: true }
             );
+            if (altFilenames.length > 0) {
+              await sessionsCol.deleteMany({ filename: { $in: altFilenames } });
+            }
             setImmediate(async () => {
               try {
                 await kpiDb.collection('session_snapshots').insertOne({
@@ -2040,17 +2116,34 @@ async function handleKpiRequest(req, res) {
         }
 
         const filename = getSessionFilename(officerId, quarter, year);
-        const altFilename = filename.includes('Quy') ? filename.replace(/Quy/g, 'Quý') : filename.replace(/Quý/g, 'Quy');
+        const targetNormQ = normalizeQuarter(quarter);
+        const safeQNoSpace = String(quarter).replace(/\s+/g, '');
+        const altFilenames = Array.from(new Set([
+          filename.includes('Quy') ? filename.replace(/Quy/g, 'Quý') : filename.replace(/Quý/g, 'Quy'),
+          `${officerId}_${safeQNoSpace}_${year}.json`,
+          `${officerId}_${targetNormQ}_${year}.json`,
+          `${officerId}_QuýIII_${year}.json`,
+          `${officerId}_QuyIII_${year}.json`,
+          `${officerId}_QuýII_${year}.json`,
+          `${officerId}_QuyII_${year}.json`,
+          `${officerId}_QuýI_${year}.json`,
+          `${officerId}_QuyI_${year}.json`,
+          `${officerId}_QuýIV_${year}.json`,
+          `${officerId}_QuyIV_${year}.json`
+        ].filter(fn => fn && fn !== filename && normalizeQuarter(fn) === targetNormQ)));
         const approveTime = new Date().toISOString();
 
+        const queryFilenames = [filename, ...altFilenames];
         let docData = null;
         if (kpiDb) {
           try {
-            const docs = await kpiDb.collection('sessions').find({ $or: [{ filename }, { filename: altFilename }] }).toArray();
+            const docs = await kpiDb.collection('sessions').find({ filename: { $in: queryFilenames } }).toArray();
             for (const d of docs) if (d && d.data) docData = pickBestSession(docData, d.data);
           } catch(e) {}
         }
-        docData = pickBestSession(docData, getLocalSession(filename), getLocalSession(altFilename));
+        for (const fn of queryFilenames) {
+          docData = pickBestSession(docData, getLocalSession(fn));
+        }
         if (!docData) return sendJson(res, 404, { success: false, error: "Không tìm thấy hồ sơ cán bộ" });
 
         docData.status = "da_duyet";
@@ -2066,6 +2159,13 @@ async function handleKpiRequest(req, res) {
 
         // Lưu CSDL cục bộ bất đồng bộ
         await saveLocalSessionAsync(filename, docData);
+        for (const altFn of altFilenames) {
+          try {
+            const altPath = path.join(DATA_DIR, altFn);
+            if (fs.existsSync(altPath)) fs.unlinkSync(altPath);
+          } catch (e) {}
+        }
+
         saveLocalSnapshotAsync(filename, {
           officerId,
           quarter: normalizeQuarter(quarter),
@@ -2094,6 +2194,9 @@ async function handleKpiRequest(req, res) {
               },
               { upsert: true }
             );
+            if (altFilenames.length > 0) {
+              await sessionsCol.deleteMany({ filename: { $in: altFilenames } });
+            }
             setImmediate(async () => {
               try {
                 await kpiDb.collection('session_snapshots').insertOne({
@@ -2142,17 +2245,34 @@ async function handleKpiRequest(req, res) {
         }
 
         const filename = getSessionFilename(officerId, quarter, year);
-        const altFilename = filename.includes('Quy') ? filename.replace(/Quy/g, 'Quý') : filename.replace(/Quý/g, 'Quy');
+        const targetNormQ = normalizeQuarter(quarter);
+        const safeQNoSpace = String(quarter).replace(/\s+/g, '');
+        const altFilenames = Array.from(new Set([
+          filename.includes('Quy') ? filename.replace(/Quy/g, 'Quý') : filename.replace(/Quý/g, 'Quy'),
+          `${officerId}_${safeQNoSpace}_${year}.json`,
+          `${officerId}_${targetNormQ}_${year}.json`,
+          `${officerId}_QuýIII_${year}.json`,
+          `${officerId}_QuyIII_${year}.json`,
+          `${officerId}_QuýII_${year}.json`,
+          `${officerId}_QuyII_${year}.json`,
+          `${officerId}_QuýI_${year}.json`,
+          `${officerId}_QuyI_${year}.json`,
+          `${officerId}_QuýIV_${year}.json`,
+          `${officerId}_QuyIV_${year}.json`
+        ].filter(fn => fn && fn !== filename && normalizeQuarter(fn) === targetNormQ)));
         const rejectTime = new Date().toISOString();
 
+        const queryFilenames = [filename, ...altFilenames];
         let docData = null;
         if (kpiDb) {
           try {
-            const docs = await kpiDb.collection('sessions').find({ $or: [{ filename }, { filename: altFilename }] }).toArray();
+            const docs = await kpiDb.collection('sessions').find({ filename: { $in: queryFilenames } }).toArray();
             for (const d of docs) if (d && d.data) docData = pickBestSession(docData, d.data);
           } catch(e) {}
         }
-        docData = pickBestSession(docData, getLocalSession(filename), getLocalSession(altFilename));
+        for (const fn of queryFilenames) {
+          docData = pickBestSession(docData, getLocalSession(fn));
+        }
         if (!docData) return sendJson(res, 404, { success: false, error: "Không tìm thấy hồ sơ cán bộ" });
 
         docData.status = "tra_lai";
@@ -2165,6 +2285,13 @@ async function handleKpiRequest(req, res) {
 
         // Lưu CSDL cục bộ bất đồng bộ
         await saveLocalSessionAsync(filename, docData);
+        for (const altFn of altFilenames) {
+          try {
+            const altPath = path.join(DATA_DIR, altFn);
+            if (fs.existsSync(altPath)) fs.unlinkSync(altPath);
+          } catch (e) {}
+        }
+
         saveLocalSnapshotAsync(filename, {
           officerId,
           quarter: normalizeQuarter(quarter),
@@ -2193,6 +2320,9 @@ async function handleKpiRequest(req, res) {
               },
               { upsert: true }
             );
+            if (altFilenames.length > 0) {
+              await sessionsCol.deleteMany({ filename: { $in: altFilenames } });
+            }
             setImmediate(async () => {
               try {
                 await kpiDb.collection('session_snapshots').insertOne({
@@ -3082,7 +3212,7 @@ async function handleKpiRequest(req, res) {
       const activeTaskCountInSess = sess ? countSessionActiveTasks(sess) : 0;
       const isSessSubmitted = !!(sess && (sess.isSubmitted || sess.status === 'da_nop' || sess.status === 'da_duyet'));
 
-      if (sess && (activeTaskCountInSess > 0 || isSessSubmitted)) {
+      if (sess && (activeTaskCountInSess > 0 || isSessSubmitted || sess.status === 'tra_lai')) {
         item.isSubmitted = isSessSubmitted;
         item.submittedAt = sess.submittedAt || null;
         item.approvedAt = sess.approvedAt || null;

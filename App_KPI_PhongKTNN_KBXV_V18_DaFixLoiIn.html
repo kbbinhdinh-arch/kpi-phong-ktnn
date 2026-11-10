@@ -8896,8 +8896,10 @@ async function quickApproveFromTable(offId) {
 
   const cfg = (window.OFFICERS_ASSIGNMENTS && window.OFFICERS_ASSIGNMENTS[offId]) || {};
   const offName = cfg.name || offId;
-  const curQ = (appState.officer && appState.officer.quarter) || "Quý III";
-  const curY = (appState.officer && appState.officer.year) || 2026;
+  const qSelect = document.getElementById('deptSummaryQuarterSelect');
+  const ySelect = document.getElementById('deptSummaryYearSelect');
+  const curQ = (qSelect && qSelect.value) || (appState.officer && appState.officer.quarter) || "Quý III";
+  const curY = (ySelect && ySelect.value) ? Number(ySelect.value) : ((appState.officer && appState.officer.year) || 2026);
 
   if (!confirm(`PHÊ DUYỆT KẾT QUẢ KPI QUÝ:\n\nĐồng chí có chắc chắn muốn phê duyệt chính thức kết quả đánh giá của [${offName}] trong ${curQ}/${curY}?\n\nHồ sơ sau khi duyệt sẽ được khóa vĩnh viễn theo quy định.`)) {
     return;
@@ -8918,18 +8920,33 @@ async function quickApproveFromTable(offId) {
     const json = await res.json();
     if (json.success) {
       showToast(`✅ Đã phê duyệt chính thức kết quả KPI của ${offName}!`);
+      // Xóa cache localStorage để không bị giật lại dữ liệu cũ
+      const normQ = (typeof normalizeQuarter === 'function') ? normalizeQuarter(curQ) : curQ.replace(/\s+/g, '');
+      try {
+        localStorage.removeItem(`KBXV_SUMMARY_CACHE_${curQ}_${curY}`);
+        localStorage.removeItem(`KBXV_SUMMARY_CACHE_${normQ}_${curY}`);
+      } catch (e) {}
+
+      if (appState.officer && appState.officer.id === offId) {
+        appState.officer.status = 'da_duyet';
+        appState.officer.isSubmitted = true;
+        appState.officer.isApproved = true;
+        saveState();
+      }
+
       // Cập nhật tức thì trên bảng (Optimistic UI)
       if (Array.isArray(currentDeptSummaryData)) {
         const it = currentDeptSummaryData.find(x => x.id === offId);
         if (it) {
           it.status = 'da_duyet';
+          it.isSubmitted = true;
           it.isApproved = true;
           it.approvedAt = json.approvedAt || new Date().toISOString();
           it.approvedBy = loggedUser;
         }
         renderDeptSummaryTable(currentDeptSummaryData);
       }
-      loadDepartmentSummary(false, true);
+      await loadDepartmentSummary(false, true);
     } else {
       alert('Lỗi phê duyệt: ' + (json.error || ''));
     }
@@ -8955,8 +8972,10 @@ async function quickRejectFromTable(offId) {
 
   const cfg = (window.OFFICERS_ASSIGNMENTS && window.OFFICERS_ASSIGNMENTS[offId]) || {};
   const offName = cfg.name || offId;
-  const curQ = (appState.officer && appState.officer.quarter) || "Quý III";
-  const curY = (appState.officer && appState.officer.year) || 2026;
+  const qSelect = document.getElementById('deptSummaryQuarterSelect');
+  const ySelect = document.getElementById('deptSummaryYearSelect');
+  const curQ = (qSelect && qSelect.value) || (appState.officer && appState.officer.quarter) || "Quý III";
+  const curY = (ySelect && ySelect.value) ? Number(ySelect.value) : ((appState.officer && appState.officer.year) || 2026);
 
   const reason = prompt(`Nhập lý do hoặc yêu cầu chỉnh sửa gửi tới đồng chí [${offName}]:`, 'Yêu cầu rà soát, giải trình lại số lượng và lỗi chất lượng.');
   if (reason === null) return;
@@ -8977,6 +8996,21 @@ async function quickRejectFromTable(offId) {
     const json = await res.json();
     if (json.success) {
       showToast(`↩️ Đã trả lại hồ sơ cho ${offName} chỉnh sửa!`);
+      // Xóa cache localStorage để không bị giật lại dữ liệu cũ
+      const normQ = (typeof normalizeQuarter === 'function') ? normalizeQuarter(curQ) : curQ.replace(/\s+/g, '');
+      try {
+        localStorage.removeItem(`KBXV_SUMMARY_CACHE_${curQ}_${curY}`);
+        localStorage.removeItem(`KBXV_SUMMARY_CACHE_${normQ}_${curY}`);
+      } catch (e) {}
+
+      if (appState.officer && appState.officer.id === offId) {
+        appState.officer.status = 'tra_lai';
+        appState.officer.isSubmitted = false;
+        appState.officer.isApproved = false;
+        appState.officer.rejectReason = reason;
+        saveState();
+      }
+
       if (Array.isArray(currentDeptSummaryData)) {
         const it = currentDeptSummaryData.find(x => x.id === offId);
         if (it) {
@@ -8987,7 +9021,7 @@ async function quickRejectFromTable(offId) {
         }
         renderDeptSummaryTable(currentDeptSummaryData);
       }
-      loadDepartmentSummary(false, true);
+      await loadDepartmentSummary(false, true);
     } else {
       alert('Lỗi trả lại hồ sơ: ' + (json.error || ''));
     }
@@ -9007,8 +9041,10 @@ function closeOfficerQuarterModal() {
 async function approveOfficerFromModal(offId) {
   const cfg = (window.OFFICERS_ASSIGNMENTS && window.OFFICERS_ASSIGNMENTS[offId]) || {};
   const offName = cfg.name || offId;
-  const curQ = (appState.officer && appState.officer.quarter) || "Quý III";
-  const curY = (appState.officer && appState.officer.year) || 2026;
+  const qSelect = document.getElementById('deptSummaryQuarterSelect');
+  const ySelect = document.getElementById('deptSummaryYearSelect');
+  const curQ = (qSelect && qSelect.value) || (appState.officer && appState.officer.quarter) || "Quý III";
+  const curY = (ySelect && ySelect.value) ? Number(ySelect.value) : ((appState.officer && appState.officer.year) || 2026);
   const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || 'hoang';
 
   if (!confirm(`PHÊ DUYỆT KẾT QUẢ KPI QUÝ:\n\nĐồng chí có chắc chắn muốn phê duyệt chính thức kết quả đánh giá của [${offName}] trong ${curQ}/${curY}?\n\nHồ sơ sau khi duyệt sẽ được khóa cứng vĩnh viễn theo quy định.`)) {
@@ -9029,8 +9065,21 @@ async function approveOfficerFromModal(offId) {
     const json = await res.json();
     if (json.success) {
       showToast(`✅ Đã phê duyệt chính thức kết quả KPI của ${offName}!`);
+      const normQ = (typeof normalizeQuarter === 'function') ? normalizeQuarter(curQ) : curQ.replace(/\s+/g, '');
+      try {
+        localStorage.removeItem(`KBXV_SUMMARY_CACHE_${curQ}_${curY}`);
+        localStorage.removeItem(`KBXV_SUMMARY_CACHE_${normQ}_${curY}`);
+      } catch (e) {}
+
+      if (appState.officer && appState.officer.id === offId) {
+        appState.officer.status = 'da_duyet';
+        appState.officer.isSubmitted = true;
+        appState.officer.isApproved = true;
+        saveState();
+      }
+
       closeOfficerQuarterModal();
-      if (typeof loadDepartmentSummary === 'function') loadDepartmentSummary(false);
+      if (typeof loadDepartmentSummary === 'function') await loadDepartmentSummary(false, true);
     } else {
       alert('Lỗi phê duyệt: ' + (json.error || ''));
     }
@@ -9043,8 +9092,10 @@ async function approveOfficerFromModal(offId) {
 async function rejectOfficerFromModal(offId) {
   const cfg = (window.OFFICERS_ASSIGNMENTS && window.OFFICERS_ASSIGNMENTS[offId]) || {};
   const offName = cfg.name || offId;
-  const curQ = (appState.officer && appState.officer.quarter) || "Quý III";
-  const curY = (appState.officer && appState.officer.year) || 2026;
+  const qSelect = document.getElementById('deptSummaryQuarterSelect');
+  const ySelect = document.getElementById('deptSummaryYearSelect');
+  const curQ = (qSelect && qSelect.value) || (appState.officer && appState.officer.quarter) || "Quý III";
+  const curY = (ySelect && ySelect.value) ? Number(ySelect.value) : ((appState.officer && appState.officer.year) || 2026);
   const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || 'hoang';
 
   const reason = prompt(`Nhập lý do hoặc yêu cầu chỉnh sửa gửi tới đồng chí [${offName}]:`, 'Yêu cầu rà soát, giải trình lại số lượng và lỗi chất lượng.');
@@ -9065,8 +9116,22 @@ async function rejectOfficerFromModal(offId) {
     const json = await res.json();
     if (json.success) {
       showToast(`↩️ Đã trả lại hồ sơ cho ${offName} chỉnh sửa!`);
+      const normQ = (typeof normalizeQuarter === 'function') ? normalizeQuarter(curQ) : curQ.replace(/\s+/g, '');
+      try {
+        localStorage.removeItem(`KBXV_SUMMARY_CACHE_${curQ}_${curY}`);
+        localStorage.removeItem(`KBXV_SUMMARY_CACHE_${normQ}_${curY}`);
+      } catch (e) {}
+
+      if (appState.officer && appState.officer.id === offId) {
+        appState.officer.status = 'tra_lai';
+        appState.officer.isSubmitted = false;
+        appState.officer.isApproved = false;
+        appState.officer.rejectReason = reason;
+        saveState();
+      }
+
       closeOfficerQuarterModal();
-      if (typeof loadDepartmentSummary === 'function') loadDepartmentSummary(false);
+      if (typeof loadDepartmentSummary === 'function') await loadDepartmentSummary(false, true);
     } else {
       alert('Lỗi trả lại hồ sơ: ' + (json.error || ''));
     }
