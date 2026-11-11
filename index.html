@@ -5039,6 +5039,10 @@ function encodeSessionForTransfer(stateObj) {
   const tmpl = window.MAU02A_TEMPLATE_ROWS || [];
   const compact = { ...stateObj };
   if (compact.quartersData) delete compact.quartersData;
+  delete compact.activeMonthIdx;
+  delete compact.activeTab;
+  delete compact.activeQuarterSubTab;
+  delete compact.activeMonthlySubTab;
   if (Array.isArray(compact.months)) {
     compact.months = compact.months.map(m => encodeMonthDeltaRows(m, tmpl));
   }
@@ -5176,6 +5180,7 @@ function loadSavedState() {
       const parsed = expandSessionDeltaMonths(JSON.parse(saved));
       if (parsed && parsed.officer && (typeof countClientSessionActiveTasks !== 'function' || countClientSessionActiveTasks(parsed) > 0)) {
         appState = parsed;
+        appState.activeMonthIdx = 0;
       }
     }
   } catch(e) {
@@ -6592,13 +6597,37 @@ function renderMonthTable24() {
       }
     }
 
-  const mIdx = appState.activeMonthIdx;
+  let mIdx = Number(appState.activeMonthIdx);
+  if (!Number.isInteger(mIdx) || mIdx < 0 || mIdx > 3) {
+    mIdx = 0;
+    appState.activeMonthIdx = 0;
+  }
+
+  const monthlyContainer = document.getElementById('monthlyTableContainer');
+  const quarterPane = document.getElementById('quarterSummaryPane');
+  const filterToolbar = document.getElementById('monthlyFilterToolbar');
+  const leaderGdvToolbar = document.getElementById('leaderGdvAggregateToolbar');
+
   if (mIdx === 3) {
+    if (monthlyContainer) monthlyContainer.style.display = 'none';
+    if (filterToolbar) filterToolbar.style.display = 'none';
+    if (leaderGdvToolbar) leaderGdvToolbar.style.display = 'none';
+    if (quarterPane) quarterPane.style.display = 'block';
     renderQuarterSummarySheet();
     return;
   }
 
-  const month = appState.months[mIdx];
+  if (monthlyContainer) monthlyContainer.style.display = 'block';
+  if (filterToolbar) filterToolbar.style.display = 'flex';
+  if (leaderGdvToolbar) leaderGdvToolbar.style.display = 'block';
+  if (quarterPane) quarterPane.style.display = 'none';
+
+  let month = appState.months && appState.months[mIdx];
+  if (!month || !Array.isArray(month.rows) || month.rows.length === 0) {
+    initMonthsDataIfEmpty();
+    syncTemplateStructureToMonths();
+    month = appState.months && appState.months[mIdx];
+  }
   if (!month || !month.rows) return;
 
   const offId = (appState.officer && appState.officer.officerId) || 'hoang';
@@ -6980,6 +7009,11 @@ function toggleFilterActiveOnly(checked) {
 
 // Update selectMonthTab to handle tab 3 (Quarter Summary)
 function renderMonthTabsHeader() {
+  let activeIdx = Number(appState.activeMonthIdx);
+  if (!Number.isInteger(activeIdx) || activeIdx < 0 || activeIdx > 3) {
+    activeIdx = 0;
+    appState.activeMonthIdx = 0;
+  }
   const qMonths = getQuarterMonthsInfo(appState.officer.quarter, appState.officer.year);
   const btn0 = document.getElementById('mTabBtn0');
   const btn1 = document.getElementById('mTabBtn1');
@@ -6988,38 +7022,20 @@ function renderMonthTabsHeader() {
   if (btn1) btn1.innerText = qMonths[1].tabLabel;
   if (btn2) btn2.innerText = qMonths[2].tabLabel;
 
+  document.querySelectorAll('.month-tab-btn').forEach((btn, idx) => {
+    btn.classList.toggle('active', idx === activeIdx);
+  });
+
   // Cập nhật ngay lập tức thanh chỉ báo và nút đồng bộ theo quý đang chọn
   updateMonthIndicator();
 }
 
 function selectMonthTab(mIdx) {
-  appState.activeMonthIdx = mIdx;
+  let safeIdx = Number(mIdx);
+  if (!Number.isInteger(safeIdx) || safeIdx < 0 || safeIdx > 3) safeIdx = 0;
+  appState.activeMonthIdx = safeIdx;
   renderMonthTabsHeader();
-  document.querySelectorAll('.month-tab-btn').forEach((btn, idx) => {
-    btn.classList.toggle('active', idx === mIdx);
-  });
-
-  const monthlyContainer = document.getElementById('monthlyTableContainer');
-  const quarterPane = document.getElementById('quarterSummaryPane');
-  const filterToolbar = document.getElementById('monthlyFilterToolbar');
-  const leaderGdvToolbar = document.getElementById('leaderGdvAggregateToolbar');
-
-  if (mIdx === 3) {
-    if (monthlyContainer) monthlyContainer.style.display = 'none';
-    if (filterToolbar) filterToolbar.style.display = 'none';
-    if (leaderGdvToolbar) leaderGdvToolbar.style.display = 'none';
-    if (quarterPane) {
-      quarterPane.style.display = 'block';
-      renderQuarterSummarySheet();
-    }
-  } else {
-    if (monthlyContainer) monthlyContainer.style.display = 'block';
-    if (filterToolbar) filterToolbar.style.display = 'flex';
-    if (leaderGdvToolbar) leaderGdvToolbar.style.display = 'block';
-    if (quarterPane) quarterPane.style.display = 'none';
-    updateMonthIndicator();
-    renderMonthTable24();
-  }
+  renderMonthTable24();
 };
 
 function updateMonthIndicator() {
@@ -8457,7 +8473,18 @@ function applyLoadedSession(data, offId, q, y) {
   if (data && typeof expandSessionDeltaMonths === 'function') {
     expandSessionDeltaMonths(data);
   }
-  
+
+  // Bảo vệ trạng thái điều hướng hiện tại khỏi stale activeMonthIdx/activeTab từng lưu trong dữ liệu cũ
+  const prevOfficerId = appState && appState.officer && appState.officer.officerId;
+  const prevQuarter = appState && appState.officer && appState.officer.quarter;
+  const prevYear = Number(appState && appState.officer && appState.officer.year);
+  const isSameContext = (prevOfficerId === offId && prevQuarter === q && prevYear === Number(y));
+  const prevMonthIdx = Number(appState && appState.activeMonthIdx);
+  const preservedMonthIdx = (isSameContext && Number.isInteger(prevMonthIdx) && prevMonthIdx >= 0 && prevMonthIdx <= 3) ? prevMonthIdx : 0;
+  const preservedTab = appState && appState.activeTab;
+  const preservedQSub = appState && appState.activeQuarterSubTab;
+  const preservedMSub = appState && appState.activeMonthlySubTab;
+
   // Xác định trạng thái chính xác từ phiên nạp vào, dập tắt mọi rò rỉ cờ nộp từ phiên trước
   const isSubmittedClean = !!(data && (data.isSubmitted || data.status === 'da_nop' || data.status === 'da_duyet'));
   const isApprovedClean = !!(data && (data.isApproved || data.status === 'da_duyet'));
@@ -8478,7 +8505,17 @@ function applyLoadedSession(data, offId, q, y) {
       lastSaved: data.lastSaved || null
     };
   }
-  appState = Object.assign({}, appState, data);
+  const cleanData = (data && typeof data === 'object') ? { ...data } : {};
+  delete cleanData.activeMonthIdx;
+  delete cleanData.activeTab;
+  delete cleanData.activeQuarterSubTab;
+  delete cleanData.activeMonthlySubTab;
+
+  appState = Object.assign({}, appState, cleanData);
+  appState.activeMonthIdx = preservedMonthIdx;
+  if (preservedTab) appState.activeTab = preservedTab;
+  if (preservedQSub) appState.activeQuarterSubTab = preservedQSub;
+  if (preservedMSub) appState.activeMonthlySubTab = preservedMSub;
   if (data && !data.months) {
     appState.months = [];
   }
@@ -8568,6 +8605,7 @@ function initializeFreshOfficerSession(offId, q, y) {
     delete appState.quartersData[q];
   }
   appState.months = [];
+  appState.activeMonthIdx = 0;
   appState.status = 'draft';
   appState.isSubmitted = false;
   appState.isApproved = false;
@@ -12539,10 +12577,11 @@ function switchMonthlySubTab(subTabId) {
   appState.activeMonthlySubTab = subTabId;
   appState.activeTab = subTabId;
 
-  if (subTabId === 'tab-monthly' && typeof renderMonthTabContent === 'function') {
-    renderMonthTabContent();
-  } else if (subTabId === 'tab-general-crit' && typeof renderGeneralCriteriaTab === 'function') {
-    renderGeneralCriteriaTab();
+  if (subTabId === 'tab-monthly') {
+    const curM = Number(appState.activeMonthIdx);
+    selectMonthTab((Number.isInteger(curM) && curM >= 0 && curM <= 3) ? curM : 0);
+  } else if (subTabId === 'tab-general-crit' && typeof renderGeneralCriteriaForm === 'function') {
+    renderGeneralCriteriaForm();
   }
 }
 
