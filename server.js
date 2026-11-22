@@ -4700,6 +4700,306 @@ async function handleKpiRequest(req, res) {
     return sendJson(res, 200, responsePayload);
   }
 
+  // 🏆 TỔNG HỢP KPI TOÀN PHÒNG CẢ NĂM (MẪU SỐ 03) - DÀNH CHO LÃNH ĐẠO PHÒNG & GDV TỔNG HỢP
+  if (pathname === '/api/annual-summary' && req.method === 'GET') {
+    const auth = await requireAuth();
+    if (!auth) return;
+    if (!auth.canViewAll) {
+      return sendJson(res, 403, { success: false, error: "Chỉ Lãnh đạo phòng và Bộ phận Tổng hợp KPI mới có quyền xem Bảng tổng hợp KPI cả năm!" });
+    }
+    const year = searchParams.get('year') || "2026";
+    const targetYear = Number(year) || 2026;
+    const forceRefresh = (searchParams.get('refresh') === '1' || searchParams.get('refresh') === 'true');
+    const cacheKey = `annual_${targetYear}`;
+
+    if (!process.env.VERCEL && !forceRefresh && summaryCache[cacheKey] && (Date.now() - summaryCache[cacheKey].timestamp < 60000)) {
+      return sendJson(res, 200, summaryCache[cacheKey].data);
+    }
+
+    const cfg = await getOfficersConfig();
+    const officersList = Object.values(cfg);
+
+    let allSessionsMap = {};
+    if (kpiDb) {
+      try {
+        const docs = await kpiDb.collection('sessions').find({
+          year: targetYear
+        }, {
+          projection: {
+            filename: 1,
+            officerId: 1,
+            quarterNorm: 1,
+            year: 1,
+            activeTasksCount: 1,
+            "data.officer": 1,
+            "data.status": 1,
+            "data.isSubmitted": 1,
+            "data.isApproved": 1,
+            "data.submittedAt": 1,
+            "data.approvedAt": 1,
+            "data.approvedBy": 1,
+            "data.lastSaved": 1,
+            "data.months.completionPercent": 1,
+            "data.months.rows": 1,
+            "data.generalCriteria": 1,
+            "data.proposedRating": 1,
+            "data.selfRating": 1,
+            "data.leaderRatingProposal": 1
+          }
+        }).toArray();
+
+        docs.forEach(d => {
+          if (!d) return;
+          const sessionData = d.data || {};
+          if (typeof d.activeTasksCount === 'number') {
+            sessionData.activeTasksCount = d.activeTasksCount;
+          }
+          if (d.filename) {
+            allSessionsMap[d.filename] = pickBestSession(allSessionsMap[d.filename], sessionData);
+          }
+          const offId = d.officerId || (sessionData.officer && sessionData.officer.officerId);
+          const qNorm = d.quarterNorm || normalizeQuarter(sessionData.officer && sessionData.officer.quarter);
+          if (offId && qNorm) {
+            const canonicalFn = `${offId}_${qNorm}_${targetYear}.json`;
+            allSessionsMap[canonicalFn] = pickBestSession(allSessionsMap[canonicalFn], sessionData);
+          }
+        });
+      } catch (e) {
+        console.error('[API ANNUAL SUMMARY] Lỗi truy vấn MongoDB sessions:', e);
+      }
+    }
+
+    if (!kpiDb || !process.env.VERCEL || Object.keys(allSessionsMap).length === 0) {
+      const localSessions = getAllLocalSessions();
+      for (const [fn, lData] of Object.entries(localSessions)) {
+        const yMatch = fn.match(/_(\d{4})\.json$/i);
+        const fnYear = yMatch ? Number(yMatch[1]) : Number(lData && lData.officer && lData.officer.year);
+        if (fnYear && fnYear !== targetYear) continue;
+        allSessionsMap[fn] = pickBestSession(allSessionsMap[fn], lData);
+      }
+    }
+
+    let annualSettings = {
+      unitScore: null,
+      unitRating: "Hoàn thành tốt nhiệm vụ",
+      unitNote: "",
+      leaderScore: null,
+      leaderRating: "Hoàn thành tốt nhiệm vụ",
+      leaderNote: "",
+      officerOverrides: {}
+    };
+
+    if (kpiDb) {
+      try {
+        const sDoc = await kpiDb.collection('annual_settings').findOne({ year: targetYear });
+        if (sDoc && sDoc.settings) {
+          annualSettings = { ...annualSettings, ...sDoc.settings };
+        }
+      } catch (e) {}
+    } else {
+      const settingsPath = path.join(DATA_DIR, `annual_settings_${targetYear}.json`);
+      if (fs.existsSync(settingsPath)) {
+        try {
+          const raw = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+          annualSettings = { ...annualSettings, ...raw };
+        } catch (e) {}
+      }
+    }
+
+    const calcQuarterScore = (sess, role) => {
+      if (!sess) return null;
+      let monthsArr = Array.isArray(sess.months) ? sess.months : (sess.months ? Object.values(sess.months) : []);
+      let avgPct = 0;
+      if (monthsArr.length > 0) {
+        let sumPct = 0, mCount = 0;
+        monthsArr.forEach(m => {
+          let pct = Number(m && m.completionPercent) || 0;
+          if (pct === 0 && m && Array.isArray(m.rows) && m.rows.length > 0) {
+            pct = calculateMonthPctFromRows(m, role);
+          }
+          if (pct > 0) { sumPct += pct; mCount++; }
+        });
+        avgPct = mCount > 0 ? Math.round((sumPct / monthsArr.length) * 10) / 10 : 0;
+      }
+      let generalScore = 0;
+      if (sess.generalCriteria) {
+        let gSum = 0;
+        for (const k of Object.keys(sess.generalCriteria)) gSum += Number(sess.generalCriteria[k] || 0);
+        generalScore = Math.min(30, Math.round(gSum * 10) / 10);
+      }
+      const taskScore = Math.round((avgPct * 0.7) * 10) / 10;
+      const totalScore = Math.round((taskScore + generalScore) * 10) / 10;
+      return totalScore > 0 ? totalScore : (sess.isSubmitted || sess.isApproved ? 0 : null);
+    };
+
+    const quartersNorm = ['QuyI', 'QuyII', 'QuyIII', 'QuyIV'];
+    const quartersLabel = ['Quý I', 'Quý II', 'Quý III', 'Quý IV'];
+
+    let totalScoreSum = 0;
+    let totalScoreCount = 0;
+    let leaderScoreSum = 0;
+    let leaderScoreCount = 0;
+    let excellentCount = 0;
+    let goodCount = 0;
+    let completedCount = 0;
+    let notCompletedCount = 0;
+
+    const summaryList = officersList.map((off, idx) => {
+      const qScores = [null, null, null, null];
+
+      quartersNorm.forEach((qN, qIdx) => {
+        const qLab = quartersLabel[qIdx];
+        const fn1 = getSessionFilename(off.id, qLab, targetYear);
+        const fn2 = `${off.id}_${qN}_${targetYear}.json`;
+        const fn3 = `${off.id}_${qLab}_${targetYear}.json`;
+        let sess = pickBestSession(allSessionsMap[fn1], allSessionsMap[fn2], allSessionsMap[fn3]);
+        if (!sess) {
+          for (const [fn, sData] of Object.entries(allSessionsMap)) {
+            if (fn.startsWith(off.id + '_') && sData) {
+              const fnQ = extractQuarterFromFilename(fn) || normalizeQuarter(sData.officer && sData.officer.quarter);
+              if (fnQ === qN) sess = pickBestSession(sess, sData);
+            }
+          }
+        }
+        qScores[qIdx] = calcQuarterScore(sess, off.role);
+      });
+
+      let sumQ = 0, validQCount = 0;
+      qScores.forEach(s => {
+        if (typeof s === 'number') {
+          sumQ += s;
+          validQCount++;
+        }
+      });
+      const avgScore = validQCount > 0 ? Math.round((sumQ / 4) * 100) / 100 : 0;
+
+      let formulaRating = "Chưa đánh giá";
+      if (avgScore >= 90) formulaRating = "Hoàn thành xuất sắc nhiệm vụ";
+      else if (avgScore >= 70) formulaRating = "Hoàn thành tốt nhiệm vụ";
+      else if (avgScore >= 50) formulaRating = "Hoàn thành nhiệm vụ";
+      else if (avgScore > 0) formulaRating = "Không hoàn thành nhiệm vụ";
+
+      const override = (annualSettings.officerOverrides && annualSettings.officerOverrides[off.id]) || {};
+      const proposedRating = override.proposedRating || formulaRating;
+      const note = override.note || "";
+
+      if (avgScore > 0) {
+        totalScoreSum += avgScore;
+        totalScoreCount++;
+        if (off.isLeader) {
+          leaderScoreSum += avgScore;
+          leaderScoreCount++;
+        }
+        if (proposedRating.includes("xuất sắc")) excellentCount++;
+        else if (proposedRating.includes("tốt")) goodCount++;
+        else if (proposedRating.includes("Không hoàn thành")) notCompletedCount++;
+        else completedCount++;
+      }
+
+      return {
+        stt: idx + 1,
+        id: off.id,
+        name: off.name,
+        role: off.role,
+        group: off.group,
+        title: off.title,
+        specialty: off.specialty || "",
+        isLeader: !!off.isLeader,
+        isKPIAggregator: !!off.isKPIAggregator,
+        q1Score: qScores[0],
+        q2Score: qScores[1],
+        q3Score: qScores[2],
+        q4Score: qScores[3],
+        avgScore,
+        formulaRating,
+        proposedRating,
+        note
+      };
+    });
+
+    const deptAvgScore = totalScoreCount > 0 ? Math.round((totalScoreSum / totalScoreCount) * 100) / 100 : 89.0;
+    const leaderAvgScore = leaderScoreCount > 0 ? Math.round((leaderScoreSum / leaderScoreCount) * 100) / 100 : 89.5;
+
+    if (annualSettings.unitScore === null || annualSettings.unitScore === undefined) {
+      annualSettings.unitScore = deptAvgScore;
+    }
+    if (annualSettings.leaderScore === null || annualSettings.leaderScore === undefined) {
+      annualSettings.leaderScore = leaderAvgScore;
+    }
+
+    const totalOfficers = summaryList.length;
+    const maxExcellentAllowed = Math.round(totalOfficers * 0.2);
+
+    const responsePayload = {
+      success: true,
+      year: targetYear,
+      officers: summaryList,
+      settings: annualSettings,
+      stats: {
+        totalOfficers,
+        deptAvgScore,
+        leaderAvgScore,
+        excellentCount,
+        maxExcellentAllowed,
+        isExcellentExceeded: excellentCount > maxExcellentAllowed,
+        goodCount,
+        completedCount,
+        notCompletedCount
+      }
+    };
+
+    summaryCache[cacheKey] = {
+      timestamp: Date.now(),
+      data: responsePayload
+    };
+
+    return sendJson(res, 200, responsePayload);
+  }
+
+  // POST /api/annual-summary: Lưu cài đặt Phần I, II, xếp loại đề xuất & ghi chú
+  if (pathname === '/api/annual-summary' && req.method === 'POST') {
+    const auth = await requireAuth();
+    if (!auth) return;
+    if (!auth.canViewAll) {
+      return sendJson(res, 403, { success: false, error: "Chỉ Lãnh đạo phòng và Bộ phận Tổng hợp KPI mới có quyền lưu cấu hình Tổng hợp năm!" });
+    }
+    try {
+      const payload = await parseJsonBody(req);
+      const { year, settings } = payload;
+      const targetYear = Number(year) || 2026;
+      if (!settings || typeof settings !== 'object') {
+        return sendJson(res, 400, { success: false, error: "Dữ liệu settings không hợp lệ!" });
+      }
+
+      if (kpiDb) {
+        try {
+          await kpiDb.collection('annual_settings').updateOne(
+            { year: targetYear },
+            { $set: { year: targetYear, settings, updatedAt: new Date() } },
+            { upsert: true }
+          );
+        } catch (e) {
+          console.error('[API ANNUAL SUMMARY POST] Lỗi lưu MongoDB:', e);
+        }
+      }
+
+      const settingsPath = path.join(DATA_DIR, `annual_settings_${targetYear}.json`);
+      try {
+        fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+      } catch (e) {}
+
+      delete summaryCache[`annual_${targetYear}`];
+
+      return sendJson(res, 200, {
+        success: true,
+        message: "Đã lưu cài đặt Tổng hợp KPI Cả Năm thành công!",
+        settings
+      });
+    } catch (err) {
+      return sendJson(res, 500, { success: false, error: err.message });
+    }
+  }
+
   // Serve Frontend HTML
   if (pathname === '/' || pathname === '/index.html' || pathname === '/app') {
     refreshHtmlCache();

@@ -203,6 +203,127 @@
     .btn-dept-seg.active { background: #2b6cb0; color: #ffffff; }
     .btn-dept-seg.active-rank { background: #b7791f; color: #ffffff; }
 
+    /* Sub-view Switcher Quy IV (Mau 02) vs Ca Nam (Mau 03) */
+    .dept-annual-switcher-bar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding: 8px 12px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+    }
+    .dept-annual-seg-group {
+      display: inline-flex;
+      gap: 4px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-dark);
+      border-radius: 6px;
+      padding: 3px;
+    }
+    .btn-dept-switch {
+      height: 32px;
+      padding: 0 14px;
+      font-size: 12.5px;
+      font-weight: 700;
+      border-radius: 5px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform var(--t-press) var(--ease-out), background-color var(--t-hover) ease, color var(--t-hover) ease;
+    }
+    .btn-dept-switch:hover:not(.active) {
+      background: var(--bg-subtle);
+      color: var(--text-main);
+    }
+    .btn-dept-switch.active {
+      background: var(--primary);
+      color: #ffffff;
+    }
+    .btn-dept-switch.active-annual {
+      background: #9a3412;
+      color: #ffffff;
+    }
+    [data-theme="dark"] .btn-dept-switch.active-annual {
+      background: #c2410c;
+      color: #ffffff;
+    }
+    .annual-part-row td {
+      background: var(--bg-subtle);
+      font-weight: 700;
+      color: var(--primary);
+      border-top: 2px solid var(--border-dark);
+    }
+    .annual-part-section td {
+      background: var(--info-bg);
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: 0.2px;
+    }
+    .annual-score-input {
+      width: 68px;
+      height: 28px;
+      padding: 2px 6px;
+      text-align: center;
+      font-size: 12.5px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: var(--primary);
+      background: var(--bg-card);
+      border: 1px solid var(--border-dark);
+      border-radius: 4px;
+    }
+    .annual-score-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(43, 108, 176, 0.2);
+    }
+    .annual-rating-select {
+      width: 100%;
+      height: 28px;
+      padding: 0 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-main);
+      background: var(--bg-card);
+      border: 1px solid var(--border-dark);
+      border-radius: 4px;
+    }
+    .annual-note-input {
+      width: 100%;
+      height: 28px;
+      padding: 2px 7px;
+      font-size: 11.5px;
+      color: var(--text-main);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+    }
+    .annual-note-input:focus, .annual-rating-select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .annual-q-cell {
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+    .annual-avg-cell {
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      font-weight: 800;
+      background: var(--warning-bg);
+      color: var(--warning);
+    }
+
     .guide-nav-pill {
       flex-shrink: 0;
       height: 32px;
@@ -3961,17 +4082,54 @@
               <option value="2025">2025</option>
             </select>
           </div>
-          <button type="button" class="btn btn-outline btn-sm" onclick="loadDepartmentSummary(true, true)" title="Tải lại số liệu mới nhất từ máy chủ cho kỳ này">
-            Tải lại dữ liệu
-          </button>
-          <button type="button" class="btn btn-outline-success btn-sm" onclick="exportDepartmentSummaryToExcel()" style="font-weight: 700;">
-            Xuất Excel Tổng hợp
-          </button>
-          <button type="button" class="btn btn-primary btn-sm" onclick="printDepartmentSummary()" style="font-weight: 700;">
-            In Bảng Tổng hợp Quý
-          </button>
+          <span id="quarterHeaderActions" style="display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="loadDepartmentSummary(true, true)" title="Tải lại số liệu mới nhất từ máy chủ cho kỳ này">
+              Tải lại dữ liệu
+            </button>
+            <button type="button" class="btn btn-outline-success btn-sm" onclick="exportDepartmentSummaryToExcel()" style="font-weight: 700;">
+              Xuất Excel Tổng hợp
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="printDepartmentSummary()" style="font-weight: 700;">
+              In Bảng Tổng hợp Quý
+            </button>
+          </span>
+          <span id="annualHeaderActions" style="display: none; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button type="button" id="btnReloadAnnual" class="btn btn-outline btn-sm" onclick="loadAnnualDepartmentSummary(true, true)" title="Tổng hợp lại điểm 4 Quý mới nhất từ máy chủ">
+              Tải lại 4 Quý
+            </button>
+            <button type="button" class="btn btn-outline-info btn-sm" onclick="saveAnnualSummarySettings(true)" style="font-weight: 700;" title="Lưu thay đổi Phần I, II, xếp loại đề xuất và ghi chú">
+              Lưu cấu hình Năm
+            </button>
+            <button type="button" class="btn btn-outline-success btn-sm" onclick="exportAnnualSummaryToExcel()" style="font-weight: 700;">
+              Xuất Excel Mẫu 03
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="printAnnualSummary()" style="font-weight: 700;">
+              In Mẫu 03 (A4 Ngang)
+            </button>
+          </span>
         </div>
       </div>
+
+      <!-- Cụm Chuyển đổi Phân hệ (CHỈ HIỂN THỊ KHI CHỌN QUÝ IV & LÀ LĐP HOẶC GDV TỔNG HỢP) -->
+      <div id="deptSummaryViewSwitchWrap" class="dept-annual-switcher-bar">
+        <div class="dept-annual-seg-group" role="tablist" aria-label="Chuyển đổi bảng tổng hợp Quý IV và Cả năm">
+          <button type="button" id="btnDeptSubViewQuarter" class="btn-dept-switch active" role="tab" aria-selected="true" onclick="switchDeptSummarySubView('quarter')">
+            📋 Bảng Tổng hợp Quý IV (Mẫu 02)
+          </button>
+          <button type="button" id="btnDeptSubViewAnnual" class="btn-dept-switch" role="tab" aria-selected="false" onclick="switchDeptSummarySubView('annual')">
+            🏆 Bảng Tổng hợp Cả Năm <span class="print-year">2026</span> (Mẫu số 03)
+          </button>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <span style="padding: 2px 8px; border-radius: 4px; background: var(--info-bg); color: var(--info); font-weight: 700; border: 1px solid var(--border-color);">
+            Chế độ Tổng kết Năm (Quý IV)
+          </span>
+          <span>Tự động tổng hợp điểm 4 Quý &amp; gợi ý bình quân Phần I, II (cho phép sửa trực tiếp)</span>
+        </div>
+      </div>
+
+      <!-- KHUNG 1: BẢNG TỔNG HỢP QUÝ (MẪU 02 - GIỮ NGUYÊN 100%) -->
+      <div id="quarterDeptSummaryView">
 
       <!-- KPI Control Panel & Thống kê Tỷ lệ xếp loại (Flat Editorial Cards, Zero Border-Left Tell) -->
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px;">
@@ -4078,6 +4236,146 @@
           </tbody>
         </table>
       </div>
+      </div><!-- /#quarterDeptSummaryView -->
+
+      <!-- KHUNG 2: BẢNG TỔNG HỢP KẾT QUẢ THEO DÕI, ĐÁNH GIÁ CẢ NĂM (MẪU SỐ 03) -->
+      <div id="annualDeptSummaryView" style="display: none;">
+        <!-- Tiêu đề hành chính Mẫu số 03 -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px 16px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.4px; text-transform: uppercase;">
+              KHO BẠC NHÀ NƯỚC KHU VỰC XV — PHÒNG KẾ TOÁN NHÀ NƯỚC
+            </div>
+            <div style="font-size: 15.5px; font-weight: 800; color: var(--primary); margin-top: 2px;">
+              BẢNG TỔNG HỢP KẾT QUẢ THEO DÕI, ĐÁNH GIÁ VÀ ĐỀ XUẤT XẾP LOẠI NĂM <span class="print-year">2026</span>
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <span style="display: inline-block; font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 4px; background: var(--warning-bg); color: var(--warning); border: 1px solid var(--accent-gold);">
+              Mẫu số 03
+            </span>
+            <div id="annualSaveStatus" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+              Sẵn sàng — Tự động lưu khi chỉnh sửa
+            </div>
+          </div>
+        </div>
+
+        <!-- 6 Thẻ Thống kê & Chốt gác Trần 20% Cả Năm -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 14px;">
+          <div class="kpi-card" style="padding: 12px 14px; border-top: 3px solid var(--primary);">
+            <div class="kpi-card-label" style="font-size: 12px;">Tổng số công chức</div>
+            <div id="annualStatTotal" style="font-size: 22px; font-weight: 800; color: var(--text-main); font-variant-numeric: tabular-nums;">35</div>
+            <div class="kpi-card-sub">06 Lãnh đạo + 29 GDV</div>
+          </div>
+          <div class="kpi-card" style="padding: 12px 14px; border-top: 3px solid #2563eb;">
+            <div class="kpi-card-label" style="font-size: 12px;">Điểm TB Toàn phòng</div>
+            <div id="annualStatDeptAvg" style="font-size: 22px; font-weight: 800; color: var(--info); font-variant-numeric: tabular-nums;">--</div>
+            <div class="kpi-card-sub" id="annualStatLeaderAvg">TB LĐP: --</div>
+          </div>
+          <div class="kpi-card" style="padding: 12px 14px; border-top: 3px solid var(--accent-gold);">
+            <div class="kpi-card-label" style="font-size: 12px;">Hoàn thành xuất sắc</div>
+            <div id="annualStatExcellent" style="font-size: 22px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums;">0</div>
+            <div class="kpi-card-sub" id="annualStatExcellentMax">Trần 20%: Tối đa 7 người</div>
+          </div>
+          <div class="kpi-card" style="padding: 12px 14px; border-top: 3px solid #16a34a;">
+            <div class="kpi-card-label" style="font-size: 12px;">Hoàn thành tốt</div>
+            <div id="annualStatGood" style="font-size: 22px; font-weight: 800; color: var(--success); font-variant-numeric: tabular-nums;">0</div>
+            <div class="kpi-card-sub">Điểm TB năm ≥ 70</div>
+          </div>
+          <div class="kpi-card" style="padding: 12px 14px; border-top: 3px solid #0284c7;">
+            <div class="kpi-card-label" style="font-size: 12px;">Hoàn thành nhiệm vụ</div>
+            <div id="annualStatCompleted" style="font-size: 22px; font-weight: 800; color: #0284c7; font-variant-numeric: tabular-nums;">0</div>
+            <div class="kpi-card-sub">Điểm TB năm ≥ 50</div>
+          </div>
+          <div class="kpi-card" style="padding: 12px 14px; border-top: 3px solid #dc2626;">
+            <div class="kpi-card-label" style="font-size: 12px;">Không hoàn thành</div>
+            <div id="annualStatNotCompleted" style="font-size: 22px; font-weight: 800; color: var(--danger); font-variant-numeric: tabular-nums;">0</div>
+            <div class="kpi-card-sub">&lt; 50 điểm</div>
+          </div>
+        </div>
+
+        <!-- Cảnh báo vượt trần 20% Hoàn thành xuất sắc cả năm -->
+        <div id="annualAlertExceeded" style="display: none; background: var(--danger-bg); border: 1px solid #fecaca; color: var(--danger); padding: 10px 14px; border-radius: 6px; margin-bottom: 14px; font-size: 12.5px;">
+          <strong>⚠️ CẢNH BÁO TỶ LỆ XUẤT SẮC CẢ NĂM:</strong> Số lượng công chức đề xuất mức <em>"Hoàn thành xuất sắc nhiệm vụ"</em> đang vượt quá trần 20% theo quy định (Tối đa 7 người / 35 cán bộ). Đề nghị Lãnh đạo phòng và GDV Cẩm Tú rà soát lại!
+        </div>
+
+        <!-- Thanh lọc & tìm kiếm Mẫu số 03 -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 10px; flex-wrap: wrap;">
+          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+            <span style="font-size: 12px; font-weight: 700; color: var(--text-muted);">Hiển thị Phần III:</span>
+            <button type="button" class="btn btn-compact btn-outline annual-filter-btn active" onclick="filterAnnualSummary('all', this)">Tất cả (35)</button>
+            <button type="button" class="btn btn-compact btn-outline annual-filter-btn" onclick="filterAnnualSummary('leader', this)">Lãnh đạo phòng (6)</button>
+            <button type="button" class="btn btn-compact btn-outline annual-filter-btn" onclick="filterAnnualSummary('gdv', this)">Giao dịch viên (29)</button>
+            <span style="border-left: 1px solid var(--border-dark); height: 18px; margin: 0 4px;"></span>
+            <button type="button" class="btn btn-compact btn-outline" onclick="resetAnnualUnitLeaderSuggestions()" title="Khôi phục điểm gợi ý bình quân tự động cho Phần I và Phần II">
+              ↻ Gợi ý lại Phần I &amp; II
+            </button>
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <input type="text" id="searchAnnualInput" placeholder="Tìm tên hoặc chức danh trong Mẫu 03..." aria-label="Tìm tên hoặc chức danh trong Mẫu 03" class="form-control" style="width: 260px; height: 32px; font-size: 12px;" oninput="onSearchAnnualSummary(this.value)">
+          </div>
+        </div>
+
+        <!-- Bảng Tổng hợp Cả Năm 10 Cột Chuẩn Mẫu số 03 -->
+        <div class="table-container" id="annualSummaryTableContainer" style="overflow-x: auto; max-height: calc(100vh - 230px); border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-card);">
+          <table class="table-data" id="tblAnnualSummary" style="width: 100%; min-width: 1240px; table-layout: fixed; border-collapse: collapse; font-size: 12px;">
+            <colgroup>
+              <col style="width: 50px;">
+              <col style="width: 215px;">
+              <col style="width: 195px;">
+              <col style="width: 74px;">
+              <col style="width: 74px;">
+              <col style="width: 74px;">
+              <col style="width: 74px;">
+              <col style="width: 96px;">
+              <col style="width: 210px;">
+              <col style="width: 180px;">
+            </colgroup>
+            <thead style="position: sticky; top: 0; z-index: 10; background: #edf2f7;">
+              <tr>
+                <th rowspan="2" style="text-align: center; vertical-align: middle;">STT</th>
+                <th rowspan="2" style="text-align: left; padding-left: 10px; vertical-align: middle;">Đơn vị / Họ và tên</th>
+                <th rowspan="2" style="text-align: left; padding-left: 10px; vertical-align: middle;">Chức vụ / Chức danh</th>
+                <th colspan="4" style="text-align: center; vertical-align: middle; border-bottom: 1px solid var(--border-dark);">Điểm đánh giá, xếp loại từng quý</th>
+                <th rowspan="2" style="text-align: center; background: #feebc8; color: #744210; font-weight: 800; vertical-align: middle;" title="Điểm theo dõi, đánh giá trung bình cả năm = (Quý I + Quý II + Quý III + Quý IV) / 4">Điểm TB năm</th>
+                <th rowspan="2" style="text-align: center; vertical-align: middle;">Đề xuất mức xếp loại năm <span class="print-year">2026</span></th>
+                <th rowspan="2" style="text-align: center; vertical-align: middle;">Ghi chú</th>
+              </tr>
+              <tr>
+                <th style="text-align: center; vertical-align: middle;">Quý I</th>
+                <th style="text-align: center; vertical-align: middle;">Quý II</th>
+                <th style="text-align: center; vertical-align: middle;">Quý III</th>
+                <th style="text-align: center; vertical-align: middle;">Quý IV</th>
+              </tr>
+            </thead>
+            <tbody id="annualSummaryTableBody">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Chân ký duyệt Mẫu số 03 -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 14px; padding: 12px 18px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px; color: var(--text-muted); flex-wrap: wrap; gap: 16px;">
+          <div>
+            <strong style="color: var(--text-main);">Nơi nhận:</strong><br>
+            - Lãnh đạo KBNN Khu vực XV (để báo cáo);<br>
+            - Phòng Tổ chức cán bộ (để tổng hợp);<br>
+            - Lưu: Phòng KTNN.
+          </div>
+          <div style="display: flex; gap: 48px; text-align: center;">
+            <div>
+              <strong style="color: var(--text-main);">NGƯỜI TỔNG HỢP</strong><br>
+              <span style="font-style: italic;">(GDV phụ trách KPI)</span><br><br>
+              <strong style="color: var(--text-main);">Phạm Thị Cẩm Tú</strong>
+            </div>
+            <div>
+              <strong style="color: var(--text-main);">TRƯỞNG PHÒNG</strong><br>
+              <span style="font-style: italic;">(Ký, ghi rõ họ tên)</span><br><br>
+              <strong style="color: var(--text-main);">Hoàng Anh Sơn</strong>
+            </div>
+          </div>
+        </div>
+      </div><!-- /#annualDeptSummaryView -->
     </div>
 
     <footer style="text-align: center; padding: 10px 16px; color: var(--text-light); font-size: 12px; margin-top: 10px; border-top: 1px solid var(--border-color); line-height: 1.5;">
@@ -9025,6 +9323,13 @@ async function loadDepartmentSummary(showNotification = false, forceRefresh = fa
   document.querySelectorAll('.print-quarter').forEach(el => el.innerText = curQ);
   document.querySelectorAll('.print-year').forEach(el => el.innerText = String(curY));
 
+  if (typeof updateDeptAnnualSwitchVisibility === 'function') {
+    updateDeptAnnualSwitchVisibility(curQ, curY);
+  }
+  if (window._currentDeptSubView === 'annual' && curQ === 'Quý IV' && typeof loadAnnualDepartmentSummary === 'function') {
+    loadAnnualDepartmentSummary(showNotification, forceRefresh);
+  }
+
   const isQuarterChanged = (window._currentDeptSummaryQuarter !== curQ || window._currentDeptSummaryYear !== curY);
   if (isQuarterChanged || forceRefresh) {
     currentDeptSummaryData = [];
@@ -10753,6 +11058,913 @@ function printDepartmentSummary() {
         <strong>Phạm Thị Cẩm Tú</strong>
       </td>
       <td style="width: 50%; text-align: center; vertical-align: top;">
+        <span style="font-style: italic;">Gia Lai, ngày ..... tháng ..... năm ${curY}</span><br>
+        <strong>TRƯỞNG PHÒNG</strong><br>
+        <span style="font-style: italic;">(Ký, ghi rõ họ tên)</span>
+        <br><br><br><br>
+        <strong>Hoàng Anh Sơn</strong>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `);
+  printWindow.document.close();
+}
+
+// ==========================================================================
+// 🏆 TỔNG HỢP KPI TOÀN PHÒNG CẢ NĂM (MẪU SỐ 03) — CHỈ HIỆN TRONG QUÝ IV
+// Dành riêng cho Lãnh đạo phòng (TP, PTP) & GDV Tổng hợp KPI (Phạm Thị Cẩm Tú)
+// ==========================================================================
+window._currentDeptSubView = 'quarter'; // 'quarter' | 'annual'
+let currentAnnualSummaryData = [];
+let currentAnnualSettings = null;
+let currentAnnualStats = null;
+let currentAnnualFilter = 'all';
+let currentAnnualSearch = '';
+let _activeAnnualRequestSeq = 0;
+let _activeAnnualAbortCtrl = null;
+let _annualSaveDebounceTimer = null;
+
+const ANNUAL_RATING_OPTIONS = [
+  "Hoàn thành xuất sắc nhiệm vụ",
+  "Hoàn thành tốt nhiệm vụ",
+  "Hoàn thành nhiệm vụ",
+  "Không hoàn thành nhiệm vụ",
+  "Chưa đánh giá"
+];
+
+function canAccessAnnualSummary() {
+  const loggedUser = sessionStorage.getItem('KBXV_CURRENT_LOGGED_IN') || '';
+  const cfg = (window.OFFICERS_ASSIGNMENTS && window.OFFICERS_ASSIGNMENTS[loggedUser]) || {};
+  return (
+    loggedUser === 'son' ||
+    loggedUser === 'hoang' ||
+    loggedUser === 'tuan' ||
+    loggedUser === 'anh' ||
+    loggedUser === 'tu' ||
+    !!cfg.isLeader ||
+    !!cfg.isKPIAggregator
+  );
+}
+
+function updateDeptAnnualSwitchVisibility(curQ, curY) {
+  const q = curQ || (appState.officer && appState.officer.quarter) || "Quý III";
+  const wrap = document.getElementById('deptSummaryViewSwitchWrap');
+  const canShow = (q === 'Quý IV' && canAccessAnnualSummary());
+
+  if (wrap) {
+    wrap.style.display = canShow ? 'flex' : 'none';
+  }
+  if (!canShow && window._currentDeptSubView === 'annual') {
+    switchDeptSummarySubView('quarter');
+  }
+}
+
+function switchDeptSummarySubView(mode) {
+  const targetMode = (mode === 'annual' && canAccessAnnualSummary()) ? 'annual' : 'quarter';
+  window._currentDeptSubView = targetMode;
+
+  const qView = document.getElementById('quarterDeptSummaryView');
+  const aView = document.getElementById('annualDeptSummaryView');
+  const qActions = document.getElementById('quarterHeaderActions');
+  const aActions = document.getElementById('annualHeaderActions');
+  const btnQ = document.getElementById('btnDeptSubViewQuarter');
+  const btnA = document.getElementById('btnDeptSubViewAnnual');
+
+  if (qView) qView.style.display = (targetMode === 'quarter') ? '' : 'none';
+  if (aView) aView.style.display = (targetMode === 'annual') ? '' : 'none';
+  if (qActions) qActions.style.display = (targetMode === 'quarter') ? 'inline-flex' : 'none';
+  if (aActions) aActions.style.display = (targetMode === 'annual') ? 'inline-flex' : 'none';
+
+  if (btnQ) {
+    btnQ.classList.toggle('active', targetMode === 'quarter');
+    btnQ.setAttribute('aria-selected', targetMode === 'quarter' ? 'true' : 'false');
+  }
+  if (btnA) {
+    btnA.classList.toggle('active', targetMode === 'annual');
+    btnA.classList.toggle('active-annual', targetMode === 'annual');
+    btnA.setAttribute('aria-selected', targetMode === 'annual' ? 'true' : 'false');
+  }
+
+  if (targetMode === 'annual') {
+    loadAnnualDepartmentSummary(false, false);
+  }
+}
+
+function buildOfflineAnnualSummary(targetYear) {
+  const allCfg = window.OFFICERS_ASSIGNMENTS || {};
+  const officersArr = Object.values(allCfg);
+  const quarters = ['Quý I', 'Quý II', 'Quý III', 'Quý IV'];
+
+  let savedSettings = {};
+  try {
+    const rawS = localStorage.getItem(`KBXV_ANNUAL_SETTINGS_${targetYear}`);
+    if (rawS) savedSettings = JSON.parse(rawS) || {};
+  } catch (e) {}
+
+  const settings = {
+    unitScore: savedSettings.unitScore !== undefined ? savedSettings.unitScore : null,
+    unitRating: savedSettings.unitRating || "Hoàn thành tốt nhiệm vụ",
+    unitNote: savedSettings.unitNote || "",
+    leaderScore: savedSettings.leaderScore !== undefined ? savedSettings.leaderScore : null,
+    leaderRating: savedSettings.leaderRating || "Hoàn thành tốt nhiệm vụ",
+    leaderNote: savedSettings.leaderNote || "",
+    officerOverrides: savedSettings.officerOverrides || {}
+  };
+
+  let totalScoreSum = 0, totalScoreCount = 0;
+  let leaderScoreSum = 0, leaderScoreCount = 0;
+
+  const officers = officersArr.map((off, idx) => {
+    const qScores = quarters.map(qLabel => {
+      try {
+        const key = getSessionStorageKey(off.id, qLabel, targetYear);
+        let raw = localStorage.getItem(key);
+        if (!raw && appState.officer && appState.officer.officerId === off.id && appState.officer.quarter === qLabel) {
+          raw = JSON.stringify(appState);
+        }
+        if (!raw) return null;
+        const sess = JSON.parse(raw);
+        let avgPct = 0;
+        if (sess.months && Array.isArray(sess.months) && sess.months.length > 0) {
+          let sPct = 0, mCnt = 0;
+          sess.months.forEach(m => {
+            let p = Number(m && m.completionPercent) || 0;
+            if (p === 0 && m && Array.isArray(m.rows)) {
+              const c = calculateMonth24(m, getRoleMultiplier(off.role));
+              p = c.finalMonthPct;
+            }
+            if (p > 0) { sPct += p; mCnt++; }
+          });
+          avgPct = mCnt > 0 ? Math.round((sPct / sess.months.length) * 10) / 10 : 0;
+        }
+        let gScore = 0;
+        if (sess.generalCriteria) {
+          let gSum = 0;
+          for (const k of Object.keys(sess.generalCriteria)) gSum += Number(sess.generalCriteria[k] || 0);
+          gScore = Math.min(30, Math.round(gSum * 10) / 10);
+        }
+        const total = Math.round(((avgPct * 0.7) + gScore) * 10) / 10;
+        return total > 0 ? total : null;
+      } catch (e) {
+        return null;
+      }
+    });
+
+    let sumQ = 0, validQ = 0;
+    qScores.forEach(s => { if (typeof s === 'number') { sumQ += s; validQ++; } });
+    const avgScore = validQ > 0 ? Math.round((sumQ / 4) * 100) / 100 : 0;
+
+    let formulaRating = "Chưa đánh giá";
+    if (avgScore >= 90) formulaRating = "Hoàn thành xuất sắc nhiệm vụ";
+    else if (avgScore >= 70) formulaRating = "Hoàn thành tốt nhiệm vụ";
+    else if (avgScore >= 50) formulaRating = "Hoàn thành nhiệm vụ";
+    else if (avgScore > 0) formulaRating = "Không hoàn thành nhiệm vụ";
+
+    const ov = settings.officerOverrides[off.id] || {};
+    const proposedRating = ov.proposedRating || formulaRating;
+    const note = ov.note || "";
+
+    if (avgScore > 0) {
+      totalScoreSum += avgScore;
+      totalScoreCount++;
+      if (off.isLeader) {
+        leaderScoreSum += avgScore;
+        leaderScoreCount++;
+      }
+    }
+
+    return {
+      stt: idx + 1,
+      id: off.id,
+      name: off.name,
+      role: off.role,
+      group: off.group,
+      title: off.title,
+      specialty: off.specialty || "",
+      isLeader: !!off.isLeader,
+      isKPIAggregator: !!off.isKPIAggregator,
+      q1Score: qScores[0],
+      q2Score: qScores[1],
+      q3Score: qScores[2],
+      q4Score: qScores[3],
+      avgScore,
+      formulaRating,
+      proposedRating,
+      note
+    };
+  });
+
+  const deptAvgScore = totalScoreCount > 0 ? Math.round((totalScoreSum / totalScoreCount) * 100) / 100 : 89.0;
+  const leaderAvgScore = leaderScoreCount > 0 ? Math.round((leaderScoreSum / leaderScoreCount) * 100) / 100 : 89.5;
+  if (settings.unitScore === null || settings.unitScore === undefined) settings.unitScore = deptAvgScore;
+  if (settings.leaderScore === null || settings.leaderScore === undefined) settings.leaderScore = leaderAvgScore;
+
+  return { year: targetYear, officers, settings, deptAvgScore, leaderAvgScore };
+}
+
+async function loadAnnualDepartmentSummary(showNotification = false, forceRefresh = false) {
+  if (!canAccessAnnualSummary()) return;
+  const reqSeq = ++_activeAnnualRequestSeq;
+  if (_activeAnnualAbortCtrl) {
+    try { _activeAnnualAbortCtrl.abort(); } catch (e) {}
+  }
+  const abortCtrl = new AbortController();
+  _activeAnnualAbortCtrl = abortCtrl;
+
+  const curY = Number((appState.officer && appState.officer.year) || 2026);
+  const cacheKey = `KBXV_ANNUAL_SUMMARY_${curY}`;
+  const btnReload = document.getElementById('btnReloadAnnual');
+  if (btnReload && showNotification) btnReload.innerText = 'Đang tổng hợp...';
+
+  // Instant paint từ IDB Cache nếu không forceRefresh
+  if (!forceRefresh) {
+    try {
+      const cached = await getIdbCacheItem(cacheKey);
+      if (reqSeq !== _activeAnnualRequestSeq) return;
+      if (cached && Array.isArray(cached.officers) && cached.officers.length > 0) {
+        currentAnnualSummaryData = cached.officers;
+        currentAnnualSettings = cached.settings;
+        currentAnnualStats = cached.stats;
+        recalcAnnualStats();
+        renderAnnualSummaryTable();
+      }
+    } catch (e) {}
+  }
+
+  try {
+    const res = await apiFetch(`${CURRENT_SERVER_HOST}/api/annual-summary?year=${encodeURIComponent(curY)}${forceRefresh ? '&refresh=1' : ''}`, {
+      cache: 'no-cache',
+      signal: abortCtrl.signal
+    });
+    if (reqSeq !== _activeAnnualRequestSeq) return;
+    if (res.ok) {
+      const json = await res.json();
+      if (reqSeq !== _activeAnnualRequestSeq) return;
+      if (json && json.success && Array.isArray(json.officers)) {
+        currentAnnualSummaryData = json.officers;
+        currentAnnualSettings = json.settings || {};
+        currentAnnualStats = json.stats || {};
+        setIdbCacheItem(cacheKey, json).catch(() => {});
+        try {
+          localStorage.setItem(`KBXV_ANNUAL_SETTINGS_${curY}`, JSON.stringify(currentAnnualSettings));
+        } catch (e) {}
+        recalcAnnualStats();
+        renderAnnualSummaryTable();
+        if (showNotification) showToast(`Đã tổng hợp điểm KPI cả năm ${curY} (Mẫu số 03) thành công!`);
+        if (btnReload) btnReload.innerText = 'Tải lại 4 Quý';
+        return;
+      }
+    }
+  } catch (err) {
+    if (err && err.name === 'AbortError') return;
+    console.warn('[ANNUAL SUMMARY] Chuyển sang chế độ dự phòng Offline LocalStorage:', err);
+  }
+
+  if (reqSeq !== _activeAnnualRequestSeq) return;
+  if (btnReload) btnReload.innerText = 'Tải lại 4 Quý';
+
+  // Fallback 100% Offline Zero-Server
+  if (!currentAnnualSummaryData || currentAnnualSummaryData.length === 0 || forceRefresh) {
+    const offlineData = buildOfflineAnnualSummary(curY);
+    currentAnnualSummaryData = offlineData.officers;
+    currentAnnualSettings = offlineData.settings;
+    currentAnnualStats = {
+      totalOfficers: offlineData.officers.length,
+      deptAvgScore: offlineData.deptAvgScore,
+      leaderAvgScore: offlineData.leaderAvgScore
+    };
+    recalcAnnualStats();
+    renderAnnualSummaryTable();
+    if (showNotification) showToast(`Đã tổng hợp KPI cả năm ${curY} từ dữ liệu cục bộ (Offline)!`);
+  }
+}
+
+function recalcAnnualStats() {
+  const officers = currentAnnualSummaryData || [];
+  const totalOfficers = officers.length;
+  const maxExcellentAllowed = Math.round(totalOfficers * 0.2);
+
+  let sumAll = 0, cntAll = 0;
+  let sumLead = 0, cntLead = 0;
+  let excellentCount = 0, goodCount = 0, completedCount = 0, notCompletedCount = 0;
+
+  officers.forEach(o => {
+    const avg = Number(o.avgScore) || 0;
+    if (avg > 0) {
+      sumAll += avg;
+      cntAll++;
+      if (o.isLeader) { sumLead += avg; cntLead++; }
+    }
+    const r = (o.proposedRating || o.formulaRating || '').toLowerCase();
+    if (r.includes('xuất sắc')) excellentCount++;
+    else if (r.includes('tốt')) goodCount++;
+    else if (r.includes('không hoàn thành')) notCompletedCount++;
+    else if (r.includes('hoàn thành')) completedCount++;
+  });
+
+  const deptAvgScore = cntAll > 0 ? Math.round((sumAll / cntAll) * 100) / 100 : (currentAnnualStats && currentAnnualStats.deptAvgScore) || 89.0;
+  const leaderAvgScore = cntLead > 0 ? Math.round((sumLead / cntLead) * 100) / 100 : (currentAnnualStats && currentAnnualStats.leaderAvgScore) || 89.5;
+
+  currentAnnualStats = {
+    totalOfficers,
+    deptAvgScore,
+    leaderAvgScore,
+    excellentCount,
+    maxExcellentAllowed,
+    isExcellentExceeded: excellentCount > maxExcellentAllowed,
+    goodCount,
+    completedCount,
+    notCompletedCount
+  };
+
+  renderAnnualSummaryStats(currentAnnualStats);
+}
+
+function renderAnnualSummaryStats(stats) {
+  if (!stats) return;
+  const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+  setTxt('annualStatTotal', stats.totalOfficers);
+  setTxt('annualStatDeptAvg', stats.deptAvgScore ? stats.deptAvgScore.toFixed(2) : '--');
+  setTxt('annualStatLeaderAvg', `TB LĐP: ${stats.leaderAvgScore ? stats.leaderAvgScore.toFixed(2) : '--'}`);
+  setTxt('annualStatExcellent', stats.excellentCount);
+  setTxt('annualStatExcellentMax', `Trần 20%: Tối đa ${stats.maxExcellentAllowed} người`);
+  setTxt('annualStatGood', stats.goodCount);
+  setTxt('annualStatCompleted', stats.completedCount);
+  setTxt('annualStatNotCompleted', stats.notCompletedCount);
+
+  const excEl = document.getElementById('annualStatExcellent');
+  if (excEl) excEl.style.color = stats.isExcellentExceeded ? 'var(--danger)' : 'var(--accent)';
+
+  const alertBox = document.getElementById('annualAlertExceeded');
+  if (alertBox) {
+    if (stats.isExcellentExceeded) {
+      alertBox.style.display = 'block';
+      alertBox.innerHTML = `<strong>⚠️ CẢNH BÁO TỶ LỆ XUẤT SẮC CẢ NĂM:</strong> Hiện có <strong>${stats.excellentCount}/${stats.totalOfficers}</strong> công chức đề xuất <em>"Hoàn thành xuất sắc nhiệm vụ"</em> (vượt quá trần 20% = tối đa ${stats.maxExcellentAllowed} người). Đề nghị Lãnh đạo phòng và GDV Cẩm Tú rà soát lại trước khi kết xuất Mẫu số 03!`;
+    } else {
+      alertBox.style.display = 'none';
+    }
+  }
+}
+
+function buildAnnualRatingSelectHtml(selectedVal, onchangeAttr) {
+  const curVal = selectedVal || "Chưa đánh giá";
+  const opts = ANNUAL_RATING_OPTIONS.map(opt =>
+    `<option value="${escapeHtml(opt)}"${opt === curVal ? ' selected' : ''}>${escapeHtml(opt)}</option>`
+  ).join('');
+  return `<select class="annual-rating-select" onchange="${onchangeAttr}">${opts}</select>`;
+}
+
+function formatAnnualScoreCell(val) {
+  if (val === null || val === undefined || val === '') return '<span style="color: var(--text-light);">-</span>';
+  const num = Number(val);
+  if (isNaN(num)) return '<span style="color: var(--text-light);">-</span>';
+  return num.toFixed(1);
+}
+
+function renderAnnualSummaryTable() {
+  const tbody = document.getElementById('annualSummaryTableBody');
+  if (!tbody) return;
+
+  const settings = currentAnnualSettings || {
+    unitScore: (currentAnnualStats && currentAnnualStats.deptAvgScore) || 89.0,
+    unitRating: "Hoàn thành tốt nhiệm vụ",
+    unitNote: "",
+    leaderScore: (currentAnnualStats && currentAnnualStats.leaderAvgScore) || 89.5,
+    leaderRating: "Hoàn thành tốt nhiệm vụ",
+    leaderNote: "",
+    officerOverrides: {}
+  };
+
+  const unitScoreVal = (settings.unitScore !== null && settings.unitScore !== undefined) ? Number(settings.unitScore) : ((currentAnnualStats && currentAnnualStats.deptAvgScore) || 89.0);
+  const leaderScoreVal = (settings.leaderScore !== null && settings.leaderScore !== undefined) ? Number(settings.leaderScore) : ((currentAnnualStats && currentAnnualStats.leaderAvgScore) || 89.5);
+
+  const q = (currentAnnualSearch || '').trim().toLowerCase();
+  const filteredOfficers = (currentAnnualSummaryData || []).filter(o => {
+    if (currentAnnualFilter === 'leader' && !o.isLeader) return false;
+    if (currentAnnualFilter === 'gdv' && o.isLeader) return false;
+    if (q) {
+      const hay = `${o.name || ''} ${o.title || ''} ${o.specialty || ''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  const rowsHtml = [];
+
+  // PHẦN I: TẬP THỂ ĐƠN VỊ
+  rowsHtml.push(`
+    <tr class="annual-part-row">
+      <td style="text-align: center;">I</td>
+      <td colspan="2" style="padding-left: 10px;">
+        TẬP THỂ ĐƠN VỊ: PHÒNG KẾ TOÁN NHÀ NƯỚC
+        <div style="font-size: 10.5px; font-weight: 500; color: var(--text-muted);">Gợi ý tự động theo bình quân toàn phòng — cho phép sửa trực tiếp</div>
+      </td>
+      <td class="annual-q-cell">-</td>
+      <td class="annual-q-cell">-</td>
+      <td class="annual-q-cell">-</td>
+      <td class="annual-q-cell">-</td>
+      <td class="annual-avg-cell">
+        <input type="number" step="0.01" min="0" max="100" class="annual-score-input" value="${unitScoreVal}" aria-label="Điểm TB năm Phần I Tập thể đơn vị" onchange="onAnnualPartChange('unit', 'Score', this.value)">
+      </td>
+      <td>${buildAnnualRatingSelectHtml(settings.unitRating || 'Hoàn thành tốt nhiệm vụ', "onAnnualPartChange('unit', 'Rating', this.value)")}</td>
+      <td>
+        <input type="text" class="annual-note-input" placeholder="Ghi chú Phần I..." value="${escapeHtml(settings.unitNote || '')}" onchange="onAnnualPartChange('unit', 'Note', this.value)">
+      </td>
+    </tr>
+  `);
+
+  // PHẦN II: TẬP THỂ LÃNH ĐẠO PHÒNG
+  rowsHtml.push(`
+    <tr class="annual-part-row">
+      <td style="text-align: center;">II</td>
+      <td colspan="2" style="padding-left: 10px;">
+        TẬP THỂ LÃNH ĐẠO PHÒNG KẾ TOÁN NHÀ NƯỚC
+        <div style="font-size: 10.5px; font-weight: 500; color: var(--text-muted);">Gợi ý tự động theo bình quân khối Lãnh đạo — cho phép sửa trực tiếp</div>
+      </td>
+      <td class="annual-q-cell">-</td>
+      <td class="annual-q-cell">-</td>
+      <td class="annual-q-cell">-</td>
+      <td class="annual-q-cell">-</td>
+      <td class="annual-avg-cell">
+        <input type="number" step="0.01" min="0" max="100" class="annual-score-input" value="${leaderScoreVal}" aria-label="Điểm TB năm Phần II Tập thể Lãnh đạo phòng" onchange="onAnnualPartChange('leader', 'Score', this.value)">
+      </td>
+      <td>${buildAnnualRatingSelectHtml(settings.leaderRating || 'Hoàn thành tốt nhiệm vụ', "onAnnualPartChange('leader', 'Rating', this.value)")}</td>
+      <td>
+        <input type="text" class="annual-note-input" placeholder="Ghi chú Phần II..." value="${escapeHtml(settings.leaderNote || '')}" onchange="onAnnualPartChange('leader', 'Note', this.value)">
+      </td>
+    </tr>
+  `);
+
+  // PHẦN III: CÁ NHÂN CÔNG CHỨC TRONG ĐƠN VỊ
+  rowsHtml.push(`
+    <tr class="annual-part-section">
+      <td style="text-align: center;">III</td>
+      <td colspan="9" style="padding-left: 10px;">CÁ NHÂN CÔNG CHỨC TRONG ĐƠN VỊ (${filteredOfficers.length}/${(currentAnnualSummaryData || []).length} công chức)</td>
+    </tr>
+  `);
+
+  if (filteredOfficers.length === 0) {
+    rowsHtml.push(`
+      <tr>
+        <td colspan="10" style="text-align: center; padding: 20px; color: var(--text-muted);">
+          Không tìm thấy công chức phù hợp với điều kiện lọc.
+        </td>
+      </tr>
+    `);
+  } else {
+    filteredOfficers.forEach((o, idx) => {
+      const safeId = escapeHtml(o.id);
+      const roleTitle = o.title || (o.role === 'TP' ? 'Trưởng phòng' : (o.role === 'PTP' ? 'Phó Trưởng phòng' : 'Giao dịch viên'));
+      const avgDisplay = o.avgScore > 0 ? Number(o.avgScore).toFixed(2) : '-';
+      const isExc = (o.proposedRating || '').toLowerCase().includes('xuất sắc');
+
+      rowsHtml.push(`
+        <tr${isExc ? ' style="background: rgba(245, 158, 11, 0.06);"' : ''}>
+          <td style="text-align: center; font-weight: 600;">${idx + 1}</td>
+          <td style="padding-left: 10px; font-weight: 700; color: var(--text-main);">
+            ${escapeHtml(o.name)}
+            ${o.isLeader ? '<span style="font-size: 10px; margin-left: 4px; padding: 1px 5px; border-radius: 3px; background: var(--info-bg); color: var(--info); font-weight: 700;">LĐP</span>' : ''}
+          </td>
+          <td style="padding-left: 10px; color: var(--text-muted);">${escapeHtml(roleTitle)}</td>
+          <td class="annual-q-cell">${formatAnnualScoreCell(o.q1Score)}</td>
+          <td class="annual-q-cell">${formatAnnualScoreCell(o.q2Score)}</td>
+          <td class="annual-q-cell">${formatAnnualScoreCell(o.q3Score)}</td>
+          <td class="annual-q-cell">${formatAnnualScoreCell(o.q4Score)}</td>
+          <td class="annual-avg-cell">${avgDisplay}</td>
+          <td>${buildAnnualRatingSelectHtml(o.proposedRating || o.formulaRating, `onAnnualOfficerChange('${safeId}', 'proposedRating', this.value)`)}</td>
+          <td>
+            <input type="text" class="annual-note-input" placeholder="Nhập ghi chú..." value="${escapeHtml(o.note || '')}" onchange="onAnnualOfficerChange('${safeId}', 'note', this.value)">
+          </td>
+        </tr>
+      `);
+    });
+  }
+
+  tbody.innerHTML = rowsHtml.join('');
+}
+
+function scheduleAnnualAutoSave() {
+  const statusEl = document.getElementById('annualSaveStatus');
+  if (statusEl) statusEl.innerText = 'Đang lưu thay đổi...';
+  const curY = Number((appState.officer && appState.officer.year) || 2026);
+  try {
+    if (currentAnnualSettings) {
+      localStorage.setItem(`KBXV_ANNUAL_SETTINGS_${curY}`, JSON.stringify(currentAnnualSettings));
+    }
+  } catch (e) {}
+  if (_annualSaveDebounceTimer) clearTimeout(_annualSaveDebounceTimer);
+  _annualSaveDebounceTimer = setTimeout(() => {
+    saveAnnualSummarySettings(false);
+  }, 600);
+}
+
+function onAnnualPartChange(part, field, value) {
+  if (!currentAnnualSettings) currentAnnualSettings = { officerOverrides: {} };
+  const key = `${part}${field}`; // unitScore, unitRating, unitNote, leaderScore, leaderRating, leaderNote
+  if (field === 'Score') {
+    const num = parseFloat(value);
+    currentAnnualSettings[key] = isNaN(num) ? 0 : Math.max(0, Math.min(100, Math.round(num * 100) / 100));
+  } else {
+    currentAnnualSettings[key] = String(value || '');
+  }
+  scheduleAnnualAutoSave();
+}
+
+function onAnnualOfficerChange(officerId, field, value) {
+  if (!currentAnnualSettings) currentAnnualSettings = { officerOverrides: {} };
+  if (!currentAnnualSettings.officerOverrides) currentAnnualSettings.officerOverrides = {};
+  if (!currentAnnualSettings.officerOverrides[officerId]) currentAnnualSettings.officerOverrides[officerId] = {};
+
+  currentAnnualSettings.officerOverrides[officerId][field] = String(value || '');
+
+  const target = (currentAnnualSummaryData || []).find(o => o.id === officerId);
+  if (target) {
+    target[field] = String(value || '');
+  }
+  recalcAnnualStats();
+  if (field === 'proposedRating') {
+    renderAnnualSummaryTable();
+  }
+  scheduleAnnualAutoSave();
+}
+
+function resetAnnualUnitLeaderSuggestions() {
+  if (!currentAnnualSettings) currentAnnualSettings = { officerOverrides: {} };
+  const deptAvg = (currentAnnualStats && currentAnnualStats.deptAvgScore) || 89.0;
+  const leadAvg = (currentAnnualStats && currentAnnualStats.leaderAvgScore) || 89.5;
+  currentAnnualSettings.unitScore = deptAvg;
+  currentAnnualSettings.unitRating = "Hoàn thành tốt nhiệm vụ";
+  currentAnnualSettings.leaderScore = leadAvg;
+  currentAnnualSettings.leaderRating = "Hoàn thành tốt nhiệm vụ";
+  renderAnnualSummaryTable();
+  scheduleAnnualAutoSave();
+  showToast(`Đã khôi phục điểm gợi ý bình quân: Phần I (${deptAvg}) & Phần II (${leadAvg})`);
+}
+
+async function saveAnnualSummarySettings(showNotification = false) {
+  if (!canAccessAnnualSummary() || !currentAnnualSettings) return;
+  const curY = Number((appState.officer && appState.officer.year) || 2026);
+  const statusEl = document.getElementById('annualSaveStatus');
+  try {
+    localStorage.setItem(`KBXV_ANNUAL_SETTINGS_${curY}`, JSON.stringify(currentAnnualSettings));
+  } catch (e) {}
+
+  try {
+    const res = await apiFetch(`${CURRENT_SERVER_HOST}/api/annual-summary`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year: curY, settings: currentAnnualSettings })
+    });
+    if (res.ok) {
+      const nowStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+      if (statusEl) statusEl.innerText = `Đã lưu máy chủ lúc ${nowStr}`;
+      // Cập nhật luôn IDB cache để tải lại tức thì
+      const cacheKey = `KBXV_ANNUAL_SUMMARY_${curY}`;
+      setIdbCacheItem(cacheKey, {
+        success: true,
+        year: curY,
+        officers: currentAnnualSummaryData,
+        settings: currentAnnualSettings,
+        stats: currentAnnualStats
+      }).catch(() => {});
+      if (showNotification) showToast(`Đã lưu cấu hình Bảng tổng hợp năm ${curY} (Mẫu số 03)!`);
+      return;
+    }
+  } catch (e) {
+    console.warn('[ANNUAL SUMMARY SAVE] Đã lưu cục bộ (Offline):', e);
+  }
+  const nowStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  if (statusEl) statusEl.innerText = `Đã lưu cục bộ lúc ${nowStr}`;
+  if (showNotification) showToast(`Đã lưu cục bộ Bảng tổng hợp năm ${curY} (Offline)!`);
+}
+
+function filterAnnualSummary(group, btnEl) {
+  currentAnnualFilter = group || 'all';
+  document.querySelectorAll('.annual-filter-btn').forEach(b => b.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  renderAnnualSummaryTable();
+}
+
+function onSearchAnnualSummary(query) {
+  currentAnnualSearch = query || '';
+  renderAnnualSummaryTable();
+}
+
+// KẾT XUẤT EXCEL BẢNG TỔNG HỢP CẢ NĂM (MẪU SỐ 03)
+function exportAnnualSummaryToExcel() {
+  const curY = Number((appState.officer && appState.officer.year) || 2026);
+  const officers = currentAnnualSummaryData || [];
+  if (officers.length === 0) {
+    alert("Chưa có dữ liệu tổng hợp cả năm để kết xuất!");
+    return;
+  }
+  const s = currentAnnualSettings || {};
+  const uScore = (s.unitScore !== null && s.unitScore !== undefined) ? s.unitScore : ((currentAnnualStats && currentAnnualStats.deptAvgScore) || 89.0);
+  const lScore = (s.leaderScore !== null && s.leaderScore !== undefined) ? s.leaderScore : ((currentAnnualStats && currentAnnualStats.leaderAvgScore) || 89.5);
+  const filename = `Mau03_TongHop_KPI_CaNam_${curY}_PhongKTNN_KBXV.xls`;
+
+  const fmtScore = v => (v !== null && v !== undefined && v !== '' && !isNaN(Number(v))) ? Number(v).toFixed(1) : '-';
+
+  const officerRowsHtml = officers.map((o, idx) => `
+    <tr>
+      <td style="text-align: center; mso-number-format: '\\@';">${idx + 1}</td>
+      <td style="font-weight: bold;">${escapeExcelCell(o.name)}</td>
+      <td>${escapeExcelCell(o.title || (o.role === 'TP' ? 'Trưởng phòng' : (o.role === 'PTP' ? 'Phó Trưởng phòng' : 'Giao dịch viên')))}</td>
+      <td style="text-align: center;">${fmtScore(o.q1Score)}</td>
+      <td style="text-align: center;">${fmtScore(o.q2Score)}</td>
+      <td style="text-align: center;">${fmtScore(o.q3Score)}</td>
+      <td style="text-align: center;">${fmtScore(o.q4Score)}</td>
+      <td style="text-align: center; font-weight: bold; background-color: #fef3c7;">${o.avgScore > 0 ? Number(o.avgScore).toFixed(2) : '-'}</td>
+      <td style="text-align: center; font-weight: bold;">${escapeExcelCell(o.proposedRating || o.formulaRating)}</td>
+      <td>${escapeExcelCell(o.note || '')}</td>
+    </tr>
+  `).join('');
+
+  const excelHtml = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:x="urn:schemas-microsoft-com:office:excel"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<!--[if gte mso 9]>
+<xml>
+ <x:ExcelWorkbook>
+  <x:ExcelWorksheets>
+   <x:ExcelWorksheet>
+    <x:Name>Mau03_TongHop_Nam_${curY}</x:Name>
+    <x:WorksheetOptions>
+     <x:DisplayGridlines/>
+     <x:Print>
+      <x:Orientation>Landscape</x:Orientation>
+      <x:ValidPrinterInfo/>
+      <x:PaperSizeIndex>9</x:PaperSizeIndex>
+      <x:Scale>85</x:Scale>
+     </x:Print>
+    </x:WorksheetOptions>
+   </x:ExcelWorksheet>
+  </x:ExcelWorksheets>
+ </x:ExcelWorkbook>
+</xml>
+<![endif]-->
+<style>
+  br { mso-data-placement: same-cell; }
+  body, table { font-family: 'Times New Roman', Times, serif; font-size: 10.5pt; color: #000; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: .5pt solid windowtext; padding: 5px 6px; vertical-align: middle; }
+  th { background-color: #e2e8f0; font-weight: bold; text-align: center; }
+  .part-row td { background-color: #f1f5f9; font-weight: bold; }
+  .no-border, .no-border td { border: none !important; }
+</style>
+</head>
+<body style="padding: 15px;">
+  <table class="no-border" style="width: 100%; margin-bottom: 10px;">
+    <tr>
+      <td style="width: 45%; text-align: center; font-weight: bold;">
+        KHO BẠC NHÀ NƯỚC KHU VỰC XV<br>
+        <strong style="text-decoration: underline;">PHÒNG KẾ TOÁN NHÀ NƯỚC</strong>
+      </td>
+      <td style="width: 35%; text-align: center; font-weight: bold;">
+        CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM<br>
+        <strong style="text-decoration: underline;">Độc lập - Tự do - Hạnh phúc</strong>
+      </td>
+      <td style="width: 20%; text-align: right; font-weight: bold; vertical-align: top;">
+        Mẫu số 03
+      </td>
+    </tr>
+  </table>
+
+  <div style="text-align: center; margin: 14px 0 18px 0;">
+    <h2 style="font-size: 14pt; font-weight: bold; margin: 0;">BẢNG TỔNG HỢP KẾT QUẢ THEO DÕI, ĐÁNH GIÁ VÀ ĐỀ XUẤT XẾP LOẠI NĂM ${curY}</h2>
+    <p style="font-size: 10pt; font-style: italic; margin: 4px 0 0 0;">(Đơn vị: Phòng Kế toán Nhà nước — Kho bạc Nhà nước Khu vực XV)</p>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th rowspan="2" style="width: 38px;">STT</th>
+        <th rowspan="2" style="width: 175px;">Đơn vị / Họ và tên</th>
+        <th rowspan="2" style="width: 150px;">Chức vụ / Chức danh</th>
+        <th colspan="4">Điểm đánh giá, xếp loại từng quý</th>
+        <th rowspan="2" style="width: 75px; background-color: #fef3c7;">Điểm TB năm</th>
+        <th rowspan="2" style="width: 165px;">Đề xuất mức xếp loại năm ${curY}</th>
+        <th rowspan="2" style="width: 145px;">Ghi chú</th>
+      </tr>
+      <tr>
+        <th style="width: 55px;">Quý I</th>
+        <th style="width: 55px;">Quý II</th>
+        <th style="width: 55px;">Quý III</th>
+        <th style="width: 55px;">Quý IV</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="part-row">
+        <td style="text-align: center;">I</td>
+        <td colspan="2">TẬP THỂ ĐƠN VỊ: PHÒNG KẾ TOÁN NHÀ NƯỚC</td>
+        <td style="text-align: center;">-</td>
+        <td style="text-align: center;">-</td>
+        <td style="text-align: center;">-</td>
+        <td style="text-align: center;">-</td>
+        <td style="text-align: center; background-color: #fef3c7;">${Number(uScore).toFixed(2)}</td>
+        <td style="text-align: center;">${escapeExcelCell(s.unitRating || 'Hoàn thành tốt nhiệm vụ')}</td>
+        <td>${escapeExcelCell(s.unitNote || '')}</td>
+      </tr>
+      <tr class="part-row">
+        <td style="text-align: center;">II</td>
+        <td colspan="2">TẬP THỂ LÃNH ĐẠO PHÒNG KẾ TOÁN NHÀ NƯỚC</td>
+        <td style="text-align: center;">-</td>
+        <td style="text-align: center;">-</td>
+        <td style="text-align: center;">-</td>
+        <td style="text-align: center;">-</td>
+        <td style="text-align: center; background-color: #fef3c7;">${Number(lScore).toFixed(2)}</td>
+        <td style="text-align: center;">${escapeExcelCell(s.leaderRating || 'Hoàn thành tốt nhiệm vụ')}</td>
+        <td>${escapeExcelCell(s.leaderNote || '')}</td>
+      </tr>
+      <tr class="part-row">
+        <td style="text-align: center;">III</td>
+        <td colspan="9">CÁ NHÂN CÔNG CHỨC TRONG ĐƠN VỊ</td>
+      </tr>
+      ${officerRowsHtml}
+    </tbody>
+  </table>
+
+  <table class="no-border" style="width: 100%; margin-top: 28px;">
+    <tr>
+      <td style="width: 35%; vertical-align: top; font-size: 9.5pt;">
+        <strong>Nơi nhận:</strong><br>
+        - Lãnh đạo KBNN Khu vực XV (để b/c);<br>
+        - Phòng TCCB (để t/h);<br>
+        - Lưu: Phòng KTNN.
+      </td>
+      <td style="width: 30%; text-align: center; vertical-align: top;">
+        <strong>NGƯỜI TỔNG HỢP</strong><br>
+        <span style="font-style: italic;">(Ký, ghi rõ họ tên)</span>
+        <br><br><br><br><br>
+        <strong>Phạm Thị Cẩm Tú</strong>
+      </td>
+      <td style="width: 35%; text-align: center; vertical-align: top;">
+        <span style="font-style: italic;">Gia Lai, ngày ..... tháng ..... năm ${curY}</span><br>
+        <strong>TRƯỞNG PHÒNG</strong><br>
+        <span style="font-style: italic;">(Ký, ghi rõ họ tên)</span>
+        <br><br><br><br><br>
+        <strong>Hoàng Anh Sơn</strong>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`.trim();
+
+  const blob = new Blob(['\uFEFF' + excelHtml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  const downloadUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(downloadUrl), 1500);
+  showToast(`Đã kết xuất tệp Excel Mẫu số 03 (Năm ${curY}) thành công!`);
+}
+
+// IN BẢNG TỔNG HỢP CẢ NĂM — MẪU SỐ 03 (KHỔ A4 NGANG)
+function printAnnualSummary() {
+  const curY = Number((appState.officer && appState.officer.year) || 2026);
+  const officers = currentAnnualSummaryData || [];
+  if (officers.length === 0) {
+    alert("Chưa có dữ liệu tổng hợp cả năm để in!");
+    return;
+  }
+  const s = currentAnnualSettings || {};
+  const uScore = (s.unitScore !== null && s.unitScore !== undefined) ? s.unitScore : ((currentAnnualStats && currentAnnualStats.deptAvgScore) || 89.0);
+  const lScore = (s.leaderScore !== null && s.leaderScore !== undefined) ? s.leaderScore : ((currentAnnualStats && currentAnnualStats.leaderAvgScore) || 89.5);
+  const fmtScore = v => (v !== null && v !== undefined && v !== '' && !isNaN(Number(v))) ? Number(v).toFixed(1) : '-';
+
+  const officerRowsHtml = officers.map((o, idx) => `
+    <tr>
+      <td style="text-align: center;">${idx + 1}</td>
+      <td style="font-weight: bold;">${escapeHtml(o.name)}</td>
+      <td>${escapeHtml(o.title || (o.role === 'TP' ? 'Trưởng phòng' : (o.role === 'PTP' ? 'Phó Trưởng phòng' : 'Giao dịch viên')))}</td>
+      <td style="text-align: center;">${fmtScore(o.q1Score)}</td>
+      <td style="text-align: center;">${fmtScore(o.q2Score)}</td>
+      <td style="text-align: center;">${fmtScore(o.q3Score)}</td>
+      <td style="text-align: center;">${fmtScore(o.q4Score)}</td>
+      <td style="text-align: center; font-weight: bold;">${o.avgScore > 0 ? Number(o.avgScore).toFixed(2) : '-'}</td>
+      <td style="text-align: center; font-weight: bold; font-size: 8.5pt;">${escapeHtml(o.proposedRating || o.formulaRating)}</td>
+      <td style="font-size: 8.5pt;">${escapeHtml(o.note || '')}</td>
+    </tr>
+  `).join('');
+
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    alert("Trình duyệt đã chặn cửa sổ pop-up in. Vui lòng cho phép để in biểu mẫu!");
+    return;
+  }
+
+  printWindow.document.write(`
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Mẫu số 03 — Tổng hợp KPI Cả Năm ${curY} — Phòng KTNN</title>
+<style>
+  @page { size: A4 landscape; margin: 11mm 10mm; }
+  body { font-family: 'Times New Roman', Times, serif; font-size: 9.5pt; color: #000; margin: 0; padding: 0; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid #000; padding: 4px 5px; vertical-align: middle; }
+  th { background-color: #f2f2f2; font-weight: bold; text-align: center; }
+  .part-row td { background-color: #f7f7f7; font-weight: bold; }
+  .no-border, .no-border td { border: none !important; }
+  .sig-block { page-break-inside: avoid; break-inside: avoid; margin-top: 22px; }
+</style>
+</head>
+<body onload="window.print()">
+  <table class="no-border" style="margin-bottom: 10px;">
+    <tr>
+      <td style="width: 42%; text-align: center; font-weight: bold;">
+        KHO BẠC NHÀ NƯỚC KHU VỰC XV<br>
+        <span style="text-decoration: underline;">PHÒNG KẾ TOÁN NHÀ NƯỚC</span>
+      </td>
+      <td style="width: 42%; text-align: center; font-weight: bold;">
+        CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM<br>
+        <span style="text-decoration: underline;">Độc lập - Tự do - Hạnh phúc</span>
+      </td>
+      <td style="width: 16%; text-align: right; font-weight: bold; vertical-align: top;">
+        Mẫu số 03
+      </td>
+    </tr>
+  </table>
+
+  <div style="text-align: center; margin: 8px 0 14px 0;">
+    <h2 style="font-size: 13pt; font-weight: bold; margin: 0;">BẢNG TỔNG HỢP KẾT QUẢ THEO DÕI, ĐÁNH GIÁ VÀ ĐỀ XUẤT XẾP LOẠI NĂM ${curY}</h2>
+    <p style="font-size: 9pt; font-style: italic; margin: 3px 0 0 0;">(Phòng Kế toán Nhà nước — Kho bạc Nhà nước Khu vực XV)</p>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th rowspan="2" style="width: 32px;">STT</th>
+        <th rowspan="2" style="width: 155px;">Đơn vị / Họ và tên</th>
+        <th rowspan="2" style="width: 135px;">Chức vụ / Chức danh</th>
+        <th colspan="4">Điểm đánh giá, xếp loại từng quý</th>
+        <th rowspan="2" style="width: 65px;">Điểm TB năm</th>
+        <th rowspan="2" style="width: 155px;">Đề xuất mức xếp loại năm ${curY}</th>
+        <th rowspan="2" style="width: 130px;">Ghi chú</th>
+      </tr>
+      <tr>
+        <th style="width: 48px;">Quý I</th>
+        <th style="width: 48px;">Quý II</th>
+        <th style="width: 48px;">Quý III</th>
+        <th style="width: 48px;">Quý IV</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="part-row">
+        <td style="text-align: center;">I</td>
+        <td colspan="2">TẬP THỂ ĐƠN VỊ: PHÒNG KẾ TOÁN NHÀ NƯỚC</td>
+        <td style="text-align: center;">-</td>
+        <td style="text-align: center;">-</td>
+        <td style="text-align: center;">-</td>
+        <td style="text-align: center;">-</td>
+        <td style="text-align: center;">${Number(uScore).toFixed(2)}</td>
+        <td style="text-align: center; font-size: 8.5pt;">${escapeHtml(s.unitRating || 'Hoàn thành tốt nhiệm vụ')}</td>
+        <td style="font-size: 8.5pt;">${escapeHtml(s.unitNote || '')}</td>
+      </tr>
+      <tr class="part-row">
+        <td style="text-align: center;">II</td>
+        <td colspan="2">TẬP THỂ LÃNH ĐẠO PHÒNG KẾ TOÁN NHÀ NƯỚC</td>
+        <td style="text-align: center;">-</td>
+        <td style="text-align: center;">-</td>
+        <td style="text-align: center;">-</td>
+        <td style="text-align: center;">-</td>
+        <td style="text-align: center;">${Number(lScore).toFixed(2)}</td>
+        <td style="text-align: center; font-size: 8.5pt;">${escapeHtml(s.leaderRating || 'Hoàn thành tốt nhiệm vụ')}</td>
+        <td style="font-size: 8.5pt;">${escapeHtml(s.leaderNote || '')}</td>
+      </tr>
+      <tr class="part-row">
+        <td style="text-align: center;">III</td>
+        <td colspan="9">CÁ NHÂN CÔNG CHỨC TRONG ĐƠN VỊ</td>
+      </tr>
+      ${officerRowsHtml}
+    </tbody>
+  </table>
+
+  <table class="no-border sig-block">
+    <tr>
+      <td style="width: 34%; vertical-align: top; font-size: 8.5pt;">
+        <strong>Nơi nhận:</strong><br>
+        - Lãnh đạo KBNN Khu vực XV (để báo cáo);<br>
+        - Phòng Tổ chức cán bộ (để tổng hợp);<br>
+        - Lưu: Phòng KTNN.
+      </td>
+      <td style="width: 33%; text-align: center; vertical-align: top;">
+        <strong>NGƯỜI TỔNG HỢP</strong><br>
+        <span style="font-style: italic;">(Ký, ghi rõ họ tên)</span>
+        <br><br><br><br>
+        <strong>Phạm Thị Cẩm Tú</strong>
+      </td>
+      <td style="width: 33%; text-align: center; vertical-align: top;">
         <span style="font-style: italic;">Gia Lai, ngày ..... tháng ..... năm ${curY}</span><br>
         <strong>TRƯỞNG PHÒNG</strong><br>
         <span style="font-style: italic;">(Ký, ghi rõ họ tên)</span>
