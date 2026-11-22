@@ -11697,7 +11697,7 @@ function onSearchAnnualSummary(query) {
   renderAnnualSummaryTable();
 }
 
-// KẾT XUẤT EXCEL BẢNG TỔNG HỢP CẢ NĂM (MẪU SỐ 03)
+// KẾT XUẤT EXCEL BẢNG TỔNG HỢP CẢ NĂM — CHUẨN MẪU SỐ 03 & NGHỊ ĐỊNH 30/2020/NĐ-CP
 function exportAnnualSummaryToExcel() {
   const curY = Number((appState.officer && appState.officer.year) || 2026);
   const officers = currentAnnualSummaryData || [];
@@ -11706,26 +11706,34 @@ function exportAnnualSummaryToExcel() {
     return;
   }
   const s = currentAnnualSettings || {};
-  const uScore = (s.unitScore !== null && s.unitScore !== undefined) ? s.unitScore : ((currentAnnualStats && currentAnnualStats.deptAvgScore) || 89.0);
-  const lScore = (s.leaderScore !== null && s.leaderScore !== undefined) ? s.leaderScore : ((currentAnnualStats && currentAnnualStats.leaderAvgScore) || 89.5);
-  const filename = `Mau03_TongHop_KPI_CaNam_${curY}_PhongKTNN_KBXV.xls`;
+  const uScore = (s.unitScore !== null && s.unitScore !== undefined) ? Number(s.unitScore) : Number((currentAnnualStats && currentAnnualStats.deptAvgScore) || 89.0);
+  const lScore = (s.leaderScore !== null && s.leaderScore !== undefined) ? Number(s.leaderScore) : Number((currentAnnualStats && currentAnnualStats.leaderAvgScore) || 89.5);
+  const filename = `Mau_03_Tong_hop_ket_qua_xep_loai_nam_${curY}_Phong_KTNN.xls`;
 
-  const fmtScore = v => (v !== null && v !== undefined && v !== '' && !isNaN(Number(v))) ? Number(v).toFixed(1) : '-';
+  const fmtNumCell = v => {
+    if (v === null || v === undefined || v === '' || isNaN(Number(v))) return '';
+    return Number(v).toFixed(1);
+  };
 
-  const officerRowsHtml = officers.map((o, idx) => `
+  // Dòng 1..11 cố định theo bố cục Mẫu số 03 -> Cá nhân bắt đầu từ dòng 12 trong Excel
+  const firstOfficerRow = 12;
+  const officerRowsHtml = officers.map((o, idx) => {
+    const rNum = firstOfficerRow + idx;
+    const roleTitle = o.title || (o.role === 'TP' ? 'Trưởng phòng' : (o.role === 'PTP' ? 'Phó Trưởng phòng' : 'Giao dịch viên'));
+    return `
     <tr>
-      <td style="text-align: center; mso-number-format: '\\@';">${idx + 1}</td>
-      <td style="font-weight: bold;">${escapeExcelCell(o.name)}</td>
-      <td>${escapeExcelCell(o.title || (o.role === 'TP' ? 'Trưởng phòng' : (o.role === 'PTP' ? 'Phó Trưởng phòng' : 'Giao dịch viên')))}</td>
-      <td style="text-align: center;">${fmtScore(o.q1Score)}</td>
-      <td style="text-align: center;">${fmtScore(o.q2Score)}</td>
-      <td style="text-align: center;">${fmtScore(o.q3Score)}</td>
-      <td style="text-align: center;">${fmtScore(o.q4Score)}</td>
-      <td style="text-align: center; font-weight: bold; background-color: #fef3c7;">${o.avgScore > 0 ? Number(o.avgScore).toFixed(2) : '-'}</td>
-      <td style="text-align: center; font-weight: bold;">${escapeExcelCell(o.proposedRating || o.formulaRating)}</td>
-      <td>${escapeExcelCell(o.note || '')}</td>
-    </tr>
-  `).join('');
+      <td class="cell-b" style="text-align: center; mso-number-format: '\\@';">${idx + 1}</td>
+      <td class="cell-b" style="text-align: left;">${escapeExcelCell(o.name)}</td>
+      <td class="cell-b" style="text-align: left;">${escapeExcelCell(roleTitle)}</td>
+      <td class="cell-b" style="text-align: center; mso-number-format: '0.0';">${fmtNumCell(o.q1Score)}</td>
+      <td class="cell-b" style="text-align: center; mso-number-format: '0.0';">${fmtNumCell(o.q2Score)}</td>
+      <td class="cell-b" style="text-align: center; mso-number-format: '0.0';">${fmtNumCell(o.q3Score)}</td>
+      <td class="cell-b" style="text-align: center; mso-number-format: '0.0';">${fmtNumCell(o.q4Score)}</td>
+      <td class="cell-b" style="text-align: center; font-weight: bold; mso-number-format: '0.00';" x:fmla="=SUM(D${rNum}:G${rNum})/4">${o.avgScore > 0 ? Number(o.avgScore).toFixed(2) : ''}</td>
+      <td class="cell-b" style="text-align: left;">${escapeExcelCell(o.proposedRating || o.formulaRating)}</td>
+      <td class="cell-b" style="text-align: left;">${escapeExcelCell(o.note || '')}</td>
+    </tr>`;
+  }).join('');
 
   const excelHtml = `
 <html xmlns:o="urn:schemas-microsoft-com:office:office"
@@ -11738,15 +11746,18 @@ function exportAnnualSummaryToExcel() {
  <x:ExcelWorkbook>
   <x:ExcelWorksheets>
    <x:ExcelWorksheet>
-    <x:Name>Mau03_TongHop_Nam_${curY}</x:Name>
+    <x:Name>Mau_03_Nam_${curY}</x:Name>
     <x:WorksheetOptions>
-     <x:DisplayGridlines/>
+     <x:FitToPage/>
      <x:Print>
-      <x:Orientation>Landscape</x:Orientation>
+      <x:FitWidth>1</x:FitWidth>
+      <x:FitHeight>0</x:FitHeight>
       <x:ValidPrinterInfo/>
       <x:PaperSizeIndex>9</x:PaperSizeIndex>
-      <x:Scale>85</x:Scale>
+      <x:HorizontalResolution>600</x:HorizontalResolution>
+      <x:VerticalResolution>600</x:VerticalResolution>
      </x:Print>
+     <x:DisplayGridlines/>
     </x:WorksheetOptions>
    </x:ExcelWorksheet>
   </x:ExcelWorksheets>
@@ -11754,107 +11765,160 @@ function exportAnnualSummaryToExcel() {
 </xml>
 <![endif]-->
 <style>
+  @page {
+    size: A4 landscape;
+    margin: 0.79in 0.59in 0.79in 1.18in;
+    mso-header-data: "&C&\"Times New Roman,Regular\"&13&P";
+    mso-page-orientation: landscape;
+  }
   br { mso-data-placement: same-cell; }
-  body, table { font-family: 'Times New Roman', Times, serif; font-size: 10.5pt; color: #000; }
-  table { border-collapse: collapse; width: 100%; }
-  th, td { border: .5pt solid windowtext; padding: 5px 6px; vertical-align: middle; }
-  th { background-color: #e2e8f0; font-weight: bold; text-align: center; }
-  .part-row td { background-color: #f1f5f9; font-weight: bold; }
-  .no-border, .no-border td { border: none !important; }
+  body, table {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 12pt;
+    color: #000000;
+    background-color: #ffffff;
+  }
+  table { border-collapse: collapse; table-layout: fixed; }
+  td, th { vertical-align: middle; white-space: normal; word-wrap: break-word; }
+  .cell-h {
+    border: .5pt solid windowtext;
+    font-weight: bold;
+    text-align: center;
+    font-size: 12pt;
+    padding: 5pt 4pt;
+    background-color: #ffffff;
+  }
+  .cell-b {
+    border: .5pt solid windowtext;
+    font-size: 12pt;
+    padding: 4pt 5pt;
+    background-color: #ffffff;
+  }
+  .cell-nb {
+    border: none;
+    background-color: #ffffff;
+  }
 </style>
 </head>
-<body style="padding: 15px;">
-  <table class="no-border" style="width: 100%; margin-bottom: 10px;">
-    <tr>
-      <td style="width: 45%; text-align: center; font-weight: bold;">
-        KHO BẠC NHÀ NƯỚC KHU VỰC XV<br>
-        <strong style="text-decoration: underline;">PHÒNG KẾ TOÁN NHÀ NƯỚC</strong>
-      </td>
-      <td style="width: 35%; text-align: center; font-weight: bold;">
-        CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM<br>
-        <strong style="text-decoration: underline;">Độc lập - Tự do - Hạnh phúc</strong>
-      </td>
-      <td style="width: 20%; text-align: right; font-weight: bold; vertical-align: top;">
-        Mẫu số 03
-      </td>
+<body>
+  <table cellspacing="0" cellpadding="0" style="width: 100%;">
+    <colgroup>
+      <col width="44">
+      <col width="210">
+      <col width="190">
+      <col width="62">
+      <col width="62">
+      <col width="62">
+      <col width="62">
+      <col width="92">
+      <col width="195">
+      <col width="145">
+    </colgroup>
+    <!-- Dòng 1: Ký hiệu Mẫu số 03 (Góc trên bên phải, 11pt đậm) -->
+    <tr style="height: 18pt;">
+      <td class="cell-nb" colspan="9"></td>
+      <td class="cell-nb" style="text-align: right; font-size: 11pt; font-weight: bold;">Mẫu số 03</td>
     </tr>
-  </table>
-
-  <div style="text-align: center; margin: 14px 0 18px 0;">
-    <h2 style="font-size: 14pt; font-weight: bold; margin: 0;">BẢNG TỔNG HỢP KẾT QUẢ THEO DÕI, ĐÁNH GIÁ VÀ ĐỀ XUẤT XẾP LOẠI NĂM ${curY}</h2>
-    <p style="font-size: 10pt; font-style: italic; margin: 4px 0 0 0;">(Đơn vị: Phòng Kế toán Nhà nước — Kho bạc Nhà nước Khu vực XV)</p>
-  </div>
-
-  <table>
-    <thead>
-      <tr>
-        <th rowspan="2" style="width: 38px;">STT</th>
-        <th rowspan="2" style="width: 175px;">Đơn vị / Họ và tên</th>
-        <th rowspan="2" style="width: 150px;">Chức vụ / Chức danh</th>
-        <th colspan="4">Điểm đánh giá, xếp loại từng quý</th>
-        <th rowspan="2" style="width: 75px; background-color: #fef3c7;">Điểm TB năm</th>
-        <th rowspan="2" style="width: 165px;">Đề xuất mức xếp loại năm ${curY}</th>
-        <th rowspan="2" style="width: 145px;">Ghi chú</th>
-      </tr>
-      <tr>
-        <th style="width: 55px;">Quý I</th>
-        <th style="width: 55px;">Quý II</th>
-        <th style="width: 55px;">Quý III</th>
-        <th style="width: 55px;">Quý IV</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr class="part-row">
-        <td style="text-align: center;">I</td>
-        <td colspan="2">TẬP THỂ ĐƠN VỊ: PHÒNG KẾ TOÁN NHÀ NƯỚC</td>
-        <td style="text-align: center;">-</td>
-        <td style="text-align: center;">-</td>
-        <td style="text-align: center;">-</td>
-        <td style="text-align: center;">-</td>
-        <td style="text-align: center; background-color: #fef3c7;">${Number(uScore).toFixed(2)}</td>
-        <td style="text-align: center;">${escapeExcelCell(s.unitRating || 'Hoàn thành tốt nhiệm vụ')}</td>
-        <td>${escapeExcelCell(s.unitNote || '')}</td>
-      </tr>
-      <tr class="part-row">
-        <td style="text-align: center;">II</td>
-        <td colspan="2">TẬP THỂ LÃNH ĐẠO PHÒNG KẾ TOÁN NHÀ NƯỚC</td>
-        <td style="text-align: center;">-</td>
-        <td style="text-align: center;">-</td>
-        <td style="text-align: center;">-</td>
-        <td style="text-align: center;">-</td>
-        <td style="text-align: center; background-color: #fef3c7;">${Number(lScore).toFixed(2)}</td>
-        <td style="text-align: center;">${escapeExcelCell(s.leaderRating || 'Hoàn thành tốt nhiệm vụ')}</td>
-        <td>${escapeExcelCell(s.leaderNote || '')}</td>
-      </tr>
-      <tr class="part-row">
-        <td style="text-align: center;">III</td>
-        <td colspan="9">CÁ NHÂN CÔNG CHỨC TRONG ĐƠN VỊ</td>
-      </tr>
-      ${officerRowsHtml}
-    </tbody>
-  </table>
-
-  <table class="no-border" style="width: 100%; margin-top: 28px;">
+    <!-- Dòng 2: Cơ quan chủ quản cấp trên (NĐ 30/2020: 13pt, in hoa, đứng thường) -->
+    <tr style="height: 20pt;">
+      <td class="cell-nb" colspan="3" style="text-align: center; font-size: 13pt; font-weight: normal;">KHO BẠC NHÀ NƯỚC KHU VỰC XV</td>
+      <td class="cell-nb" colspan="7"></td>
+    </tr>
+    <!-- Dòng 3: Tên đơn vị ban hành (NĐ 30/2020: 13pt, in hoa, đứng đậm) -->
+    <tr style="height: 20pt;">
+      <td class="cell-nb" colspan="3" style="text-align: center; font-size: 13pt; font-weight: bold;">PHÒNG KẾ TOÁN NHÀ NƯỚC</td>
+      <td class="cell-nb" colspan="7"></td>
+    </tr>
+    <!-- Dòng 4: Đường kẻ ngang 1/3 - 1/2 độ dài dưới tên đơn vị theo NĐ 30/2020 -->
+    <tr style="height: 14pt;">
+      <td class="cell-nb" colspan="3" style="text-align: center; font-size: 10pt; vertical-align: top;">_______________</td>
+      <td class="cell-nb" colspan="7"></td>
+    </tr>
+    <!-- Dòng 5: Tên bảng tổng hợp (NĐ 30/2020: 14pt, in hoa, đứng đậm, căn giữa) -->
+    <tr style="height: 26pt;">
+      <td class="cell-nb" colspan="10" style="text-align: center; font-size: 14pt; font-weight: bold;">BẢNG TỔNG HỢP KẾT QUẢ THEO DÕI, ĐÁNH GIÁ NĂM ${curY}</td>
+    </tr>
+    <!-- Dòng 6: Dòng trống giãn cách -->
+    <tr style="height: 10pt;">
+      <td class="cell-nb" colspan="10"></td>
+    </tr>
+    <!-- Dòng 7-8: Tiêu đề bảng 10 cột chuẩn Mẫu số 03 (12pt đậm, nền trắng mực đen) -->
+    <tr style="height: 26pt;">
+      <th class="cell-h" rowspan="2">STT</th>
+      <th class="cell-h" rowspan="2">Đơn vị/Họ và tên</th>
+      <th class="cell-h" rowspan="2">Chức vụ/Chức danh</th>
+      <th class="cell-h" colspan="4">Điểm đánh giá, xếp loại từng quý</th>
+      <th class="cell-h" rowspan="2">Điểm theo dõi, đánh giá trung bình năm</th>
+      <th class="cell-h" rowspan="2">Đề xuất mức xếp loại năm ${curY}</th>
+      <th class="cell-h" rowspan="2">Ghi chú</th>
+    </tr>
+    <tr style="height: 22pt;">
+      <th class="cell-h">Quý I</th>
+      <th class="cell-h">Quý II</th>
+      <th class="cell-h">Quý III</th>
+      <th class="cell-h">Quý IV</th>
+    </tr>
+    <!-- Dòng 9: Phần I - Tập thể đơn vị -->
     <tr>
-      <td style="width: 35%; vertical-align: top; font-size: 9.5pt;">
-        <strong>Nơi nhận:</strong><br>
-        - Lãnh đạo KBNN Khu vực XV (để b/c);<br>
-        - Phòng TCCB (để t/h);<br>
-        - Lưu: Phòng KTNN.
-      </td>
-      <td style="width: 30%; text-align: center; vertical-align: top;">
-        <strong>NGƯỜI TỔNG HỢP</strong><br>
-        <span style="font-style: italic;">(Ký, ghi rõ họ tên)</span>
-        <br><br><br><br><br>
-        <strong>Phạm Thị Cẩm Tú</strong>
-      </td>
-      <td style="width: 35%; text-align: center; vertical-align: top;">
-        <span style="font-style: italic;">Gia Lai, ngày ..... tháng ..... năm ${curY}</span><br>
-        <strong>TRƯỞNG PHÒNG</strong><br>
-        <span style="font-style: italic;">(Ký, ghi rõ họ tên)</span>
-        <br><br><br><br><br>
-        <strong>Hoàng Anh Sơn</strong>
-      </td>
+      <td class="cell-b" style="text-align: center; font-weight: bold;">I</td>
+      <td class="cell-b" style="text-align: left; font-weight: bold;">Tập thể đơn vị: Phòng Kế toán Nhà nước</td>
+      <td class="cell-b"></td>
+      <td class="cell-b" style="text-align: center;"></td>
+      <td class="cell-b" style="text-align: center;"></td>
+      <td class="cell-b" style="text-align: center;"></td>
+      <td class="cell-b" style="text-align: center;"></td>
+      <td class="cell-b" style="text-align: center; font-weight: bold; mso-number-format: '0.00';">${uScore.toFixed(2)}</td>
+      <td class="cell-b" style="text-align: left;">${escapeExcelCell(s.unitRating || 'Hoàn thành tốt nhiệm vụ')}</td>
+      <td class="cell-b" style="text-align: left;">${escapeExcelCell(s.unitNote || '')}</td>
+    </tr>
+    <!-- Dòng 10: Phần II - Tập thể Lãnh đạo phòng -->
+    <tr>
+      <td class="cell-b" style="text-align: center; font-weight: bold;">II</td>
+      <td class="cell-b" style="text-align: left; font-weight: bold;">Tập thể Lãnh đạo phòng Kế toán Nhà nước</td>
+      <td class="cell-b"></td>
+      <td class="cell-b" style="text-align: center;"></td>
+      <td class="cell-b" style="text-align: center;"></td>
+      <td class="cell-b" style="text-align: center;"></td>
+      <td class="cell-b" style="text-align: center;"></td>
+      <td class="cell-b" style="text-align: center; font-weight: bold; mso-number-format: '0.00';">${lScore.toFixed(2)}</td>
+      <td class="cell-b" style="text-align: left;">${escapeExcelCell(s.leaderRating || 'Hoàn thành tốt nhiệm vụ')}</td>
+      <td class="cell-b" style="text-align: left;">${escapeExcelCell(s.leaderNote || '')}</td>
+    </tr>
+    <!-- Dòng 11: Phần III - Cá nhân -->
+    <tr>
+      <td class="cell-b" style="text-align: center; font-weight: bold;">III</td>
+      <td class="cell-b" colspan="9" style="text-align: left; font-weight: bold;">Cá nhân</td>
+    </tr>
+    <!-- Dòng 12+: Danh sách công chức -->
+    ${officerRowsHtml}
+    <!-- Dòng trống trước phần ký duyệt -->
+    <tr style="height: 14pt;">
+      <td class="cell-nb" colspan="10"></td>
+    </tr>
+    <!-- Chân văn bản chuẩn Nghị định 30/2020/NĐ-CP & Mẫu số 03 -->
+    <tr style="height: 20pt;">
+      <td class="cell-nb" colspan="3" style="text-align: left; font-size: 12pt; font-weight: bold; font-style: italic;">Nơi nhận:</td>
+      <td class="cell-nb" colspan="3"></td>
+      <td class="cell-nb" colspan="4" style="text-align: center; font-size: 14pt; font-style: italic;">Gia Lai, ngày ..... tháng ..... năm ${curY}</td>
+    </tr>
+    <tr style="height: 20pt;">
+      <td class="cell-nb" colspan="3" style="text-align: left; font-size: 11pt;">- KBNN khu vực XV;</td>
+      <td class="cell-nb" colspan="3"></td>
+      <td class="cell-nb" colspan="4" style="text-align: center; font-size: 14pt; font-weight: bold;">TRƯỞNG PHÒNG</td>
+    </tr>
+    <tr style="height: 18pt;">
+      <td class="cell-nb" colspan="3" style="text-align: left; font-size: 11pt;">- Phòng Tổ chức cán bộ;</td>
+      <td class="cell-nb" colspan="7"></td>
+    </tr>
+    <tr style="height: 18pt;">
+      <td class="cell-nb" colspan="3" style="text-align: left; font-size: 11pt;">- Lưu: Phòng KTNN (02b).</td>
+      <td class="cell-nb" colspan="7"></td>
+    </tr>
+    <tr style="height: 20pt;"><td class="cell-nb" colspan="10"></td></tr>
+    <tr style="height: 20pt;"><td class="cell-nb" colspan="10"></td></tr>
+    <tr style="height: 22pt;">
+      <td class="cell-nb" colspan="6"></td>
+      <td class="cell-nb" colspan="4" style="text-align: center; font-size: 14pt; font-weight: bold;">Hoàng Anh Sơn</td>
     </tr>
   </table>
 </body>
@@ -11870,10 +11934,10 @@ function exportAnnualSummaryToExcel() {
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(downloadUrl), 1500);
-  showToast(`Đã kết xuất tệp Excel Mẫu số 03 (Năm ${curY}) thành công!`);
+  showToast(`Đã kết xuất tệp Excel Mẫu số 03 chuẩn NĐ 30/2020 (Năm ${curY})!`);
 }
 
-// IN BẢNG TỔNG HỢP CẢ NĂM — MẪU SỐ 03 (KHỔ A4 NGANG)
+// IN BẢNG TỔNG HỢP CẢ NĂM — CHUẨN MẪU SỐ 03 & NGHỊ ĐỊNH 30/2020/NĐ-CP (KHỔ A4 NGANG)
 function printAnnualSummary() {
   const curY = Number((appState.officer && appState.officer.year) || 2026);
   const officers = currentAnnualSummaryData || [];
@@ -11882,22 +11946,22 @@ function printAnnualSummary() {
     return;
   }
   const s = currentAnnualSettings || {};
-  const uScore = (s.unitScore !== null && s.unitScore !== undefined) ? s.unitScore : ((currentAnnualStats && currentAnnualStats.deptAvgScore) || 89.0);
-  const lScore = (s.leaderScore !== null && s.leaderScore !== undefined) ? s.leaderScore : ((currentAnnualStats && currentAnnualStats.leaderAvgScore) || 89.5);
-  const fmtScore = v => (v !== null && v !== undefined && v !== '' && !isNaN(Number(v))) ? Number(v).toFixed(1) : '-';
+  const uScore = (s.unitScore !== null && s.unitScore !== undefined) ? Number(s.unitScore) : Number((currentAnnualStats && currentAnnualStats.deptAvgScore) || 89.0);
+  const lScore = (s.leaderScore !== null && s.leaderScore !== undefined) ? Number(s.leaderScore) : Number((currentAnnualStats && currentAnnualStats.leaderAvgScore) || 89.5);
+  const fmtScore = v => (v !== null && v !== undefined && v !== '' && !isNaN(Number(v))) ? Number(v).toFixed(1) : '';
 
   const officerRowsHtml = officers.map((o, idx) => `
     <tr>
       <td style="text-align: center;">${idx + 1}</td>
-      <td style="font-weight: bold;">${escapeHtml(o.name)}</td>
+      <td>${escapeHtml(o.name)}</td>
       <td>${escapeHtml(o.title || (o.role === 'TP' ? 'Trưởng phòng' : (o.role === 'PTP' ? 'Phó Trưởng phòng' : 'Giao dịch viên')))}</td>
       <td style="text-align: center;">${fmtScore(o.q1Score)}</td>
       <td style="text-align: center;">${fmtScore(o.q2Score)}</td>
       <td style="text-align: center;">${fmtScore(o.q3Score)}</td>
       <td style="text-align: center;">${fmtScore(o.q4Score)}</td>
-      <td style="text-align: center; font-weight: bold;">${o.avgScore > 0 ? Number(o.avgScore).toFixed(2) : '-'}</td>
-      <td style="text-align: center; font-weight: bold; font-size: 8.5pt;">${escapeHtml(o.proposedRating || o.formulaRating)}</td>
-      <td style="font-size: 8.5pt;">${escapeHtml(o.note || '')}</td>
+      <td style="text-align: center; font-weight: bold;">${o.avgScore > 0 ? Number(o.avgScore).toFixed(2) : ''}</td>
+      <td>${escapeHtml(o.proposedRating || o.formulaRating)}</td>
+      <td>${escapeHtml(o.note || '')}</td>
     </tr>
   `).join('');
 
@@ -11912,50 +11976,45 @@ function printAnnualSummary() {
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Mẫu số 03 — Tổng hợp KPI Cả Năm ${curY} — Phòng KTNN</title>
+<title>Mẫu số 03 — Bảng tổng hợp kết quả theo dõi, đánh giá năm ${curY}</title>
 <style>
-  @page { size: A4 landscape; margin: 11mm 10mm; }
-  body { font-family: 'Times New Roman', Times, serif; font-size: 9.5pt; color: #000; margin: 0; padding: 0; }
+  @page { size: A4 landscape; margin: 20mm 15mm 20mm 30mm; }
+  body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; color: #000; background: #fff; margin: 0; padding: 0; }
   table { width: 100%; border-collapse: collapse; }
-  th, td { border: 1px solid #000; padding: 4px 5px; vertical-align: middle; }
-  th { background-color: #f2f2f2; font-weight: bold; text-align: center; }
-  .part-row td { background-color: #f7f7f7; font-weight: bold; }
-  .no-border, .no-border td { border: none !important; }
-  .sig-block { page-break-inside: avoid; break-inside: avoid; margin-top: 22px; }
+  th, td { border: 1px solid #000; padding: 4px 5px; vertical-align: middle; font-size: 11.5pt; }
+  th { font-weight: bold; text-align: center; background: #fff; }
+  .no-border, .no-border td { border: none !important; padding: 1px 0; }
+  .unit-line { width: 90px; height: 0; border-top: 1px solid #000; margin: 3px auto 0 auto; }
+  .sig-block { page-break-inside: avoid; break-inside: avoid; margin-top: 18px; }
 </style>
 </head>
 <body onload="window.print()">
+  <div style="text-align: right; font-size: 11pt; font-weight: bold; margin-bottom: 2px;">Mẫu số 03</div>
   <table class="no-border" style="margin-bottom: 10px;">
     <tr>
-      <td style="width: 42%; text-align: center; font-weight: bold;">
-        KHO BẠC NHÀ NƯỚC KHU VỰC XV<br>
-        <span style="text-decoration: underline;">PHÒNG KẾ TOÁN NHÀ NƯỚC</span>
+      <td style="width: 42%; text-align: center;">
+        <div style="font-size: 13pt; font-weight: normal;">KHO BẠC NHÀ NƯỚC KHU VỰC XV</div>
+        <div style="font-size: 13pt; font-weight: bold;">PHÒNG KẾ TOÁN NHÀ NƯỚC</div>
+        <div class="unit-line"></div>
       </td>
-      <td style="width: 42%; text-align: center; font-weight: bold;">
-        CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM<br>
-        <span style="text-decoration: underline;">Độc lập - Tự do - Hạnh phúc</span>
-      </td>
-      <td style="width: 16%; text-align: right; font-weight: bold; vertical-align: top;">
-        Mẫu số 03
-      </td>
+      <td style="width: 58%;"></td>
     </tr>
   </table>
 
-  <div style="text-align: center; margin: 8px 0 14px 0;">
-    <h2 style="font-size: 13pt; font-weight: bold; margin: 0;">BẢNG TỔNG HỢP KẾT QUẢ THEO DÕI, ĐÁNH GIÁ VÀ ĐỀ XUẤT XẾP LOẠI NĂM ${curY}</h2>
-    <p style="font-size: 9pt; font-style: italic; margin: 3px 0 0 0;">(Phòng Kế toán Nhà nước — Kho bạc Nhà nước Khu vực XV)</p>
+  <div style="text-align: center; margin: 12px 0 14px 0;">
+    <div style="font-size: 14pt; font-weight: bold;">BẢNG TỔNG HỢP KẾT QUẢ THEO DÕI, ĐÁNH GIÁ NĂM ${curY}</div>
   </div>
 
   <table>
     <thead>
       <tr>
-        <th rowspan="2" style="width: 32px;">STT</th>
-        <th rowspan="2" style="width: 155px;">Đơn vị / Họ và tên</th>
-        <th rowspan="2" style="width: 135px;">Chức vụ / Chức danh</th>
+        <th rowspan="2" style="width: 34px;">STT</th>
+        <th rowspan="2" style="width: 170px;">Đơn vị/Họ và tên</th>
+        <th rowspan="2" style="width: 150px;">Chức vụ/Chức danh</th>
         <th colspan="4">Điểm đánh giá, xếp loại từng quý</th>
-        <th rowspan="2" style="width: 65px;">Điểm TB năm</th>
-        <th rowspan="2" style="width: 155px;">Đề xuất mức xếp loại năm ${curY}</th>
-        <th rowspan="2" style="width: 130px;">Ghi chú</th>
+        <th rowspan="2" style="width: 78px;">Điểm theo dõi, đánh giá trung bình năm</th>
+        <th rowspan="2" style="width: 165px;">Đề xuất mức xếp loại năm ${curY}</th>
+        <th rowspan="2" style="width: 120px;">Ghi chú</th>
       </tr>
       <tr>
         <th style="width: 48px;">Quý I</th>
@@ -11965,31 +12024,33 @@ function printAnnualSummary() {
       </tr>
     </thead>
     <tbody>
-      <tr class="part-row">
-        <td style="text-align: center;">I</td>
-        <td colspan="2">TẬP THỂ ĐƠN VỊ: PHÒNG KẾ TOÁN NHÀ NƯỚC</td>
-        <td style="text-align: center;">-</td>
-        <td style="text-align: center;">-</td>
-        <td style="text-align: center;">-</td>
-        <td style="text-align: center;">-</td>
-        <td style="text-align: center;">${Number(uScore).toFixed(2)}</td>
-        <td style="text-align: center; font-size: 8.5pt;">${escapeHtml(s.unitRating || 'Hoàn thành tốt nhiệm vụ')}</td>
-        <td style="font-size: 8.5pt;">${escapeHtml(s.unitNote || '')}</td>
+      <tr>
+        <td style="text-align: center; font-weight: bold;">I</td>
+        <td style="font-weight: bold;">Tập thể đơn vị: Phòng Kế toán Nhà nước</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td style="text-align: center; font-weight: bold;">${uScore.toFixed(2)}</td>
+        <td>${escapeHtml(s.unitRating || 'Hoàn thành tốt nhiệm vụ')}</td>
+        <td>${escapeHtml(s.unitNote || '')}</td>
       </tr>
-      <tr class="part-row">
-        <td style="text-align: center;">II</td>
-        <td colspan="2">TẬP THỂ LÃNH ĐẠO PHÒNG KẾ TOÁN NHÀ NƯỚC</td>
-        <td style="text-align: center;">-</td>
-        <td style="text-align: center;">-</td>
-        <td style="text-align: center;">-</td>
-        <td style="text-align: center;">-</td>
-        <td style="text-align: center;">${Number(lScore).toFixed(2)}</td>
-        <td style="text-align: center; font-size: 8.5pt;">${escapeHtml(s.leaderRating || 'Hoàn thành tốt nhiệm vụ')}</td>
-        <td style="font-size: 8.5pt;">${escapeHtml(s.leaderNote || '')}</td>
+      <tr>
+        <td style="text-align: center; font-weight: bold;">II</td>
+        <td style="font-weight: bold;">Tập thể Lãnh đạo phòng Kế toán Nhà nước</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td style="text-align: center; font-weight: bold;">${lScore.toFixed(2)}</td>
+        <td>${escapeHtml(s.leaderRating || 'Hoàn thành tốt nhiệm vụ')}</td>
+        <td>${escapeHtml(s.leaderNote || '')}</td>
       </tr>
-      <tr class="part-row">
-        <td style="text-align: center;">III</td>
-        <td colspan="9">CÁ NHÂN CÔNG CHỨC TRONG ĐƠN VỊ</td>
+      <tr>
+        <td style="text-align: center; font-weight: bold;">III</td>
+        <td colspan="9" style="font-weight: bold;">Cá nhân</td>
       </tr>
       ${officerRowsHtml}
     </tbody>
@@ -11997,24 +12058,19 @@ function printAnnualSummary() {
 
   <table class="no-border sig-block">
     <tr>
-      <td style="width: 34%; vertical-align: top; font-size: 8.5pt;">
-        <strong>Nơi nhận:</strong><br>
-        - Lãnh đạo KBNN Khu vực XV (để báo cáo);<br>
-        - Phòng Tổ chức cán bộ (để tổng hợp);<br>
-        - Lưu: Phòng KTNN.
+      <td style="width: 55%; vertical-align: top; text-align: left;">
+        <div style="font-size: 12pt; font-weight: bold; font-style: italic;">Nơi nhận:</div>
+        <div style="font-size: 11pt; line-height: 1.45;">
+          - KBNN khu vực XV;<br>
+          - Phòng Tổ chức cán bộ;<br>
+          - Lưu: Phòng KTNN (02b).
+        </div>
       </td>
-      <td style="width: 33%; text-align: center; vertical-align: top;">
-        <strong>NGƯỜI TỔNG HỢP</strong><br>
-        <span style="font-style: italic;">(Ký, ghi rõ họ tên)</span>
-        <br><br><br><br>
-        <strong>Phạm Thị Cẩm Tú</strong>
-      </td>
-      <td style="width: 33%; text-align: center; vertical-align: top;">
-        <span style="font-style: italic;">Gia Lai, ngày ..... tháng ..... năm ${curY}</span><br>
-        <strong>TRƯỞNG PHÒNG</strong><br>
-        <span style="font-style: italic;">(Ký, ghi rõ họ tên)</span>
-        <br><br><br><br>
-        <strong>Hoàng Anh Sơn</strong>
+      <td style="width: 45%; text-align: center; vertical-align: top;">
+        <div style="font-size: 14pt; font-style: italic;">Gia Lai, ngày ..... tháng ..... năm ${curY}</div>
+        <div style="font-size: 14pt; font-weight: bold; margin-top: 2px;">TRƯỞNG PHÒNG</div>
+        <div style="height: 68px;"></div>
+        <div style="font-size: 14pt; font-weight: bold;">Hoàng Anh Sơn</div>
       </td>
     </tr>
   </table>
