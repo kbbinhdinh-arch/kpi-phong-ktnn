@@ -4780,9 +4780,17 @@ async function handleKpiRequest(req, res) {
     }
 
     let annualSettings = {
+      unitQ1: "",
+      unitQ2: "",
+      unitQ3: "",
+      unitQ4: "",
       unitScore: null,
       unitRating: "Hoàn thành tốt nhiệm vụ",
       unitNote: "",
+      leaderQ1: "",
+      leaderQ2: "",
+      leaderQ3: "",
+      leaderQ4: "",
       leaderScore: null,
       leaderRating: "Hoàn thành tốt nhiệm vụ",
       leaderNote: "",
