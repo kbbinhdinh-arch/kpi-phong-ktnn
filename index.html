@@ -256,21 +256,52 @@
       background: #c2410c;
       color: #ffffff;
     }
+    #tblAnnualSummary {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 1060px;
+      table-layout: fixed;
+      font-size: 12.5px;
+    }
+    #tblAnnualSummary th,
+    #tblAnnualSummary td {
+      border: 1px solid var(--border-color);
+      padding: 7px 9px;
+      vertical-align: middle;
+      line-height: 1.38;
+      box-sizing: border-box;
+      overflow-wrap: break-word;
+    }
+    #tblAnnualSummary thead th {
+      background: var(--bg-subtle);
+      color: var(--text-main);
+      font-weight: 700;
+      font-size: 12px;
+      padding: 8px 6px;
+      border-color: var(--border-dark);
+      text-align: center;
+    }
+    #tblAnnualSummary tbody tr:not(.annual-part-row):not(.annual-part-section):hover td {
+      background: rgba(43, 108, 176, 0.04);
+    }
     .annual-part-row td {
       background: var(--bg-subtle);
       font-weight: 700;
       color: var(--primary);
       border-top: 2px solid var(--border-dark);
+      padding: 9px 10px !important;
     }
     .annual-part-section td {
       background: var(--info-bg);
       font-weight: 800;
       color: var(--primary);
       letter-spacing: 0.2px;
+      padding: 8px 10px !important;
     }
     .annual-score-input {
-      width: 68px;
-      height: 28px;
+      width: 72px;
+      max-width: 100%;
+      height: 30px;
       padding: 2px 6px;
       text-align: center;
       font-size: 12.5px;
@@ -280,6 +311,7 @@
       background: var(--bg-card);
       border: 1px solid var(--border-dark);
       border-radius: 4px;
+      box-sizing: border-box;
     }
     .annual-score-input:focus {
       outline: none;
@@ -288,24 +320,26 @@
     }
     .annual-rating-select {
       width: 100%;
-      height: 28px;
+      height: 30px;
       padding: 0 6px;
-      font-size: 11.5px;
-      font-weight: 700;
+      font-size: 12px;
+      font-weight: 600;
       color: var(--text-main);
       background: var(--bg-card);
       border: 1px solid var(--border-dark);
       border-radius: 4px;
+      box-sizing: border-box;
     }
     .annual-note-input {
       width: 100%;
-      height: 28px;
-      padding: 2px 7px;
-      font-size: 11.5px;
+      height: 30px;
+      padding: 2px 8px;
+      font-size: 12px;
       color: var(--text-main);
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: 4px;
+      box-sizing: border-box;
     }
     .annual-note-input:focus, .annual-rating-select:focus {
       outline: none;
@@ -315,6 +349,7 @@
       text-align: center;
       font-variant-numeric: tabular-nums;
       font-weight: 600;
+      white-space: nowrap;
     }
     .annual-avg-cell {
       text-align: center;
@@ -322,6 +357,7 @@
       font-weight: 800;
       background: var(--warning-bg);
       color: var(--warning);
+      white-space: nowrap;
     }
 
     .guide-nav-pill {
@@ -4317,35 +4353,35 @@
         </div>
 
         <!-- Bảng Tổng hợp Cả Năm 10 Cột Chuẩn Mẫu số 03 -->
-        <div class="table-container" id="annualSummaryTableContainer" style="overflow-x: auto; max-height: calc(100vh - 230px); border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-card);">
-          <table class="table-data" id="tblAnnualSummary" style="width: 100%; min-width: 1240px; table-layout: fixed; border-collapse: collapse; font-size: 12px;">
+        <div class="table-container" id="annualSummaryTableContainer" style="overflow-x: auto; max-height: calc(100vh - 230px); border: 1px solid var(--border-dark); border-radius: 6px; background: var(--bg-card);">
+          <table class="table-data" id="tblAnnualSummary">
             <colgroup>
-              <col style="width: 50px;">
-              <col style="width: 215px;">
-              <col style="width: 195px;">
-              <col style="width: 74px;">
-              <col style="width: 74px;">
-              <col style="width: 74px;">
-              <col style="width: 74px;">
-              <col style="width: 96px;">
-              <col style="width: 210px;">
-              <col style="width: 180px;">
+              <col style="width: 4%;">
+              <col style="width: 18%;">
+              <col style="width: 16%;">
+              <col style="width: 5.5%;">
+              <col style="width: 5.5%;">
+              <col style="width: 5.5%;">
+              <col style="width: 5.5%;">
+              <col style="width: 8%;">
+              <col style="width: 17%;">
+              <col style="width: 15%;">
             </colgroup>
-            <thead style="position: sticky; top: 0; z-index: 10; background: #edf2f7;">
+            <thead style="position: sticky; top: 0; z-index: 10;">
               <tr>
-                <th rowspan="2" style="text-align: center; vertical-align: middle;">STT</th>
-                <th rowspan="2" style="text-align: left; padding-left: 10px; vertical-align: middle;">Đơn vị / Họ và tên</th>
-                <th rowspan="2" style="text-align: left; padding-left: 10px; vertical-align: middle;">Chức vụ / Chức danh</th>
-                <th colspan="4" style="text-align: center; vertical-align: middle; border-bottom: 1px solid var(--border-dark);">Điểm đánh giá, xếp loại từng quý</th>
-                <th rowspan="2" style="text-align: center; background: #feebc8; color: #744210; font-weight: 800; vertical-align: middle;" title="Điểm theo dõi, đánh giá trung bình cả năm = (Quý I + Quý II + Quý III + Quý IV) / 4">Điểm TB năm</th>
-                <th rowspan="2" style="text-align: center; vertical-align: middle;">Đề xuất mức xếp loại năm <span class="print-year">2026</span></th>
-                <th rowspan="2" style="text-align: center; vertical-align: middle;">Ghi chú</th>
+                <th rowspan="2">STT</th>
+                <th rowspan="2" style="text-align: left; padding-left: 10px;">Đơn vị / Họ và tên</th>
+                <th rowspan="2" style="text-align: left; padding-left: 10px;">Chức vụ / Chức danh</th>
+                <th colspan="4">Điểm đánh giá, xếp loại từng quý</th>
+                <th rowspan="2" style="background: var(--warning-bg); color: var(--warning); font-weight: 800;" title="Điểm theo dõi, đánh giá trung bình cả năm = (Quý I + Quý II + Quý III + Quý IV) / 4">Điểm TB năm</th>
+                <th rowspan="2">Đề xuất mức xếp loại năm <span class="print-year">2026</span></th>
+                <th rowspan="2">Ghi chú</th>
               </tr>
               <tr>
-                <th style="text-align: center; vertical-align: middle;">Quý I</th>
-                <th style="text-align: center; vertical-align: middle;">Quý II</th>
-                <th style="text-align: center; vertical-align: middle;">Quý III</th>
-                <th style="text-align: center; vertical-align: middle;">Quý IV</th>
+                <th>Quý I</th>
+                <th>Quý II</th>
+                <th>Quý III</th>
+                <th>Quý IV</th>
               </tr>
             </thead>
             <tbody id="annualSummaryTableBody">
@@ -11118,6 +11154,9 @@ function updateDeptAnnualSwitchVisibility(curQ, curY) {
   }
   if (!canShow && window._currentDeptSubView === 'annual') {
     switchDeptSummarySubView('quarter');
+  } else if (canShow && (!currentAnnualSummaryData || currentAnnualSummaryData.length === 0)) {
+    // Tải trước ngầm dữ liệu cả năm ngay khi vào Quý IV để bấm chuyển sang Mẫu 03 hiển thị tức thì
+    loadAnnualDepartmentSummary(false, false);
   }
 }
 
@@ -11277,6 +11316,12 @@ async function loadAnnualDepartmentSummary(showNotification = false, forceRefres
   const cacheKey = `KBXV_ANNUAL_SUMMARY_${curY}`;
   const btnReload = document.getElementById('btnReloadAnnual');
   if (btnReload && showNotification) btnReload.innerText = 'Đang tổng hợp...';
+
+  // Hiển thị trạng thái đang tải ngay lập tức nếu chưa có dữ liệu trong RAM (tránh bảng trắng)
+  const tbodyEl = document.getElementById('annualSummaryTableBody');
+  if (tbodyEl && (!currentAnnualSummaryData || currentAnnualSummaryData.length === 0)) {
+    tbodyEl.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 28px 12px; color: var(--text-muted); font-weight: 600;">⏳ Đang tổng hợp điểm KPI 4 Quý năm ${curY} cho 35 công chức...</td></tr>`;
+  }
 
   // Instant paint từ IDB Cache nếu không forceRefresh
   if (!forceRefresh) {
