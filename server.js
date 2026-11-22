@@ -4267,6 +4267,126 @@ async function handleKpiRequest(req, res) {
   }
 
   // API Summary Toàn phòng (CÓ BỘ ĐỆM RAM + TRUY VẤN INDEXED KHÔNG COLLSCAN)
+  // 🔗 API ĐỒNG BỘ CHỈ ĐỌC (READ-ONLY) SANG APP KTNN SỐ (4 QUÝ TRONG NĂM)
+  if (pathname === '/api/export-quarterly-scores' && req.method === 'GET') {
+    const expectedKey = String(process.env.KPI_SYNC_KEY || 'KTNN_XV_SYNC_2026_RO').trim();
+    const providedKey = String(req.headers['x-kpi-sync-key'] || searchParams.get('syncKey') || '').trim();
+    const keyOk = providedKey.length === expectedKey.length &&
+      crypto.timingSafeEqual(Buffer.from(providedKey), Buffer.from(expectedKey));
+    if (!keyOk) {
+      return sendJson(res, 401, { success: false, error: 'Sai khóa đồng bộ Read-Only (X-KPI-Sync-Key).' });
+    }
+
+    const targetYear = Number(searchParams.get('year')) || 2026;
+    const cfg = await getOfficersConfig();
+    const officersList = Object.values(cfg || {});
+    const quarters = [
+      { key: 'q1', norm: 'QuyI', label: 'Quý I' },
+      { key: 'q2', norm: 'QuyII', label: 'Quý II' },
+      { key: 'q3', norm: 'QuyIII', label: 'Quý III' },
+      { key: 'q4', norm: 'QuyIV', label: 'Quý IV' }
+    ];
+
+    const byKey = {};
+    if (kpiDb) {
+      try {
+        const docs = await kpiDb.collection('sessions').find({
+          $or: [{ year: targetYear }, { "data.officer.year": targetYear }]
+        }, {
+          projection: {
+            filename: 1, officerId: 1, quarterNorm: 1, year: 1,
+            "data.officer": 1, "data.status": 1, "data.isSubmitted": 1, "data.isApproved": 1,
+            "data.months.completionPercent": 1, "data.generalCriteria": 1,
+            "data.proposedRating": 1, "data.selfRating": 1, "data.selfRatingProposal": 1, "data.leaderRatingProposal": 1
+          }
+        }).toArray();
+        for (const d of docs) {
+          const sData = d && d.data ? d.data : null;
+          if (!sData) continue;
+          const qn = d.quarterNorm || extractQuarterFromFilename(d.filename) || normalizeQuarter(sData.officer && sData.officer.quarter);
+          const oid = d.officerId || (sData.officer && sData.officer.officerId);
+          if (!oid || !qn) continue;
+          const k = `${oid}__${qn}`;
+          byKey[k] = pickBestSession(byKey[k], sData);
+        }
+      } catch (e) {
+        console.error('[EXPORT-QUARTERLY] MongoDB error:', e.message);
+      }
+    }
+
+    if (!kpiDb || !process.env.VERCEL || Object.keys(byKey).length === 0) {
+      const localSessions = getAllLocalSessions();
+      for (const [fn, sData] of Object.entries(localSessions)) {
+        if (!sData) continue;
+        const yMatch = fn.match(/_(\d{4})\.json$/i);
+        const fnYear = yMatch ? Number(yMatch[1]) : Number(sData.officer && sData.officer.year);
+        if (fnYear && fnYear !== targetYear) continue;
+        const qn = extractQuarterFromFilename(fn) || normalizeQuarter(sData.officer && sData.officer.quarter);
+        const oid = (sData.officer && sData.officer.officerId) || fn.split('_')[0];
+        if (!oid || !qn) continue;
+        const k = `${oid}__${qn}`;
+        byKey[k] = pickBestSession(byKey[k], sData);
+      }
+    }
+
+    const computeScore = (sess, role) => {
+      if (!sess) return null;
+      let monthsArr = Array.isArray(sess.months) ? sess.months : (sess.months && typeof sess.months === 'object' ? Object.values(sess.months) : []);
+      let sumPct = 0, mCount = 0;
+      monthsArr.forEach(m => {
+        let pct = Number(m && m.completionPercent) || 0;
+        if (pct === 0 && m && Array.isArray(m.rows) && m.rows.length > 0) {
+          pct = calculateMonthPctFromRows(m, role);
+        }
+        if (pct > 0) { sumPct += pct; mCount++; }
+      });
+      const avgPct = (mCount > 0 && monthsArr.length > 0) ? Math.round((sumPct / monthsArr.length) * 10) / 10 : 0;
+      let gSum = 0;
+      if (sess.generalCriteria) {
+        for (const k of Object.keys(sess.generalCriteria)) gSum += Number(sess.generalCriteria[k] || 0);
+      }
+      const generalScore = Math.min(30, Math.round(gSum * 10) / 10);
+      const taskScore = Math.round((avgPct * 0.7) * 10) / 10;
+      const totalScore = Math.round((taskScore + generalScore) * 10) / 10;
+      if (totalScore <= 0 && !sess.isSubmitted && !sess.isApproved) return null;
+      return {
+        totalScore,
+        status: sess.isApproved || sess.status === 'da_duyet' ? 'APPROVED' : (sess.isSubmitted || sess.status === 'da_nop' ? 'SUBMITTED' : 'DRAFT'),
+        selfRating: sess.proposedRating || sess.selfRating || sess.selfRatingProposal || '',
+        leaderProposal: sess.leaderRatingProposal || ''
+      };
+    };
+
+    const resultOfficers = officersList.map(off => {
+      const scores = { q1: null, q2: null, q3: null, q4: null };
+      let q4Status = 'NONE', selfRating = '', leaderProposal = '';
+      for (const q of quarters) {
+        const s = computeScore(byKey[`${off.id}__${q.norm}`], off.role);
+        if (s) {
+          scores[q.key] = s.totalScore;
+          if (q.key === 'q4') {
+            q4Status = s.status;
+            selfRating = s.selfRating;
+            leaderProposal = s.leaderProposal;
+          } else if (!selfRating && s.selfRating) {
+            selfRating = s.selfRating;
+          }
+        }
+      }
+      const vals = Object.values(scores).filter(v => v !== null);
+      const avg = vals.length > 0 ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 100) / 100 : null;
+      return { officerId: off.id, name: off.name, role: off.role, scores, avg, q4Status, selfRating, leaderProposal };
+    });
+
+    return sendJson(res, 200, {
+      success: true,
+      source: kpiDb ? 'vercel_mongodb' : 'kpi_local',
+      year: targetYear,
+      syncedAt: new Date().toISOString(),
+      officers: resultOfficers
+    });
+  }
+
   if (pathname === '/api/summary' && req.method === 'GET') {
     const auth = await requireAuth();
     if (!auth) return;
