@@ -8801,7 +8801,7 @@ async function loadSessionForOfficer(officerId, quarter, year, ramCandidate = nu
           if (typeof saveActiveSession === 'function') {
             saveActiveSession(false, {
               backgroundCloud: true,
-              recoverMissingOnCloud: !!(json && json.isNew && bestLocal && bestLocal.status === 'da_nop' && bestLocal.submittedAt)
+              recoverMissingOnCloud: !!(bestLocal && bestLocal.status === 'da_nop' && bestLocal.submittedAt && (json.isNew || (serverCandidate && serverCandidate.status === 'da_luu')))
             });
           }
           return;
