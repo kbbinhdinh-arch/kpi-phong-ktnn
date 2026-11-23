@@ -379,6 +379,31 @@
       color: var(--warning);
       white-space: nowrap;
     }
+    .plan-context-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 8px 12px;
+      margin-bottom: 10px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+    }
+    .plan-stat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 9px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
 
     .guide-nav-pill {
       flex-shrink: 0;
@@ -3578,24 +3603,37 @@
       </div>
 
       <div id="tab-plan" class="sub-tab-pane active">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
         <div>
-          <h3 style="font-size: 15px; color: var(--primary);">Bảng Kế hoạch, Chương trình công tác Quý</h3>
-          <p style="font-size: 12px; color: var(--text-muted);"><span id="planTitleBadge" class="tag tag-trongtam"></span> (Hạn nộp: Ngày đầu tiên của Quý)</p>
+          <h3 style="font-size: 15px; color: var(--primary); font-weight: 800;">Bảng Kế hoạch, Chương trình công tác Quý</h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+            <span id="planTitleBadge" style="font-weight: 700; color: var(--primary);"></span> · Hạn nộp: Ngày đầu tiên của Quý
+          </p>
         </div>
         <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
           <button type="button" class="btn btn-primary btn-sm" id="btnSavePlan" onclick="saveCurrentScreenData('Kế hoạch Quý (Mẫu 01/03)')" style="font-weight: 700;" title="Lưu toàn bộ danh sách nhiệm vụ Kế hoạch Quý vào CSDL hệ thống">Lưu Kế hoạch (M01/03)</button>
           <button type="button" class="btn btn-outline-info btn-sm" id="btnExtractFromM01" onclick="openExtractFromM01Modal()" style="font-weight: 700;" title="Trích xuất các nhiệm vụ từ Kế hoạch Quý Đơn vị (Mẫu 01) của Trưởng phòng vào Kế hoạch Cá nhân (Mẫu 03)">Trích xuất từ Mẫu 01</button>
           <button type="button" class="btn btn-outline btn-sm" id="btnXemKeHoachQuy" onclick="openPlanPreviewModal()" style="font-weight: 700;">Xem Mẫu 03</button>
-          <button type="button" class="btn btn-outline-success btn-sm" id="btnExportPlanExcel" onclick="exportPlanToExcel()" style="font-weight: 700;" title="Kết xuất Kế hoạch Quý ra tệp Excel (.xls)">Xuất Excel (Mẫu 03)</button>
-          
           <button type="button" class="btn btn-outline btn-sm" onclick="addPlanTask()" title="Thêm thủ công 1 nhiệm vụ mới vào bảng">+ Thêm thủ công</button>
-          <label class="btn btn-outline-success btn-sm" style="cursor: pointer; margin: 0;" title="Nhập danh sách nhiệm vụ từ tệp Excel (.xlsx hoặc .csv)">
+          <label class="btn btn-outline-success btn-sm" style="cursor: pointer; margin: 0; font-weight: 700;" title="Nhập danh sách nhiệm vụ từ tệp Excel (.xlsx, .xls, .csv) cho Quý hiện tại">
             Nhập từ file Excel
-            <input type="file" id="excelTaskFileInput" accept="*/*" style="display: none;" onchange="handleExcelTaskImport(event)">
+            <input type="file" id="excelTaskFileInput" accept=".xlsx,.xls,.csv" style="display: none;" onchange="handleExcelTaskImport(event)">
           </label>
-          <button type="button" class="btn btn-outline-danger btn-sm" onclick="cleanCorruptedTasksFromPlan(); renderPlanTable(); alert('Đã quét sạch toàn bộ dòng lỗi rác!');" title="Quét sạch các dòng ký tự lạ bị lưu trong máy">Quét dọn dữ liệu rác</button>
-          <button type="button" class="btn btn-outline-warning btn-sm" onclick="removeWrongQuarterPlanTasks()" title="Kiểm tra và loại bỏ các nhiệm vụ có thời hạn (dd/mm/yyyy) thuộc quý khác bị trộn vào quý này">Lọc đúng Quý</button>
+          <button type="button" class="btn btn-outline-danger btn-sm" onclick="resetCurrentQuarterPlan()" title="Làm trống toàn bộ danh sách nhiệm vụ của riêng Quý đang chọn để nhập mới từ Excel">Reset (Làm trống Quý)</button>
+        </div>
+      </div>
+
+      <!-- Dải ngữ cảnh Quý & Bộ đếm đối chiếu Excel -->
+      <div id="planContextCounters" class="plan-context-bar">
+        <div style="font-size: 12.5px; font-weight: 700; color: var(--primary);">
+          Kỳ dữ liệu: <span id="planContextQuarterLabel">Quý III / 2026</span>
+        </div>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+          <span class="plan-stat-pill">Tổng: <strong id="planStatTotal">0</strong> việc</span>
+          <span class="plan-stat-pill">A.I Trọng tâm: <strong id="planStatAI">0</strong></span>
+          <span class="plan-stat-pill">A.II Thường xuyên: <strong id="planStatAII">0</strong></span>
+          <span class="plan-stat-pill">B Địa phương: <strong id="planStatB">0</strong></span>
+          <span class="plan-stat-pill">NQ 57: <strong id="planStatNQ57">0</strong></span>
         </div>
       </div>
 
@@ -5166,6 +5204,7 @@ async function switchQuarter(newQuarter) {
     appState.quartersData[oldQuarter] = {
       months: JSON.parse(JSON.stringify(appState.months)),
       quarterPlan: Array.isArray(appState.quarterPlan) ? JSON.parse(JSON.stringify(appState.quarterPlan)) : [],
+      planResetExplicitly: !!appState.planResetExplicitly,
       generalCriteria: appState.generalCriteria ? JSON.parse(JSON.stringify(appState.generalCriteria)) : null,
       status: appState.status,
       isSubmitted: appState.isSubmitted,
@@ -5183,6 +5222,7 @@ async function switchQuarter(newQuarter) {
   // 2. Gán quý mới và lưu vào sessionStorage (Xóa trắng quarterPlan/months tạm trên RAM để chống rò rỉ dữ liệu quý cũ sang quý mới)
   appState.officer.quarter = newQuarter;
   appState.quarterPlan = [];
+  appState.planResetExplicitly = false;
   appState.months = [];
   try { sessionStorage.setItem('KBXV_CURRENT_QUARTER', newQuarter); } catch (e) {}
 
@@ -5195,6 +5235,7 @@ async function switchQuarter(newQuarter) {
         ...appState,
         months: JSON.parse(JSON.stringify(qSnap.months)),
         quarterPlan: Array.isArray(qSnap.quarterPlan) ? JSON.parse(JSON.stringify(qSnap.quarterPlan)) : [],
+        planResetExplicitly: !!qSnap.planResetExplicitly,
         generalCriteria: qSnap.generalCriteria ? JSON.parse(JSON.stringify(qSnap.generalCriteria)) : null,
         status: qSnap.status || 'draft',
         isSubmitted: !!qSnap.isSubmitted,
@@ -5454,6 +5495,7 @@ function initMonthsDataIfEmpty() {
 }
 
 function initPlanDataIfEmpty() {
+  if (appState && appState.planResetExplicitly) return;
   const offId = (appState.officer && appState.officer.officerId) || 'hoang';
   if (!appState.quarterPlan || appState.quarterPlan.length === 0) {
     const offData = window.OFFICERS_ASSIGNMENTS ? window.OFFICERS_ASSIGNMENTS[offId] : null;
@@ -6062,21 +6104,49 @@ function renderPlanTable() {
   const isTP = (appState.officer.role === "TP");
   const curQ = (appState.officer && appState.officer.quarter) || "Quý III";
   const curY = (appState.officer && appState.officer.year) || 2026;
-  document.getElementById('planTitleBadge').innerText = (isTP ? "Mẫu số 01 - Kế hoạch Đơn vị" : "Mẫu số 03 - Kế hoạch Cá nhân") + ` (${curQ}/${curY})`;
+  const badgeEl = document.getElementById('planTitleBadge');
+  if (badgeEl) {
+    badgeEl.innerText = (isTP ? "Mẫu số 01 - Kế hoạch Đơn vị" : "Mẫu số 03 - Kế hoạch Cá nhân") + ` (${curQ}/${curY})`;
+  }
   const btnExtract = document.getElementById('btnExtractFromM01');
   if (btnExtract) { btnExtract.style.display = isTP ? 'none' : 'inline-flex'; }
   const btnSavePlan = document.getElementById('btnSavePlan');
   if (btnSavePlan) {
     btnSavePlan.innerText = isTP ? "Lưu Kế hoạch Đơn vị (M01)" : "Lưu Kế hoạch Cá nhân (M03)";
   }
-  const btnExportPlan = document.getElementById('btnExportPlanExcel');
-  if (btnExportPlan) {
-    btnExportPlan.innerText = isTP ? "Xuất Excel (Mẫu 01)" : "Xuất Excel (Mẫu 03)";
+  const btnXemPlan = document.getElementById('btnXemKeHoachQuy');
+  if (btnXemPlan) {
+    btnXemPlan.innerText = isTP ? "Xem Mẫu 01 (Kế hoạch Đơn vị)" : "Xem Mẫu 03";
   }
 
-  tbody.innerHTML = appState.quarterPlan.map((p, idx) => `
+  const list = Array.isArray(appState.quarterPlan) ? appState.quarterPlan : [];
+  const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
+  setTxt('planContextQuarterLabel', `${curQ} / ${curY}`);
+  setTxt('planStatTotal', list.length);
+  setTxt('planStatAI', list.filter(p => p.type === 'AI_KEY').length);
+  setTxt('planStatAII', list.filter(p => p.type === 'AII_REGULAR').length);
+  setTxt('planStatB', list.filter(p => p.type === 'B_LOCAL').length);
+  setTxt('planStatNQ57', list.filter(p => !!p.isNQ57).length);
+
+  if (list.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align: center; padding: 28px 16px; color: var(--text-muted); background: var(--bg-subtle);">
+          <div style="font-size: 13.5px; font-weight: 700; color: var(--text-main); margin-bottom: 4px;">
+            Bảng Kế hoạch ${escapeHtml(curQ)}/${escapeHtml(String(curY))} hiện đang trống (0 nhiệm vụ)
+          </div>
+          <div style="font-size: 12px;">
+            Bấm <strong>Nhập từ file Excel</strong> để nạp toàn bộ danh sách từ file Excel hoặc bấm <strong>+ Thêm thủ công</strong> để nhập nhiệm vụ mới.
+          </div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = list.map((p, idx) => `
     <tr>
-      <td style="text-align: center; font-weight: bold;">${idx + 1}</td>
+      <td style="text-align: center; font-weight: bold; font-variant-numeric: tabular-nums;">${idx + 1}</td>
       <td>
         <input type="text" value="${escapeHtml(p.name)}" onchange="updatePlanTask(${idx}, 'name', this.value)" style="font-weight: 600;">
       </td>
@@ -6088,7 +6158,7 @@ function renderPlanTable() {
         </select>
       </td>
       <td>
-        <input type="text" value="${escapeHtml(p.deadline)}" onchange="updatePlanTask(${idx}, 'deadline', this.value)">
+        <input type="text" value="${escapeHtml(p.deadline)}" style="font-variant-numeric: tabular-nums;" onchange="updatePlanTask(${idx}, 'deadline', this.value)">
       </td>
       <td style="text-align: center;">
         <label><input type="checkbox" ${p.isNQ57 ? 'checked' : ''} onchange="updatePlanTask(${idx}, 'isNQ57', this.checked)"> NQ 57</label>
@@ -8878,6 +8948,7 @@ function applyLoadedSession(data, offId, q, y) {
 
   appState = Object.assign({}, appState, cleanData);
   appState.quarterPlan = Array.isArray(cleanData.quarterPlan) ? cleanData.quarterPlan : [];
+  appState.planResetExplicitly = !!(cleanData && cleanData.planResetExplicitly);
   appState.activeMonthIdx = preservedMonthIdx;
   if (preservedTab) appState.activeTab = preservedTab;
   if (preservedQSub) appState.activeQuarterSubTab = preservedQSub;
@@ -15929,52 +16000,33 @@ function cleanCorruptedTasksFromPlan() {
   }
 }
 
-// Lọc loại bỏ các nhiệm vụ có thời hạn dd/mm/yyyy thuộc quý khác bị trộn vào quý hiện tại
-function removeWrongQuarterPlanTasks() {
-  if (!appState.quarterPlan || appState.quarterPlan.length === 0) {
-    alert('Danh sách nhiệm vụ hiện đang trống!');
-    return;
-  }
+// Reset làm trống danh sách Kế hoạch (Mẫu 01/03) CHỈ CỦA QUÝ HIỆN TẠI để chuẩn bị import mới từ Excel
+function resetCurrentQuarterPlan() {
   const curQ = (appState.officer && appState.officer.quarter) || 'Quý III';
-  const quarterMonthsMap = {
-    'Quý I': [1, 2, 3],
-    'Quý II': [4, 5, 6],
-    'Quý III': [7, 8, 9],
-    'Quý IV': [10, 11, 12]
-  };
-  const validMonths = quarterMonthsMap[curQ] || [7, 8, 9];
+  const curY = (appState.officer && appState.officer.year) || 2026;
+  const count = Array.isArray(appState.quarterPlan) ? appState.quarterPlan.length : 0;
 
-  const wrongTasks = [];
-  const keptTasks = [];
-  appState.quarterPlan.forEach(t => {
-    const dl = String(t.deadline || '').trim();
-    const m = dl.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-    if (m) {
-      const monthNum = parseInt(m[2], 10);
-      if (monthNum >= 1 && monthNum <= 12 && !validMonths.includes(monthNum)) {
-        wrongTasks.push(t);
-        return;
-      }
-    }
-    keptTasks.push(t);
-  });
+  const msg = count > 0
+    ? `XÁC NHẬN LÀM TRỐNG KẾ HOẠCH ${curQ.toUpperCase()}/${curY}:\n\nThao tác này sẽ xóa toàn bộ ${count} nhiệm vụ trong bảng Kế hoạch của riêng ${curQ}/${curY} để bạn nhập lại từ file Excel.\n\nDữ liệu của các Quý khác và bảng chấm điểm tháng vẫn được giữ nguyên 100%. Bạn có chắc chắn không?`
+    : `Bảng Kế hoạch ${curQ}/${curY} hiện đã trống (0 nhiệm vụ). Bạn có muốn lưu trạng thái trống này không?`;
 
-  if (wrongTasks.length === 0) {
-    alert(`Không phát hiện nhiệm vụ nào có ngày hoàn thành nằm ngoài ${curQ} (Tháng ${validMonths.join(', ')})!`);
-    return;
+  if (!confirm(msg)) return;
+
+  appState.quarterPlan = [];
+  appState.planResetExplicitly = true;
+  if (appState.quartersData && appState.quartersData[curQ]) {
+    appState.quartersData[curQ].quarterPlan = [];
+    appState.quartersData[curQ].planResetExplicitly = true;
   }
 
-  const sampleNames = wrongTasks.slice(0, 3).map(t => `- ${t.name} (${t.deadline})`).join('\n');
-  if (!confirm(`Phát hiện ${wrongTasks.length} nhiệm vụ có thời hạn KHÔNG thuộc ${curQ}:\n${sampleNames}${wrongTasks.length > 3 ? '\n...' : ''}\n\nBạn có muốn loại bỏ ${wrongTasks.length} nhiệm vụ sai quý này khỏi bảng ${curQ} không?`)) {
-    return;
-  }
-
-  appState.quarterPlan = keptTasks;
   renderPlanTable();
+  if (typeof renderQuarterResultsTable === 'function') renderQuarterResultsTable();
   if (typeof saveActiveSession === 'function') {
     saveActiveSession(true, { backgroundCloud: false });
+  } else if (typeof saveState === 'function') {
+    saveState();
   }
-  showToast(`Đã lọc bỏ ${wrongTasks.length} nhiệm vụ sai quý khỏi ${curQ} và lưu sạch!`);
+  showToast(`Đã làm trống toàn bộ Kế hoạch ${curQ}/${curY}. Sẵn sàng nhập từ file Excel!`);
 }
 
 // 1-Click fast load button
@@ -16138,6 +16190,18 @@ async function handleExcelTaskImport(event) {
   const file = event.target.files[0];
   if (!file) return;
 
+  const fileNameLower = (file.name || '').toLowerCase();
+  if (!/\.(xlsx|xls|csv)$/i.test(fileNameLower)) {
+    alert('Định dạng tệp không hợp lệ! Vui lòng chọn tệp Excel (.xlsx, .xls) hoặc .csv.');
+    event.target.value = '';
+    return;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    alert('Tệp vượt quá giới hạn 10MB. Vui lòng kiểm tra lại!');
+    event.target.value = '';
+    return;
+  }
+
   try {
     let importedTasks = [];
     const arrayBuffer = await file.arrayBuffer();
@@ -16184,24 +16248,50 @@ async function handleExcelTaskImport(event) {
       return;
     }
 
-    // Clean corrupted tasks
-    cleanCorruptedTasksFromPlan();
+    const curQ = (appState.officer && appState.officer.quarter) || 'Quý III';
+    const curY = (appState.officer && appState.officer.year) || 2026;
+    const currentLen = Array.isArray(appState.quarterPlan) ? appState.quarterPlan.length : 0;
 
-    // Requirement 1: Giữ nguyên các nhiệm vụ chung trước đó, bổ sung thêm nhiệm vụ từ file Excel!
-    const existingNames = new Set(appState.quarterPlan.map(p => (p.name || '').trim().toLowerCase()));
-    importedTasks.forEach(t => {
-      const tNameLower = t.name.trim().toLowerCase();
-      if (!existingNames.has(tNameLower)) {
-        t.id = "IMP-" + (appState.quarterPlan.length + 1);
-        appState.quarterPlan.push(t);
-        existingNames.add(tNameLower);
-      }
-    });
+    let shouldReplace = false;
+    if (currentLen > 0) {
+      shouldReplace = confirm(
+        `Đã đọc được ${importedTasks.length} nhiệm vụ từ file Excel cho ${curQ}/${curY}.\n\n` +
+        `- Bấm [OK] để THAY THẾ TOÀN BỘ ${currentLen} nhiệm vụ hiện có của ${curQ}/${curY} bằng dữ liệu từ file Excel (khuyên dùng để đối chiếu 1-1).\n` +
+        `- Bấm [Cancel] để GIỮ NGUYÊN nhiệm vụ hiện có và chỉ bổ sung thêm các nhiệm vụ mới.`
+      );
+    }
+
+    if (shouldReplace || currentLen === 0) {
+      appState.quarterPlan = importedTasks.map((t, i) => ({
+        ...t,
+        id: "IMP-" + (i + 1)
+      }));
+    } else {
+      cleanCorruptedTasksFromPlan();
+      const existingNames = new Set(appState.quarterPlan.map(p => (p.name || '').trim().toLowerCase()));
+      importedTasks.forEach(t => {
+        const tNameLower = (t.name || '').trim().toLowerCase();
+        if (tNameLower && !existingNames.has(tNameLower)) {
+          t.id = "IMP-" + (appState.quarterPlan.length + 1);
+          appState.quarterPlan.push(t);
+          existingNames.add(tNameLower);
+        }
+      });
+    }
+
+    appState.planResetExplicitly = false;
+    if (appState.quartersData && appState.quartersData[curQ]) {
+      appState.quartersData[curQ].quarterPlan = JSON.parse(JSON.stringify(appState.quarterPlan));
+      appState.quartersData[curQ].planResetExplicitly = false;
+    }
 
     saveState();
     renderPlanTable();
     renderQuarterResultsTable();
-    alert(`Đã nhận diện thành công chính xác ${importedTasks.length} nhiệm vụ từ file Excel!\nĐã tích hợp vào Kế hoạch và bảo lưu đầy đủ các nhiệm vụ chung.`);
+    if (typeof saveActiveSession === 'function') {
+      saveActiveSession(true, { backgroundCloud: false });
+    }
+    showToast(`Đã nhập thành công ${importedTasks.length} nhiệm vụ vào Kế hoạch ${curQ}/${curY}!`);
 
   } catch(err) {
     console.error("Excel import error:", err);
