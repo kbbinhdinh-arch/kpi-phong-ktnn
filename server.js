@@ -275,13 +275,14 @@ function pickBestSession(...candidates) {
     if (tasks > 0 && bestTasks === 0) {
       shouldReplace = true;
     } else if (tasks === 0 && bestTasks > 0) {
-      // Giữ bản có công việc, nhưng nếu cand có hành động trả lại hoặc duyệt mới hơn hẳn -> hợp nhất trạng thái trên bản sao
-      if ((candStatus === 'tra_lai' || candStatus === 'da_duyet') && candActionTime > bestActionTime + 2000) {
+      // Giữ bản có công việc, nhưng nếu cand có hành động trả lại, nộp hoặc duyệt mới hơn hẳn -> hợp nhất trạng thái trên bản sao
+      if ((candStatus === 'tra_lai' || candStatus === 'da_duyet' || candStatus === 'da_nop') && candActionTime > bestActionTime + 2000) {
         best = {
           ...best,
           status: candStatus,
           isSubmitted: !!cand.isSubmitted,
           isApproved: !!cand.isApproved,
+          submittedAt: cand.submittedAt || best.submittedAt,
           rejectedAt: cand.rejectedAt || best.rejectedAt,
           rejectedBy: cand.rejectedBy || best.rejectedBy,
           rejectReason: cand.rejectReason || best.rejectReason,
@@ -2632,7 +2633,7 @@ async function handleKpiRequest(req, res) {
         // TUYỆT ĐỐI KHÔNG ĐƯỢC gán trạng thái 'da_nop' (tránh rò rỉ cờ isSubmitted từ phiên cũ).
         // Chỉ có thao tác nộp bài chính thức (/api/session/submit hoặc action: 'submit') mới được mang trạng thái 'da_nop'.
         const isOfficiallySubmitted = existingSession && (existingSession.isSubmitted || existingSession.status === 'da_nop' || existingSession.status === 'da_duyet');
-        const canRecoverSubmittedFromClient = !existingSession && payload.action === 'recover_submitted' && countIncomingActive > 0 && cleanState.status === 'da_nop' && cleanState.submittedAt;
+        const canRecoverSubmittedFromClient = (!existingSession || existingSession.status === 'da_luu') && payload.action === 'recover_submitted' && countIncomingActive > 0 && cleanState.status === 'da_nop' && cleanState.submittedAt;
         if (!isOfficiallySubmitted && payload.action !== 'submit' && !canRecoverSubmittedFromClient) {
           if (existingSession && existingSession.status === 'tra_lai') {
             cleanState.status = 'tra_lai';
@@ -2886,7 +2887,12 @@ async function handleKpiRequest(req, res) {
                 if (overflow.length > 0) await snapCol.deleteMany({ _id: { $in: overflow.map(d => d._id) } });
               }
             } catch (e) {}
-          } catch (e) {}
+          } catch (e) {
+            console.error('[API SUBMIT] Lỗi lưu MongoDB:', e);
+            if (process.env.VERCEL) {
+              return sendJson(res, 500, { success: false, error: "Lỗi lưu dữ liệu nộp bài lên cơ sở dữ liệu đám mây. Vui lòng thử nộp lại!" });
+            }
+          }
         }
         invalidateSummaryCache();
 
