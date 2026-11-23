@@ -3595,6 +3595,7 @@
             <input type="file" id="excelTaskFileInput" accept="*/*" style="display: none;" onchange="handleExcelTaskImport(event)">
           </label>
           <button type="button" class="btn btn-outline-danger btn-sm" onclick="cleanCorruptedTasksFromPlan(); renderPlanTable(); alert('Đã quét sạch toàn bộ dòng lỗi rác!');" title="Quét sạch các dòng ký tự lạ bị lưu trong máy">Quét dọn dữ liệu rác</button>
+          <button type="button" class="btn btn-outline-warning btn-sm" onclick="removeWrongQuarterPlanTasks()" title="Kiểm tra và loại bỏ các nhiệm vụ có thời hạn (dd/mm/yyyy) thuộc quý khác bị trộn vào quý này">Lọc đúng Quý</button>
         </div>
       </div>
 
@@ -5160,10 +5161,11 @@ async function switchQuarter(newQuarter) {
   if (oldQuarter === newQuarter) return;
   if (!appState.quartersData) appState.quartersData = {};
 
-  // 1. Lưu an toàn dữ liệu của quý cũ vào RAM quartersData (dạng Object chuẩn) và IndexedDB
+  // 1. Lưu an toàn dữ liệu của quý cũ vào RAM quartersData (dạng Object chuẩn, bao gồm cả quarterPlan riêng của từng quý) và IndexedDB
   if (appState.months && appState.months.length === 3) {
     appState.quartersData[oldQuarter] = {
       months: JSON.parse(JSON.stringify(appState.months)),
+      quarterPlan: Array.isArray(appState.quarterPlan) ? JSON.parse(JSON.stringify(appState.quarterPlan)) : [],
       generalCriteria: appState.generalCriteria ? JSON.parse(JSON.stringify(appState.generalCriteria)) : null,
       status: appState.status,
       isSubmitted: appState.isSubmitted,
@@ -5174,12 +5176,14 @@ async function switchQuarter(newQuarter) {
       lastSaved: appState.lastSaved
     };
   }
-  if (hasAnyMonthlyData(appState) || appState.lastSaved) {
+  if (hasAnyMonthlyData(appState) || (Array.isArray(appState.quarterPlan) && appState.quarterPlan.length > 0) || appState.lastSaved) {
     await saveActiveSession(false, { backgroundCloud: true });
   }
 
-  // 2. Gán quý mới và lưu vào sessionStorage
+  // 2. Gán quý mới và lưu vào sessionStorage (Xóa trắng quarterPlan/months tạm trên RAM để chống rò rỉ dữ liệu quý cũ sang quý mới)
   appState.officer.quarter = newQuarter;
+  appState.quarterPlan = [];
+  appState.months = [];
   try { sessionStorage.setItem('KBXV_CURRENT_QUARTER', newQuarter); } catch (e) {}
 
   // 3. Tải phiên làm việc của quý mới
@@ -5190,6 +5194,7 @@ async function switchQuarter(newQuarter) {
       ramCandidate = {
         ...appState,
         months: JSON.parse(JSON.stringify(qSnap.months)),
+        quarterPlan: Array.isArray(qSnap.quarterPlan) ? JSON.parse(JSON.stringify(qSnap.quarterPlan)) : [],
         generalCriteria: qSnap.generalCriteria ? JSON.parse(JSON.stringify(qSnap.generalCriteria)) : null,
         status: qSnap.status || 'draft',
         isSubmitted: !!qSnap.isSubmitted,
@@ -5204,6 +5209,7 @@ async function switchQuarter(newQuarter) {
       ramCandidate = {
         ...appState,
         months: JSON.parse(JSON.stringify(qSnap)),
+        quarterPlan: [],
         officer: { ...appState.officer, quarter: newQuarter }
       };
     }
@@ -5235,6 +5241,8 @@ async function switchYear(newYear) {
   }
 
   appState.officer.year = targetYear;
+  appState.quarterPlan = [];
+  appState.months = [];
   try { sessionStorage.setItem('KBXV_CURRENT_YEAR', String(targetYear)); } catch (e) {}
 
   await loadSessionForOfficer(offId, curQ, targetYear);
@@ -6052,7 +6060,9 @@ function renderDashboard() {
 function renderPlanTable() {
   const tbody = document.getElementById('planTableBody');
   const isTP = (appState.officer.role === "TP");
-  document.getElementById('planTitleBadge').innerText = isTP ? "Mẫu số 01 - Kế hoạch Đơn vị" : "Mẫu số 03 - Kế hoạch Cá nhân";
+  const curQ = (appState.officer && appState.officer.quarter) || "Quý III";
+  const curY = (appState.officer && appState.officer.year) || 2026;
+  document.getElementById('planTitleBadge').innerText = (isTP ? "Mẫu số 01 - Kế hoạch Đơn vị" : "Mẫu số 03 - Kế hoạch Cá nhân") + ` (${curQ}/${curY})`;
   const btnExtract = document.getElementById('btnExtractFromM01');
   if (btnExtract) { btnExtract.style.display = isTP ? 'none' : 'inline-flex'; }
   const btnSavePlan = document.getElementById('btnSavePlan');
@@ -8844,11 +8854,12 @@ function applyLoadedSession(data, offId, q, y) {
   const isApprovedClean = !!(data && (data.isApproved || data.status === 'da_duyet'));
   const statusClean = (data && data.status) ? data.status : (isSubmittedClean ? 'da_nop' : 'draft');
 
-  // Lưu đệm an toàn vào quartersData dạng Object chuẩn
+  // Lưu đệm an toàn vào quartersData dạng Object chuẩn (bao gồm cả quarterPlan theo từng quý)
   if (!appState.quartersData) appState.quartersData = {};
   if (data && data.months && data.months.length === 3) {
     appState.quartersData[q] = {
       months: JSON.parse(JSON.stringify(data.months)),
+      quarterPlan: Array.isArray(data.quarterPlan) ? JSON.parse(JSON.stringify(data.quarterPlan)) : [],
       generalCriteria: data.generalCriteria ? JSON.parse(JSON.stringify(data.generalCriteria)) : null,
       status: statusClean,
       isSubmitted: isSubmittedClean,
@@ -8866,6 +8877,7 @@ function applyLoadedSession(data, offId, q, y) {
   delete cleanData.activeMonthlySubTab;
 
   appState = Object.assign({}, appState, cleanData);
+  appState.quarterPlan = Array.isArray(cleanData.quarterPlan) ? cleanData.quarterPlan : [];
   appState.activeMonthIdx = preservedMonthIdx;
   if (preservedTab) appState.activeTab = preservedTab;
   if (preservedQSub) appState.activeQuarterSubTab = preservedQSub;
@@ -15915,6 +15927,54 @@ function cleanCorruptedTasksFromPlan() {
   if (appState.quarterPlan.length !== beforeLen) {
     saveState();
   }
+}
+
+// Lọc loại bỏ các nhiệm vụ có thời hạn dd/mm/yyyy thuộc quý khác bị trộn vào quý hiện tại
+function removeWrongQuarterPlanTasks() {
+  if (!appState.quarterPlan || appState.quarterPlan.length === 0) {
+    alert('Danh sách nhiệm vụ hiện đang trống!');
+    return;
+  }
+  const curQ = (appState.officer && appState.officer.quarter) || 'Quý III';
+  const quarterMonthsMap = {
+    'Quý I': [1, 2, 3],
+    'Quý II': [4, 5, 6],
+    'Quý III': [7, 8, 9],
+    'Quý IV': [10, 11, 12]
+  };
+  const validMonths = quarterMonthsMap[curQ] || [7, 8, 9];
+
+  const wrongTasks = [];
+  const keptTasks = [];
+  appState.quarterPlan.forEach(t => {
+    const dl = String(t.deadline || '').trim();
+    const m = dl.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (m) {
+      const monthNum = parseInt(m[2], 10);
+      if (monthNum >= 1 && monthNum <= 12 && !validMonths.includes(monthNum)) {
+        wrongTasks.push(t);
+        return;
+      }
+    }
+    keptTasks.push(t);
+  });
+
+  if (wrongTasks.length === 0) {
+    alert(`Không phát hiện nhiệm vụ nào có ngày hoàn thành nằm ngoài ${curQ} (Tháng ${validMonths.join(', ')})!`);
+    return;
+  }
+
+  const sampleNames = wrongTasks.slice(0, 3).map(t => `- ${t.name} (${t.deadline})`).join('\n');
+  if (!confirm(`Phát hiện ${wrongTasks.length} nhiệm vụ có thời hạn KHÔNG thuộc ${curQ}:\n${sampleNames}${wrongTasks.length > 3 ? '\n...' : ''}\n\nBạn có muốn loại bỏ ${wrongTasks.length} nhiệm vụ sai quý này khỏi bảng ${curQ} không?`)) {
+    return;
+  }
+
+  appState.quarterPlan = keptTasks;
+  renderPlanTable();
+  if (typeof saveActiveSession === 'function') {
+    saveActiveSession(true, { backgroundCloud: false });
+  }
+  showToast(`Đã lọc bỏ ${wrongTasks.length} nhiệm vụ sai quý khỏi ${curQ} và lưu sạch!`);
 }
 
 // 1-Click fast load button
