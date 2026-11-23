@@ -16032,13 +16032,67 @@ function resetCurrentQuarterPlan() {
 // 1-Click fast load button
 
 // ==================== TRÍCH XUẤT NHIỆM VỤ TỪ MẪU 01 SANG MẪU 03 ====================
-function openExtractFromM01Modal() {
+window._currentM01ExtractSourceTasks = [];
+
+async function openExtractFromM01Modal() {
   const modal = document.getElementById('extractFromM01Modal');
   if (!modal) return;
 
-  const sourceTasks = window.OFFICIAL_26_TASKS || [];
+  const curQ = (appState.officer && appState.officer.quarter) || 'Quý III';
+  const curY = Number((appState.officer && appState.officer.year) || 2026);
   const tbody = document.getElementById('extractM01TableBody');
   if (!tbody) return;
+
+  const subtitleEl = modal.querySelector('p');
+  if (subtitleEl) {
+    subtitleEl.innerText = `Lựa chọn các nhiệm vụ thuộc Kế hoạch Đơn vị (Mẫu 01 — ${curQ}/${curY}) để trích xuất vào Kế hoạch Cá nhân`;
+  }
+
+  tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted); font-weight: 600;">⏳ Đang tải Kế hoạch Đơn vị (Mẫu 01) của ${escapeHtml(curQ)}/${escapeHtml(String(curY))}...</td></tr>`;
+  modal.style.display = 'flex';
+
+  let sourceTasks = null;
+  try {
+    const res = await apiFetch(`${CURRENT_SERVER_HOST}/api/unit-plan?quarter=${encodeURIComponent(curQ)}&year=${encodeURIComponent(curY)}`, { cache: 'no-cache' });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.success && Array.isArray(json.tasks)) {
+        sourceTasks = json.tasks;
+      }
+    }
+  } catch (e) {
+    console.warn('[EXTRACT M01] Không tải được từ máy chủ, chuyển sang dự phòng cục bộ:', e);
+  }
+
+  // Dự phòng Offline từ IndexedDB/LocalStorage của Trưởng phòng ('son') cho đúng Quý/Năm
+  if (!sourceTasks) {
+    try {
+      const db = await getKpiIndexedDB();
+      if (db) {
+        const sonLocal = await getSessionFromIndexedDB(db, 'son', curQ, curY);
+        if (sonLocal && Array.isArray(sonLocal.quarterPlan)) sourceTasks = sonLocal.quarterPlan;
+      }
+      if (!sourceTasks) {
+        const raw = localStorage.getItem(getSessionStorageKey('son', curQ, curY));
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.quarterPlan)) sourceTasks = parsed.quarterPlan;
+        }
+      }
+    } catch (e) {}
+  }
+
+  if (!sourceTasks) {
+    sourceTasks = (curQ === 'Quý III') ? (window.OFFICIAL_26_TASKS || []) : [];
+  }
+
+  window._currentM01ExtractSourceTasks = sourceTasks;
+
+  if (sourceTasks.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">Trưởng phòng chưa lưu nhiệm vụ nào trong Kế hoạch Đơn vị (Mẫu 01) cho <strong>${escapeHtml(curQ)}/${escapeHtml(String(curY))}</strong>.</td></tr>`;
+    updateExtractM01Count();
+    return;
+  }
 
   const currentTaskNames = new Set((appState.quarterPlan || []).map(p => (p.name || '').trim().toLowerCase()));
 
@@ -16065,7 +16119,6 @@ function openExtractFromM01Modal() {
   }).join('');
 
   updateExtractM01Count();
-  modal.style.display = 'flex';
 }
 
 function closeExtractFromM01Modal() {
@@ -16102,7 +16155,7 @@ function filterExtractM01Table(query) {
 }
 
 function applyExtractSelectedTasks(replace) {
-  const sourceTasks = window.OFFICIAL_26_TASKS || [];
+  const sourceTasks = window._currentM01ExtractSourceTasks || [];
   const checkboxes = document.querySelectorAll('.chk-extract-task:checked');
   if (checkboxes.length === 0) {
     alert("Vui lòng chọn ít nhất một nhiệm vụ để trích xuất!");
@@ -16142,20 +16195,22 @@ function applyExtractSelectedTasks(replace) {
     alert(`Đã trích xuất và bổ sung thành công ${addedCount} nhiệm vụ mới từ Mẫu 01 vào Kế hoạch Mẫu 03!`);
   }
 
+  appState.planResetExplicitly = false;
   saveState();
   renderPlanTable();
   renderQuarterResultsTable();
+  if (typeof saveActiveSession === 'function') saveActiveSession(true, { backgroundCloud: false });
   closeExtractFromM01Modal();
 }
 
 function quickLoadAllM01Tasks() {
-  const sourceTasks = window.OFFICIAL_26_TASKS || [];
+  const sourceTasks = window._currentM01ExtractSourceTasks || [];
   if (sourceTasks.length === 0) {
-    alert("Không tìm thấy dữ liệu nhiệm vụ chuẩn Mẫu 01!");
+    alert("Không tìm thấy dữ liệu nhiệm vụ Mẫu 01 của kỳ hiện tại!");
     return;
   }
 
-  const isReplace = confirm("Bấm [OK] để THAY THẾ toàn bộ Kế hoạch Mẫu 03 bằng 27 nhiệm vụ chuẩn từ Mẫu 01.\nBấm [Cancel] để BỔ SUNG thêm (bảo lưu nhiệm vụ hiện tại).");
+  const isReplace = confirm(`Bấm [OK] để THAY THẾ toàn bộ Kế hoạch Mẫu 03 bằng ${sourceTasks.length} nhiệm vụ từ Mẫu 01.\nBấm [Cancel] để BỔ SUNG thêm (bảo lưu nhiệm vụ hiện tại).`);
   
   if (isReplace) {
     appState.quarterPlan = JSON.parse(JSON.stringify(sourceTasks)).map((t, i) => {

@@ -2296,6 +2296,61 @@ async function handleKpiRequest(req, res) {
     }
   }
 
+  // API Get Unit Plan (Mẫu số 01 của Trưởng phòng theo đúng Quý/Năm — cho phép mọi cán bộ đã đăng nhập trích xuất sang Mẫu 03)
+  if (pathname === '/api/unit-plan' && req.method === 'GET') {
+    const auth = await requireAuth();
+    if (!auth) return;
+    const quarter = searchParams.get('quarter') || "Quý III";
+    const year = searchParams.get('year') || "2026";
+    const officerId = 'son';
+    const filename = getSessionFilename(officerId, quarter, year);
+    const normQ = normalizeQuarter(quarter);
+    const yNum = Number(year) || 2026;
+
+    let bestDoc = null;
+    if (kpiDb) {
+      try {
+        const sameQuarterFns = [filename, ...getSameQuarterAltFilenames(officerId, quarter, year)];
+        let docs = await kpiDb.collection('sessions').find(
+          { filename: { $in: sameQuarterFns } },
+          { projection: { filename: 1, activeTasksCount: 1, "data.quarterPlan": 1, "data.lastSaved": 1, "data.status": 1, "data.officer": 1 } }
+        ).toArray();
+        if (!docs || docs.length === 0) {
+          docs = await kpiDb.collection('sessions').find(
+            { officerId, quarterNorm: normQ, year: yNum },
+            { projection: { filename: 1, activeTasksCount: 1, "data.quarterPlan": 1, "data.lastSaved": 1, "data.status": 1, "data.officer": 1 } }
+          ).toArray();
+        }
+        for (const d of docs) {
+          if (d && d.data) {
+            const fnQ = extractQuarterFromFilename(d.filename);
+            if (fnQ && fnQ !== normQ) continue;
+            if (typeof d.activeTasksCount === 'number' && !d.data.activeTasksCount) {
+              d.data.activeTasksCount = d.activeTasksCount;
+            }
+            bestDoc = pickBestSession(bestDoc, d.data);
+          }
+        }
+      } catch (e) {}
+    }
+
+    const altFilename = filename.includes('Quy') ? filename.replace(/Quy/g, 'Quý') : filename.replace(/Quý/g, 'Quy');
+    bestDoc = pickBestSession(bestDoc, getLocalSession(filename), getLocalSession(altFilename));
+
+    let tasks = [];
+    if (bestDoc && Array.isArray(bestDoc.quarterPlan)) {
+      tasks = bestDoc.quarterPlan;
+    } else {
+      const cfg = await getOfficersConfig();
+      const sonCfg = cfg[officerId];
+      if (sonCfg && Array.isArray(sonCfg.defaultPlan)) {
+        tasks = sonCfg.defaultPlan;
+      }
+    }
+
+    return sendJson(res, 200, { success: true, quarter, year: yNum, tasks });
+  }
+
   // API Get Session
   if (pathname === '/api/session' && req.method === 'GET') {
     const auth = await requireAuth();
